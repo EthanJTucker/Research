@@ -37,11 +37,12 @@ GENDATA ANALYSIS (CHEMISTRY AND MATH STUDENTS)
 ##Fix Gen_Data semester listing. We want them listed numerically from 1 to N.
 
 Number.Semesters <- function(x) {
+  x <- x %>% arrange(Semester)
   
-  individual.cases <-  x%>% arrange(Semester) %>%
-         pull(Semester)
+  individual.cases <- x %>% pull(Semester)
   
-  replace.terms <- function(data){
+  individual.cases[1]
+  
     for(y in seq_along(along.with = individual.cases)){
       if(individual.cases[y] == "2010/FA"){
         individual.cases[y] <- 1}
@@ -85,10 +86,11 @@ Number.Semesters <- function(x) {
         individual.cases[y] <- 20}
       else{stop("There was an invalid Semester name passed to Number.Semesters")}
       }
-    x$Semester <- individual.cases
+    x <- mutate(x, Term.Number = individual.cases)
+    x
   }
-}
-Number.Semesters(Gen_Data)
+  
+Gen_Data <- Number.Semesters(Gen_Data)
 ```
 
 
