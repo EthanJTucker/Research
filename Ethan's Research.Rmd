@@ -20,8 +20,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r Initialize, cache = TRUE}
 library(readxl)
 library(tidyverse)
-Easy_Data <- read_excel("C:/Users/Ethan/Desktop/Stats Research Math, Chemistry, and Biology Grades, Selected Courses.xlsx")
-Gen_Data <- read_excel("C:/Users/Ethan/Desktop/Stats Research XLS.xlsx")
+Easy_Data <- read_excel("C:/Users/Ethan/Desktop/Research/Stats Research Math, Chemistry, and Biology Grades, Selected Courses.xlsx")
+Gen_Data <- read_excel("C:/Users/Ethan/Desktop/Research/Stats Research XLS.xlsx")
 set.seed(1000)
 ```
 
