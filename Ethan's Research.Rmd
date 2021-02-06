@@ -8,6 +8,7 @@ output: html_document
 ATTRIBUTION:
 The data I use in this analysis were collected by Andrew Eckstrom of (?). Without this data none of the work that follows would have been possible. I also want to thank Professor Nordmoe for helping me with this project, from connecting me with the data set to all the helpful waychecks!
 
+Potential error: Dataset does not distinguish between sections, so class tracker puts all sections together regardless of whether teaching quality and grade performance varied betweed sections.
 
 **Fewest **
 
@@ -37,13 +38,56 @@ GENDATA ANALYSIS (CHEMISTRY AND MATH STUDENTS)
 
 Number.Semesters <- function(x) {
   
-  all.terms <-  x%>% arrange(Semester) %>%
-         pull(Semester) %>%
-         unique()
+  individual.cases <-  x%>% arrange(Semester) %>%
+         pull(Semester)
   
-  
+  replace.terms <- function(data){
+    for(y in seq_along(along.with = individual.cases)){
+      if(individual.cases[y] == "2010/FA"){
+        individual.cases[y] <- 1}
+      else if(individual.cases[y] == "2011/WI"){
+        individual.cases[y] <- 2}
+      else if(individual.cases[y] == "2011/SU"){
+        individual.cases[y] <- 3}
+      else if(individual.cases[y] == "2011/FA"){
+        individual.cases[y] <- 4}
+      else if(individual.cases[y] == "2012/WI"){
+        individual.cases[y] <- 5}
+      else if(individual.cases[y] == "2012/SU"){
+        individual.cases[y] <- 6}
+      else if(individual.cases[y] == "2012/FA"){
+        individual.cases[y] <- 7}
+      else if(individual.cases[y] == "2013/WI"){
+        individual.cases[y] <- 8}
+      else if(individual.cases[y] == "2013/SU"){
+        individual.cases[y] <- 9}
+      else if(individual.cases[y] == "2013/FA"){
+        individual.cases[y] <- 10}
+      else if(individual.cases[y] == "2014/WI"){
+        individual.cases[y] <- 11}
+      else if(individual.cases[y] == "2014/SU"){
+        individual.cases[y] <- 12}
+      else if(individual.cases[y] == "2014/FA"){
+        individual.cases[y] <- 13}
+      else if(individual.cases[y] == "2015/WI"){
+        individual.cases[y] <- 14}
+      else if(individual.cases[y] == "2015/SU"){
+        individual.cases[y] <- 15}
+      else if(individual.cases[y] == "2015/FA"){
+        individual.cases[y] <- 16}
+      else if(individual.cases[y] == "2016/WI"){
+        individual.cases[y] <- 17}
+      else if(individual.cases[y] == "2016/SU"){
+        individual.cases[y] <- 18}
+      else if(individual.cases[y] == "2016/FA"){
+        individual.cases[y] <- 19}
+      else if(individual.cases[y] == "2017/WI"){
+        individual.cases[y] <- 20}
+      else{stop("There was an invalid Semester name passed to Number.Semesters")}
+      }
+    x$Semester <- individual.cases
+  }
 }
-
 Number.Semesters(Gen_Data)
 ```
 
