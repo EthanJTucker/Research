@@ -15,14 +15,14 @@ Potential error: Dataset does not distinguish between sections, so class tracker
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 ```
 
-```{r Initialize, cache = TRUE}
+```{r Initialize}
 library(readxl)
 library(tidyverse)
-Easy_Data <- read_excel("C:/Users/Ethan/Desktop/Research/Stats Research Math, Chemistry, and Biology Grades, Selected Courses.xlsx")
-Gen_Data <- read_excel("C:/Users/Ethan/Desktop/Research/Stats Research XLS.xlsx")
+Easy_Data <- read_excel("/home/local/KNET/k16et01/Homeworks/Research/Stats Research Math, Chemistry, and Biology Grades, Selected Courses.xlsx")
+Gen_Data <- read_excel("/home/local/KNET/k16et01/Homeworks/Research/Stats Research XLS.xlsx")
 set.seed(1000)
 ```
 
@@ -163,22 +163,22 @@ for(i in 1:n){
 ##Apply Grade Converter
 Ass.GPA <- Gen_Data$Grade
 Ass.GPA [] <- sapply(Ass.GPA, convert_grades)
-Gen_Data <- mutate(Gen_Data, GPA = as.double(Ass.GPA))
+Gen_Data <- mutate(Gen_Data, "GPA Assigned" = as.numeric(Ass.GPA))
 ```
 
 ```{r Gen_Data.Reset.Button}
 ##Reset Button if below chunk doesn't work
-Gen_Data <- select(Gen_Data,"Student Random ID":"GPA")
+Gen_Data <- select(Gen_Data,"Student Random ID":"GPA Assigned")
 ```
 
-```{r, echo=FALSE}
-##This chunck creates the Class Tracker, Mean GPA, and Delta columns in Gen_Data,
+```{r Class Tracker Mean GPA Assigned and Delta}
+##This chunk creates the Class Tracker, Mean GPA, and Delta columns in Gen_Data. This can be recreated nicely with dplyr, I'll do that if I have time.
 ##Initial Conditions
 f <- 1
 c <- 1
 cntr <- 1
 prv.cntr <- 0
-Gen_Data <- mutate(Gen_Data, "Class Tracker" = NA, "Mean GPA" = NA, "Delta" = NA)
+Gen_Data <- mutate(Gen_Data, "Class Tracker" = NA, "Class Mean GPA" = NA, "Delta" = NA)
 Gen_Data <- arrange(arrange(arrange(Gen_Data,`Faculty Random ID`),Semester),`Course Code`)
 
 while(is.na(Gen_Data$`Class Tracker`[n])){
@@ -201,13 +201,13 @@ while(cntr != prv.cntr ){
     ##Calculate class mean GPA and individual student Delta's
     Class.GPAS <- rep(0,c-f)
     for(z in 2:(c-f)){
-      Class.GPAS[z] <- as.double(Gen_Data$GPA[z-1+f])
+      Class.GPAS[z] <- as.double(Gen_Data$"GPA Assigned"[z-1+f])
     }
      class.mean.gpa <- mean(Class.GPAS, na.rm = TRUE)
     
     for(k in f:(c-1)){
-      Gen_Data$`Mean GPA`[k] <- class.mean.gpa
-      Gen_Data$`Delta`[k] <- Gen_Data$GPA[k] - class.mean.gpa
+      Gen_Data$`Class Mean GPA`[k] <- class.mean.gpa
+      Gen_Data$`Delta`[k] <- Gen_Data$"GPA Assigned"[k] - class.mean.gpa
     }
     prv.cntr <- prv.cntr + 1
   }
@@ -219,27 +219,31 @@ cntr <- cntr + 1
 f <- c
 }
 
-##There's some jank where this doesn't do the class gpa and delta for the final Class Tracker, so below I tell R to do it manually. This is aterrible coding hide your dignity. My one thought was to add a dummy row at the end of Gen_Data and delete it after the loop, because I think R is stopping the loop as soon as the final Class Tracker is assigned, and completes neither Delta nor Class Mean GPA for the final class.
+##There's some jank where this doesn't do the class gpa and delta for the final Class Tracker, so below I tell R to do it manually. This is terrible coding hide your dignity. My one thought was to add a dummy row at the end of Gen_Data and delete it after the loop, because I think R is stopping the loop as soon as the final Class Tracker is assigned, and completes neither Delta nor Class Mean GPA for the final class.
 ```
 
+``` {r}
+```
+
+JANK:
 start id 139176
 end id 139233
 
-```{r}
-##Fix final class NEEDS UPDATE WITH BIO STUDENTS
+```{r Fix final class}
+##Fix final class
 f <- 139176
 l <- 139233
 k <- l - (f-1)
 Gen_Data <- arrange(arrange(arrange(Gen_Data,`Faculty Random ID`),Semester),`Course Code`)
 Class.GPAS2 <- rep(0,k)
 for(i in f:l){
-  Class.GPAS2[i-(f-1)] <- as.double(Gen_Data$GPA[i])
+  Class.GPAS2[i-(f-1)] <- as.double(Gen_Data$"GPA Assigned"[i])
   Gen_Data$`Class Tracker`[i] <- 4332 ##CHANGE
 }
 class.mean.gpa <- mean(Class.GPAS2,na.rm = TRUE)
 for(i in f:l){
-  Gen_Data$`Mean GPA`[i] <- class.mean.gpa
-  Gen_Data$Delta[i] <- Gen_Data$GPA[i] - class.mean.gpa
+  Gen_Data$`Class Mean GPA`[i] <- class.mean.gpa
+  Gen_Data$Delta[i] <- Gen_Data$"GPA Assigned"[i] - class.mean.gpa
 }
 
 ```
@@ -257,7 +261,7 @@ View(Points.Tracker)
 
 ```{r}
 ##Assigns point values to professors
-
+ 
 
 
 ```
