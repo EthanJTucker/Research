@@ -86,7 +86,7 @@ Number.Semesters <- function(x) {
         individual.cases[y] <- 20}
       else{stop("There was an invalid Semester name passed to Number.Semesters")}
       }
-    x <- mutate(x, Term.Number = individual.cases)
+    x <- mutate(x, Total.Term = individual.cases)
     x
   }
   
@@ -171,8 +171,10 @@ Gen_Data <- mutate(Gen_Data, "GPA Assigned" = as.numeric(Ass.GPA))
 Gen_Data <- select(Gen_Data,"Student Random ID":"GPA Assigned")
 ```
 
-```{r Class Tracker Mean GPA Assigned and Delta}
+```{r Class Tracker Mean GPA Assigned and Delta, cache=TRUE}
 ##This chunk creates the Class Tracker, Mean GPA, and Delta columns in Gen_Data. This can be recreated nicely with dplyr, I'll do that if I have time.
+
+##IMPORTANT NOTE: the new Gen_Data variable Class Mean GPA is calculated with na.rm = TRUE, and therefore it is the mean gpa assigned of those students who did not withdraw or take incompletes that did not get resolved.
 ##Initial Conditions
 f <- 1
 c <- 1
@@ -222,7 +224,8 @@ f <- c
 ##There's some jank where this doesn't do the class gpa and delta for the final Class Tracker, so below I tell R to do it manually. This is terrible coding hide your dignity. My one thought was to add a dummy row at the end of Gen_Data and delete it after the loop, because I think R is stopping the loop as soon as the final Class Tracker is assigned, and completes neither Delta nor Class Mean GPA for the final class.
 ```
 
-``` {r}
+```{r}
+##Rewrite above code chunk with dplyr if time allows
 ```
 
 JANK:
@@ -230,7 +233,7 @@ start id 139176
 end id 139233
 
 ```{r Fix final class}
-##Fix final class
+##Fix final class from jank method
 f <- 139176
 l <- 139233
 k <- l - (f-1)
@@ -248,12 +251,67 @@ for(i in f:l){
 
 ```
 
+```{r Initialize Student.Term}
+##Here we convert Total.Term into numeric, and create the Student.Term variable which describes a student's term progression through OCC
+Gen_Data$Total.Term <- parse_number(Gen_Data$Total.Term)
+Gen_Data <- Gen_Data %>%
+              arrange(`Student Random ID`, -desc(Total.Term)) %>%
+                mutate(Student.Term = 0)
+
+Term.Cntr <- 0
+Starting.Student <- Gen_Data$`Student Random ID`[1]
+Student.Cntr <- Starting.Student
+for(i in 1:n){
+  if(Gen_Data$`Student Random ID`[i] == Student.Cntr){
+    Term.Cntr <- Term.Cntr + 1
+  }
+  else{
+    Term.Cntr <- 1
+    Student.Cntr <- Gen_Data$`Student Random ID`[i]
+  }
+  Gen_Data$Student.Term[i] <- Term.Cntr
+}
+```
 
 
+```{r Department} 
+##Create Department variable which describes the department wherein a class was taken.
+Gen_Data <- Gen_Data %>% mutate(Department = substr(Gen_Data$`Course Code`,1,3))
+```
+
+```{r}
+##Create a new data frame that tracks individual students through their years at OCC. First we need to figure out how many classes a student takes in math/chem departments by term.
+
+N.Math.By.Term <- Gen_Data %>% arrange(Term.Number, `Student Random ID`, `Course Code`) %>%
+  group_by(`Student Random ID`, Semester, Department) %>%
+    count()
+
+N.Math.By.Term %>% filter(n > 1) %>%
+  arrange(`Student Random ID`, Semester)
+
+##This dataset can be used to show that students are much more likely to take two math courses simultaneously than two chemistry courses. Additionally, it tells us we need to make a robust points tracking algorithm.
+```
+
+```{r}
+##Create class size variable for statistical significance tests. There are 5 courses with iffy class sizes: 861, 2636, 3894, 4234, and 3148. The first four of these have n = 1 - they are independant studies. 3148 had n = 3, I'm not sure how that happened. Doing this filtration gives n >= 7, which will allow the usage of the t test. Fortunately we did not need to remove almost any cases, so validity of results is basically unaffected.
+Sig.Courses <- Gen_Data %>%
+                group_by(`Course Code`,`Class Tracker`) %>%
+                  count() %>%
+                      mutate(class_size = n, Significant = if_else(n > 5, TRUE, FALSE)) %>%
+                        select(-n) %>%
+                         filter(Significant == TRUE)
+Gen_Data <- left_join(Sig.Courses, Gen_Data, by = c("Class Tracker", "Course Code")) %>%
+              select(-Significant)
+```
 
 ```{r Initialize.Points.Tracker}
 ##Creates Points Tracker
-Points.Tracker <- data.frame(Prof.Type = NA, Professors = Profs.List, First.Math.Points = 0, First.Chem.Points = 0, First.Bio.Points = 0, First.Withdraws = 0,  Total.Math.Points = 0, Total.Chem.Points = 0, Total.Bio.Points = 0,  Total.Withdraws = 0)
+  
+Gen_Data %>%
+  group_by(`Class Tracker`) %>% 
+    summarise(Prof = head(`Faculty Random ID`, n = 1), Department = substr(head(Gen_Data$`Course Code`, n = 1),1,3))
+  
+Points.Tracker <- data.frame(Prof.Type = NA, Professors = Profs.List, First.Math.Points = 0, First.Chem.Points = 0, First.Bio.Points = 0, First.Withdraw.Prop = 0,  Total.Math.Points = 0, Total.Chem.Points = 0, Total.Bio.Points = 0,  Total.Withdraw.Prop = 0, Future.Withdraw.Prop = 0)
 Points.Tracker <- arrange(Points.Tracker, `Professors`)
 View(Points.Tracker)
 ```
@@ -261,7 +319,7 @@ View(Points.Tracker)
 
 ```{r}
 ##Assigns point values to professors
- 
+
 
 
 ```
@@ -269,13 +327,66 @@ View(Points.Tracker)
 
 Does the grade assigned by first Professor predict / influence future performance in major / out of major?
 
-Does early exposure to mathematics predict / influence future performance in out of major? Vice Versa?
+Does early exposure to mathematics predict / influence future performance in/out of major? Vice Versa?
 
 Do grades generally improve, worsen, or remain constant?
 
 Do some teachers have significantly higher Withdraw rates than other professors? (p = .01)
 
 What is the mean number of different courses a prof teaches? What is the mean number of majors a prof teaches?
+
+```{r No muli-department faculty}
+## This chunk shows that there are no faculty that teach in multiple departments.
+counter <- Gen_Data %>%
+            group_by(`Faculty Random ID`, Department) %>%
+             count() 
+length(counter$`Faculty Random ID`) - length(unique(Gen_Data$`Faculty Random ID`))
+```
+
+```{r Professor Withdraw Tracker}
+##Counts the proportion of withdraws per course that a professor teaches by class size. Compares to expected values.
+Withdraws.Data <- Gen_Data  %>%
+                    arrange(`Class Tracker`) %>%
+                      group_by(`Course Code`, `Faculty Random ID`) %>%
+                        filter(is.na(`GPA Assigned`)) %>%
+                          count() %>%
+                            arrange(`Faculty Random ID`) %>%
+                              rename(n_withdraws = n)
+
+          
+Total <- Gen_Data  %>%
+           arrange(`Class Tracker`) %>%
+              group_by(`Course Code`, `Faculty Random ID`) %>%
+                count() %>%
+                  arrange(`Faculty Random ID`) %>%
+                    rename(total_students = n)
+
+Gen_Data_withdraw_prop <- length(Gen_Data$`GPA Assigned`[is.na(Gen_Data$`GPA Assigned`)])/n
+
+Withdraws.Data <- left_join(Withdraws.Data, Total, by = c("Course Code", "Faculty Random ID")) %>%
+                  mutate(observed_withdraw_prop = n_withdraws/total_students, expected_withdraws = Gen_Data_withdraw_prop*total_students)
+
+Plot.Data1 <- Withdraws.Data %>%
+                group_by(`Faculty Random ID`) %>%
+                  summarise(total_withdraws = sum(n_withdraws), total_students = sum(total_students))
+
+Plot.Data1 %>%
+  ggplot(aes(x = total_withdraws, y = total_students)) +
+  geom_point(aes(color = factor(`Faculty Random ID`))) + 
+  geom_smooth() +
+  theme(legend.position = "none") +
+  labs(x = "Total withdraws", y = "Total students", title = "")  
+     
+
+  
+library(lme4)
+withdraws.model1 <- lmer(n_withdraws ~ total_students + (1|`Course Code`), data = Withdraws.Data)
+
+plot(withdraws.model)
+summary(withdraws.model)
+```
+
+
 
 ```{r}
 ##First Course Tracker
