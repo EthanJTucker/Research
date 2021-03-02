@@ -8,10 +8,29 @@ output: html_document
 ATTRIBUTION:
 The data I use in this analysis were collected by Andrew Eckstrom of (?). Without this data none of the work that follows would have been possible. I also want to thank Professor Nordmoe for helping me with this project, from connecting me with the data set to all the helpful waychecks!
 
-Potential error: Dataset does not distinguish between sections, so class tracker puts all sections together regardless of whether teaching quality and grade performance varied betweed sections.
+Potential error: Dataset does not distinguish between sections, so class tracker puts all sections together regardless of whether teaching quality and grade performance varied between sections.
 
-**Fewest **
+Questions:
 
+1) Does the grade assigned by first Professor predict / influence future performance in major / out of major?
+
+```{r}
+Gen_Data %>% 
+  filter(`Student Random ID` < 100) %>%
+      ggplot(aes(x = Student.Term, y = `GPA Assigned`, color = factor(`Student Random ID`))) +
+      geom_point(position = position_jitter(width = 0.2, height = 0.1)) + 
+      geom_smooth(method = "lm", se = FALSE)
+```
+
+
+2) Does early exposure to mathematics predict / influence future performance in/out of major? Vice Versa?
+
+3) Do grades generally improve, worsen, or remain constant?
+
+4) Do some teachers have significantly higher Withdraw rates than other professors? (p = .01)
+  - Which courses have significantly higher withdraw rates?
+
+5) What is the mean number of different courses a prof teaches? What is the mean number of majors a prof teaches?
 
 
 ```{r setup, include=FALSE}
@@ -21,6 +40,8 @@ knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 ```{r Initialize}
 library(readxl)
 library(tidyverse)
+library(merTools)
+library(lme4)
 Easy_Data <- read_excel("/home/local/KNET/k16et01/Homeworks/Research/Stats Research Math, Chemistry, and Biology Grades, Selected Courses.xlsx")
 Gen_Data <- read_excel("/home/local/KNET/k16et01/Homeworks/Research/Stats Research XLS.xlsx")
 set.seed(1000)
@@ -168,7 +189,7 @@ Gen_Data <- mutate(Gen_Data, "GPA Assigned" = as.numeric(Ass.GPA))
 
 ```{r Gen_Data.Reset.Button}
 ##Reset Button if below chunk doesn't work
-Gen_Data <- select(Gen_Data,"Student Random ID":"GPA Assigned")
+Gen_Data <- dplyr::select(Gen_Data,"Student Random ID":"GPA Assigned")
 ```
 
 ```{r Class Tracker Mean GPA Assigned and Delta, cache=TRUE}
@@ -293,15 +314,15 @@ N.Math.By.Term %>% filter(n > 1) %>%
 ```
 
 ```{r}
-##Create class size variable for statistical significance tests. There are 5 courses with iffy class sizes: 861, 2636, 3894, 4234, and 3148. The first four of these have n = 1 - they are independant studies. 3148 had n = 3, I'm not sure how that happened. Doing this filtration gives n >= 7, which will allow the usage of the t test. Fortunately we did not need to remove almost any cases, so validity of results is basically unaffected.
+##Create class size variable for statistical significance tests. There are 5 courses with iffy class sizes: 861, 2636, 3894, 4234, and 3148. The first four of these have n = 1 - they are independent studies. 3148 had n = 3, I'm not sure how that happened. Doing this filtration gives n >= 7, which will allow for safe usage of the t test. Fortunately we did not need to remove almost any cases, so validity of results is basically unaffected.
 Sig.Courses <- Gen_Data %>%
                 group_by(`Course Code`,`Class Tracker`) %>%
                   count() %>%
                       mutate(class_size = n, Significant = if_else(n > 5, TRUE, FALSE)) %>%
-                        select(-n) %>%
+                        dplyr::select(-n) %>%
                          filter(Significant == TRUE)
 Gen_Data <- left_join(Sig.Courses, Gen_Data, by = c("Class Tracker", "Course Code")) %>%
-              select(-Significant)
+              dplyr::select(-Significant)
 ```
 
 ```{r Initialize.Points.Tracker}
@@ -325,15 +346,7 @@ View(Points.Tracker)
 ```
 
 
-Does the grade assigned by first Professor predict / influence future performance in major / out of major?
 
-Does early exposure to mathematics predict / influence future performance in/out of major? Vice Versa?
-
-Do grades generally improve, worsen, or remain constant?
-
-Do some teachers have significantly higher Withdraw rates than other professors? (p = .01)
-
-What is the mean number of different courses a prof teaches? What is the mean number of majors a prof teaches?
 
 ```{r No muli-department faculty}
 ## This chunk shows that there are no faculty that teach in multiple departments.
@@ -366,6 +379,21 @@ Gen_Data_withdraw_prop <- length(Gen_Data$`GPA Assigned`[is.na(Gen_Data$`GPA Ass
 Withdraws.Data <- left_join(Withdraws.Data, Total, by = c("Course Code", "Faculty Random ID")) %>%
                   mutate(observed_withdraw_prop = n_withdraws/total_students, expected_withdraws = Gen_Data_withdraw_prop*total_students)
 
+
+withdraws.model <- lmer(n_withdraws ~ total_students + (1|`Course Code`), data = Withdraws.Data)
+summary(withdraws.model)
+
+
+
+##Visualization of effect of `Course Code` on n_withdraws
+plotREsim(REsim(withdraws.model))
+
+##plot(withdraws.model)
+##
+
+withdraw.conf <- confint(withdraws.model, oldNames = FALSE)
+
+
 Plot.Data1 <- Withdraws.Data %>%
                 group_by(`Faculty Random ID`) %>%
                   summarise(total_withdraws = sum(n_withdraws), total_students = sum(total_students))
@@ -373,17 +401,13 @@ Plot.Data1 <- Withdraws.Data %>%
 Plot.Data1 %>%
   ggplot(aes(x = total_withdraws, y = total_students)) +
   geom_point(aes(color = factor(`Faculty Random ID`))) + 
-  geom_smooth() +
+  geom_smooth(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
   theme(legend.position = "none") +
-  labs(x = "Total withdraws", y = "Total students", title = "")  
-     
-
+  labs(x = "Total withdraws", y = "Total students", title = "Total withdraws vs. total students, ")  
   
-library(lme4)
-withdraws.model1 <- lmer(n_withdraws ~ total_students + (1|`Course Code`), data = Withdraws.Data)
 
-plot(withdraws.model)
-summary(withdraws.model)
+##geom_abline(slope = 1/withdraw.conf[4,1:2], intercept = withdraw.conf[3,1:2], color = "red") +
 ```
 
 
@@ -472,25 +496,6 @@ S.Data <- Gen_Data[f:l,]
 ##Total Withdraws Tracker
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-EASYDATA ANALYSIS (ALL THREE)
-
-
 
 
 
@@ -792,23 +797,3 @@ Bio.Data <- data.frame(`Student Random ID` = Pre.Bio.Data$Unique_Student_ID, `Co
 
 
 ```
-
-
-
-
-
-```{r}
-n.Spring <- 0
-for(i in 1:length(Gen_Data$Semester)){
-  if(endsWith(Gen_Data$Semester[i],"SP")){
-    n.Spring <- n.Spring + 1
-  }
-}
-n.Spring
-```
-
-
-
-
-
-
