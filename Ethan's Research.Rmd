@@ -10,27 +10,9 @@ The data I use in this analysis were collected by Andrew Eckstrom of (?). Withou
 
 Potential error: Dataset does not distinguish between sections, so class tracker puts all sections together regardless of whether teaching quality and grade performance varied between sections.
 
-Questions:
-
-1) Does the grade assigned by first Professor predict / influence future performance in major / out of major?
-
-```{r}
-Gen_Data %>% 
-  filter(`Student Random ID` < 100) %>%
-      ggplot(aes(x = Student.Term, y = `GPA Assigned`, color = factor(`Student Random ID`))) +
-      geom_point(position = position_jitter(width = 0.2, height = 0.1)) + 
-      geom_smooth(method = "lm", se = FALSE)
-```
+Potential error: I can only track students \textit{once they have taken a math or chemistry course}. This is an issue for the first course analyses, because the students may have taken courses in prior terms in other departments.
 
 
-2) Does early exposure to mathematics predict / influence future performance in/out of major? Vice Versa?
-
-3) Do grades generally improve, worsen, or remain constant?
-
-4) Do some teachers have significantly higher Withdraw rates than other professors? (p = .01)
-  - Which courses have significantly higher withdraw rates?
-
-5) What is the mean number of different courses a prof teaches? What is the mean number of majors a prof teaches?
 
 
 ```{r setup, include=FALSE}
@@ -272,32 +254,49 @@ for(i in f:l){
 
 ```
 
-```{r Initialize Student.Term}
+```{r Initialize Student.Term, cache = TRUE}
 ##Here we convert Total.Term into numeric, and create the Student.Term variable which describes a student's term progression through OCC
-Gen_Data$Total.Term <- parse_number(Gen_Data$Total.Term)
+
+
 Gen_Data <- Gen_Data %>%
-              arrange(`Student Random ID`, -desc(Total.Term)) %>%
-                mutate(Student.Term = 0)
+              arrange(`Student Random ID`, Total.Term)
 
-Term.Cntr <- 0
-Starting.Student <- Gen_Data$`Student Random ID`[1]
-Student.Cntr <- Starting.Student
-for(i in 1:n){
-  if(Gen_Data$`Student Random ID`[i] == Student.Cntr){
-    Term.Cntr <- Term.Cntr + 1
-  }
-  else{
-    Term.Cntr <- 1
-    Student.Cntr <- Gen_Data$`Student Random ID`[i]
-  }
-  Gen_Data$Student.Term[i] <- Term.Cntr
+student.index <- function(cntr){
+  student.id <- unique(Gen_Data$`Student Random ID`)[cntr]
+  student.indecies <- which(Gen_Data$`Student Random ID` == student.id)
+  return(student.indecies)
 }
-```
+    
+student.terms <- function(index){
+  total.terms <- Gen_Data$Total.Term[index]
+  student.terms <- rep(0, length(total.terms))
+  last.total.term <- total.terms[1]
+  student.terms[1] <- 1
+  
+  if(length(total.terms) >=2){
+  
+    for(i in 2:length(total.terms)){
+      if(last.total.term == total.terms[i]){
+        student.terms[i] <- student.terms[i-1]
+      } else{
+        last.total.term <- total.terms[i]
+        student.terms[i] <- student.terms[i-1] + 1
+      }
+  }
+    
+  }
+  return(student.terms)
+}
 
 
-```{r Department} 
-##Create Department variable which describes the department wherein a class was taken.
-Gen_Data <- Gen_Data %>% mutate(Department = substr(Gen_Data$`Course Code`,1,3))
+##Use functions to assign student terms. This algorithm is very slow - I couldn't think of a better way to do it. It works, so it's good enough.
+n.s <- length(unique(Gen_Data$`Student Random ID`))
+Gen_Data <- Gen_Data %>%
+              mutate(Student.Term = 0)
+i <- 1
+for(i in 1:n.s){
+  Gen_Data$Student.Term[student.index(i)] <- student.terms(student.index(i))
+}
 ```
 
 ```{r}
@@ -310,7 +309,7 @@ N.Math.By.Term <- Gen_Data %>% arrange(Term.Number, `Student Random ID`, `Course
 N.Math.By.Term %>% filter(n > 1) %>%
   arrange(`Student Random ID`, Semester)
 
-##This dataset can be used to show that students are much more likely to take two math courses simultaneously than two chemistry courses. Additionally, it tells us we need to make a robust points tracking algorithm.
+##This dataset can be used to show that students are much more likely to take two math courses simultaneously than two chemistry courses. Additionally, it tells us we need to make a robust points tracking algorithm. Student 28108 passed two math courses AND a chemistry course simultaneously (during student.term 3), which tells us that a student can take multiple courses per semester in the same department.
 ```
 
 ```{r}
@@ -321,9 +320,22 @@ Sig.Courses <- Gen_Data %>%
                       mutate(class_size = n, Significant = if_else(n > 5, TRUE, FALSE)) %>%
                         dplyr::select(-n) %>%
                          filter(Significant == TRUE)
+
 Gen_Data <- left_join(Sig.Courses, Gen_Data, by = c("Class Tracker", "Course Code")) %>%
               dplyr::select(-Significant)
 ```
+
+```{r Max Terms}
+##Initialize Max Terms variable in Gen_Data
+Max_terms <- Gen_Data %>%
+        arrange(`Student Random ID`, Student.Term) %>%
+                group_by(`Student Random ID`) %>%
+                                summarise(`Class Tracker` = `Class Tracker`, max.terms = max(Student.Term),  Student.Term = Student.Term, Delta = Delta, `Course Code` = `Course Code`, `Faculty Random ID` = `Faculty Random ID`)
+
+Gen_Data <- left_join(Gen_Data, Max_terms)
+```
+
+
 
 ```{r Initialize.Points.Tracker}
 ##Creates Points Tracker
@@ -332,9 +344,71 @@ Gen_Data %>%
   group_by(`Class Tracker`) %>% 
     summarise(Prof = head(`Faculty Random ID`, n = 1), Department = substr(head(Gen_Data$`Course Code`, n = 1),1,3))
   
-Points.Tracker <- data.frame(Prof.Type = NA, Professors = Profs.List, First.Math.Points = 0, First.Chem.Points = 0, First.Bio.Points = 0, First.Withdraw.Prop = 0,  Total.Math.Points = 0, Total.Chem.Points = 0, Total.Bio.Points = 0,  Total.Withdraw.Prop = 0, Future.Withdraw.Prop = 0)
+Points.Tracker <- data.frame(Prof.Type = NA, Professors = Profs.List, First.Math.Points = 0, First.Chem.Points = 0, First.Bio.Points = 0, First.Withdraw.Prop = 0,  Total.Math.Points = 0, Total.Chem.Points = 0, Total.Bio.Points = 0,  Total.Withdraw.Prop = 0, Future.Withdraw.Prop = 0, Total.Students = 0, Withdraw.)
 Points.Tracker <- arrange(Points.Tracker, `Professors`)
 View(Points.Tracker)
+```
+
+```{r Course Credits}
+##In order to create cumulative GPA we need to weight by credit hours. This chunk creates a credit variable for each row in Gen Data
+
+##Found CHE-0950 credits at https://www.oaklandcc.edu/finaid/docs/fa39a_satisfactoryacademic.pdf 
+##Found MAT-1045 credits at https://www.oaklandcc.edu/schedule/docs/OCC_Schedule_2017_WI.pdf
+#Found MAT-1140 credits at http://dalnetarchive.org/bitstream/handle/11061/1402/2007%20Mathematics-%20Curriculum%20Review%20Self%20Study.pdf?sequence=1&isAllowed=y
+Course.Credits <- tibble(`Course Code` = unique(Gen_Data$`Course Code`),
+                  `Course Credits` =  c(4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 3, 4 , 4 , 3, 4, 4, 4, 4, 3, 4, 4, 5, 4) )
+
+
+Gen_Data <- Gen_Data %>%
+                left_join(Course.Credits, by = "Course Code")
+```
+
+```{r Cumulative GPA}
+## This chunk creates the cumulative GPA variable in Gen_Data. This allows us to track our students through OCC without having such a stratified model - cumulative GPA is much less discrete than GPA Assigned.
+
+##This first section creates the Cum.GPA variable with a simple weighted mean in a dummy dataset which will eventually be stored as Gen_Data
+No_Withdraws <- Gen_Data %>%
+                        arrange(`Student Random ID`, Student.Term) %>%
+                                filter(!is.na(`GPA Assigned`)) %>%
+                                        mutate(Cum.GPA = 0)
+current.numerator <- 0
+current.denominator <- 0
+current.student <- 31
+n.w <- length(No_Withdraws$`GPA Assigned`)
+for(i in 1:n.w){
+        if(No_Withdraws$`Student Random ID`[i] != current.student){
+                current.numerator <- 0
+                current.denominator <- 0
+                current.student <- No_Withdraws$`Student Random ID`[i]
+        }
+        current.numerator <- current.numerator + No_Withdraws$`GPA Assigned`[i] * No_Withdraws$`Course Credits`[i]
+        current.denominator <- current.denominator + No_Withdraws$`Course Credits`[i]
+        
+        No_Withdraws$Cum.GPA[i] <- current.numerator / current.denominator
+                
+}
+
+
+Temp_Data <- Gen_Data %>%
+                left_join(No_Withdraws) %>%
+                        arrange(`Student Random ID`, Student.Term)
+
+
+##This second section assigns the previous Cum.GPA to all withdraws if the student had a previous Cum.GPA. This allows for better visualization in ggplot, and better modeling with lmer.
+
+for(i in 2:n){
+        current.student <- Temp_Data$`Student Random ID`[i]
+        previous.student <- Temp_Data$`Student Random ID`[i-1]
+        
+        if(is.na(Temp_Data$Cum.GPA[i])){
+                if(current.student == previous.student){Temp_Data$Cum.GPA[i] <- Temp_Data$Cum.GPA[i-1] }
+        }
+}
+```
+
+```{r Initialize Cum.GPA}
+##Here we store Cum.GPA into Gen_Data
+Gen_Data <- Temp_Data
 ```
 
 
@@ -374,7 +448,7 @@ Total <- Gen_Data  %>%
                   arrange(`Faculty Random ID`) %>%
                     rename(total_students = n)
 
-Gen_Data_withdraw_prop <- length(Gen_Data$`GPA Assigned`[is.na(Gen_Data$`GPA Assigned`)])/n
+Gen_Data_withdraw_prop <- length(Gen_Data$`GexPA Assigned`[is.na(Gen_Data$`GPA Assigned`)])/n
 
 Withdraws.Data <- left_join(Withdraws.Data, Total, by = c("Course Code", "Faculty Random ID")) %>%
                   mutate(observed_withdraw_prop = n_withdraws/total_students, expected_withdraws = Gen_Data_withdraw_prop*total_students)
@@ -386,96 +460,69 @@ summary(withdraws.model)
 
 
 ##Visualization of effect of `Course Code` on n_withdraws
-plotREsim(REsim(withdraws.model))
+plotREsim(REsim(withdraws.model, n.sims = 10^3))
 
 ##plot(withdraws.model)
 ##
 
-withdraw.conf <- confint(withdraws.model, oldNames = FALSE)
+##Do I need the confint? Is that even useful?
+withdraw.conf <- confint(withdraws.model, oldNames = FALSE, level = 0.999)
 
 
 Plot.Data1 <- Withdraws.Data %>%
                 group_by(`Faculty Random ID`) %>%
-                  summarise(total_withdraws = sum(n_withdraws), total_students = sum(total_students))
+                  summarise(total_withdraws = sum(n_withdraws), total_students = sum(total_students)) %>%
+                    arrange(`Faculty Random ID`)
+##I'll go ahead and assign total withdraw points to profs right now before proceeding with graphing
+
+
 
 Plot.Data1 %>%
   ggplot(aes(x = total_withdraws, y = total_students)) +
   geom_point(aes(color = factor(`Faculty Random ID`))) + 
-  geom_smooth(color = "blue") +
+  geom_smooth(color = "purple") +
   geom_smooth(method = "lm", color = "red") +
   theme(legend.position = "none") +
   labs(x = "Total withdraws", y = "Total students", title = "Total withdraws vs. total students, ")  
   
+ ## geom_smooth(method = "lm", color = "red") +
 
-##geom_abline(slope = 1/withdraw.conf[4,1:2], intercept = withdraw.conf[3,1:2], color = "red") +
+##The standard errors of geom_smooth() and geom_smooth(method = "lm) overlap at almost all points, so it seems reasonable to assume that total withdraws vs total students can be validly represented by a linear model. I will do that presently.
+
+
+```
+
+```{r}
+##total withdraws prop, number of students per prof
+Points.Tracker <- arrange(Points.Tracker, Professors)
+for(i in 1:length(Points.Tracker$Professors)){
+  Points.Tracker$Total.Withdraw.Prop[i] <- Plot.Data1$total_withdraws[i]/Plot.Data1$total_students[i]
+  Points.Tracker$Total.Students[i] <- Plot.Data1$total_students[i]
+}
 ```
 
 
-
 ```{r}
-##First Course Tracker
-Gen_Data <- arrange(Gen_Data)
-Gen_Data <- arrange(arrange(Gen_Data,Semester),`Student Random ID`)
-f <- 1
-l <- 1
-cntr <- 1
-for(i in 1:n.s){
-  ## Picks out each student's classes from Gen Data
-  while(Gen_Data$`Student Random ID`[cntr] == Gen_Data$`Student Random ID`[cntr+1]){
-    cntr <- cntr + 1
-  }
-  
-  l <- cntr
-  
-  ##Expresses those classes as a data frame
-S.Data <- Gen_Data[f:l,]
-  
-  
-  ##Creates information about the professor to which we assign points
-  z <- 1 + l - f
-  
-  First.Prof <- function(Department){
-    m <- length(S.Data$`Student Random ID`)
-  }
-  
-  First.Prof <- S.Data$`Faculty Random ID`[z]
-  Prof.Major <- NA
-  
-  if(startsWith(S.Data$`Course Code`[z],"MAT")){
-    Prof.Major <- "MAT"
-  }
-  else if(startsWith(S.Data$`Course Code`[z],"CHE")){
-    Prof.Major <- "CHE"
-  }
-  
-  for(m in 1:n.p){
-    if(First.Prof == Profs.List[m]){
-      Prof.Position <- m 
-    }
-  }
-  
-  
-  Sort.Points.First <- function(Major.Points){
-    
-  }
-    
+##First Course in department Tracker
+
+      
+
   ## FIRST TEACHER MATH:   Assign math points
-    
+
+First.Math.Data <- Gen_Data %>%
+                    arrange(`Student Random ID`, Student.Term) %>%
+                      group_by(`Student Random ID`) %>% 
+                        filter(Department == "MAT") %>%
+                          slice(1)
+
+
   ## FIRST TEACHER MATH:   Assign chemistry points
   
-  ## FIRST TEACHER MATH:   Assign bio points
   
   ## FIRST TEACHER CHEM:   Assign chem points
   
   ## FIRST TEACHER CHEM:   Assign math points
   
-  ## FIRST TEACHER CHEM:   Assign bio points
-  
-  ## FIRST TEACHER BIO:    Assign bio points
-  
-  ## FIRST TEACHER BIO:    Assign math points
-  
-  ## FIRST TEACHER BIO:    Assign chem points
   
   
   
@@ -486,21 +533,36 @@ S.Data <- Gen_Data[f:l,]
   
   
   
-  f <- l + 1
-}
 
 
 ```
 
+
+
+
+Questions:
+
+1) Does the grade assigned by first Professor predict / influence future performance in major / out of major?
+
+
+  As the below graph shows, it is difficult to create an inference for this question on the entire data set. Many students withdraw from their courses in the first term and thus do not receive grades - it is impossible to predict their GPA assigned in the first term. We can however measure probability of success by filtering for only those students that withdrew from courses in the first term, and those who did not. This brings us to a second issue - the data we have are only for the courses that students took in the math and chemistry departments during their stay at OCC. We cannot with any degree of certainty claim that those first recorded terms in the dataset are indeed the first terms. Student X could have taken an English course for all we know. We have implicitly filtered for: (1) students who did not for some reason attend a standard four year college, and (2) students that wished to take math and/or chemistry courses in community college.
+  
 ```{r}
-##Total Withdraws Tracker
-
+Gen_Data %>% 
+      ggplot(aes(x = Student.Term, y = `GPA Assigned`, color = factor(`Student Random ID`))) +
+      geom_point(position = position_jitter(width = 0.2, height = 0.1), alpha = 0.03)
 ```
 
+  To partially answer this question, we can look at 
 
+2) Does early exposure to mathematics predict / influence future performance in/out of major? Vice Versa?
 
+3) Do grades generally improve, worsen, or remain constant?
 
+4) Do some teachers have significantly higher Withdraw rates than other professors? (p = .01)
+  - Which courses have significantly higher withdraw rates?
 
+5) What is the mean number of different courses a prof teaches? What is the mean number of majors a prof teaches?
 
 
 
@@ -788,12 +850,8 @@ for(i in 1:length(Pre.Bio.Data$Term)){
   }
 }
 rename(Pre.Bio.Data, Semester = Term, `Student Random ID` = Unique_Student_ID, `Faculty Random ID` = Unique_Instructor_ID, )
-
-
 ```
 
 ```{r}
 Bio.Data <- data.frame(`Student Random ID` = Pre.Bio.Data$Unique_Student_ID, `Course Code` = Pre.Bio.Data$COURSE_NUMBER, `Grade` = Pre.Bio.Data$Grade, `Faculty Random ID` = Pre.Bio.Data$Unique_Instructor_ID,  `Semester` = paste(Pre.Bio.Data$Year, "/", Pre.Bio.Data$Term, sep = ""), `GPA` = Pre.Bio.Data$GPA)
-
-
 ```
