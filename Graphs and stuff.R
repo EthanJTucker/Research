@@ -77,28 +77,39 @@ summary(max.term.model)
 
 
 
-##Need to introduce first faculty for chem and math to do effects
 
-for(i in min(Gen_Data$max.terms):max(Gen_Data$max.terms)){
+##Need to introduce first faculty for chem and math to do effects
+Student.Term.Model.Slopes <- rep(0, max(Gen_Data$max.terms))
+
+Gen_Data <- Gen_Data %>%
+        mutate(Department = str_sub(`Course Code`, 1, 3))
+
+for(i in 2:max(Gen_Data$max.terms)){
 n.term_Cum.GPA <- Gen_Data %>%
                         filter(max.terms == i)
 
-n.term.model <- lmer(`Cum.GPA` ~ Student.Term + (1|`Student Random ID`), data = Gen_Data)
+n.term.model <- lmer(`Cum.GPA` ~ Student.Term + (1|`Student Random ID`), data = n.term_Cum.GPA)
+n.term.summary <- summary(n.term.model)
 
-n.term.coef <- generics::tidy(n.term.model, conf.int = TRUE)
+Student.Term.Model.Slopes[i] <- n.term.summary$coefficients[2,1]
 
-n.term.coef %>%
-        filter(effect == "fixed" & term != "(Intercept)") %>%
-        ggplot(., aes(x = term, y = estimate,
-                      ymin = conf.low, ymax = conf.high)) +
-        geom_hline(yintercept = 0, color = 'red') + 
-        geom_point() +
-        geom_linerange() +
-        coord_flip() +
-        theme_bw() +
-        ylab("Coefficient estimate and 95% CI") +
-        xlab("Regression coefficient")
+# n.term.coef <- generics::tidy(n.term.model, conf.int = TRUE)
+
+# n.term.coef %>%
+#         filter(effect == "fixed" & term != "(Intercept)") %>%
+#         ggplot(., aes(x = term, y = estimate,
+#                       ymin = conf.low, ymax = conf.high)) +
+#         geom_hline(yintercept = 0, color = 'red') + 
+#         geom_point() +
+#         geom_linerange() +
+#         coord_flip() +
+#         theme_bw() +
+#         ylab("Coefficient estimate and 95% CI") +
+#         xlab("Regression coefficient")
 }
+
+
+
 
 ##First course department generator
 
