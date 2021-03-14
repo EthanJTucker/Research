@@ -264,8 +264,9 @@ for(i in f:l){
 
 
 Gen_Data <- Gen_Data %>%
-              arrange(`Student Random ID`, Total.Term) %>%
-                mutate(Student.Term = 0)
+              mutate(Total.Term = as.integer(Total.Term)) %>%
+                arrange(`Student Random ID`, Total.Term) %>%
+                  mutate(Student.Term = 0)
 
 student.index <- function(cntr){
   student.id <- unique(Gen_Data$`Student Random ID`)[cntr]
@@ -308,8 +309,14 @@ for(i in 1:n.s){
 ```{r}
 ##Create a new data frame that tracks individual students through their years at OCC. First we need to figure out how many classes a student takes in math/chem departments by term.
 
-N.Math.By.Term <- Gen_Data2 %>%
-                      group_by(`Student Random ID`, Semester, Department) %>%
+##Initialize Department 
+Gen_Data3 <- Gen_Data2 %>%
+              ungroup() %>%
+                group_by(`Student Random ID`, `Class Tracker`) %>%
+                  mutate(Department = str_sub(`Course Code`,1,3))
+
+N.Math.By.Term <- Gen_Data3 %>%
+                      group_by(`Student Random ID`, Student.Term, Department) %>%
                         count()
 
 N.Math.By.Term %>%
@@ -324,25 +331,25 @@ N.Math.By.Term %>%
 
 ```{r}
 ##Create class size variable for statistical significance tests. There are 5 courses with iffy class sizes: 861, 2636, 3894, 4234, and 3148. The first four of these have n = 1 - they are independent studies. 3148 had n = 3, I'm not sure how that happened. Doing this filtration gives n >= 7, which will allow for safe usage of the t test. Fortunately we did not need to remove almost any cases, so validity of results is basically unaffected.
-Sig.Courses <- Gen_Data2 %>%
+Sig.Courses <- Gen_Data3 %>%
                 group_by(`Course Code`,`Class Tracker`) %>%
                   count() %>%
                       mutate(class_size = n, Significant = if_else(n > 5, TRUE, FALSE)) %>%
                         dplyr::select(-n) %>%
                          filter(Significant == TRUE)
 
-Gen_Data3 <- left_join(Sig.Courses, Gen_Data2, by = c("Class Tracker", "Course Code")) %>%
+Gen_Data4 <- left_join(Sig.Courses, Gen_Data3, by = c("Class Tracker", "Course Code")) %>%
               dplyr::select(-Significant)
 ```
 
 ```{r Max Terms}
 ##Initialize Max Terms variable in Gen_Data
-Max_terms <- Gen_Data3 %>%
+Max_terms <- Gen_Data4 %>%
         arrange(`Student Random ID`, Student.Term) %>%
                 group_by(`Student Random ID`) %>%
                                 summarise(`Class Tracker` = `Class Tracker`, max.terms = max(Student.Term),  Student.Term = Student.Term, Delta = Delta, `Course Code` = `Course Code`, `Faculty Random ID` = `Faculty Random ID`)
 
-Gen_Data4 <- left_join(Gen_Data3, Max_terms)
+Gen_Data5 <- left_join(Gen_Data4, Max_terms)
 ```
 
 
@@ -350,26 +357,26 @@ Gen_Data4 <- left_join(Gen_Data3, Max_terms)
 ```{r Initialize.Points.Tracker}
 ##Creates Points Tracker
   
-Gen_Data4 %>%
+Gen_Data5 %>%
   group_by(`Class Tracker`) %>% 
-    summarise(Prof = head(`Faculty Random ID`, n = 1), Department = substr(head(Gen_Data4$`Course Code`, n = 1),1,3))
+    summarise(Prof = head(`Faculty Random ID`, n = 1))
   
 Points.Tracker <- data.frame(Prof.Type = NA, Professors = Profs.List, First.Math.Points = 0, First.Chem.Points = 0, First.Bio.Points = 0, First.Withdraw.Prop = 0,  Total.Math.Points = 0, Total.Chem.Points = 0, Total.Bio.Points = 0,  Total.Withdraw.Prop = 0, Future.Withdraw.Prop = 0, Total.Students = 0)
 Points.Tracker <- arrange(Points.Tracker, `Professors`)
-View(Points.Tracker)
 ```
 
 ```{r Course Credits}
 ##In order to create cumulative GPA we need to weight by credit hours. This chunk creates a credit variable for each row in Gen Data
 
-##Found CHE-0950 credits at https://www.oaklandcc.edu/finaid/docs/fa39a_satisfactoryacademic.pdf 
+##Found CHE-0950 credits at https://www.oaklandcc.edu/finaid/docs/fa39a_satisfactoryacademic.pdf . I could not find the name, so I'm calling it preparation for chemistry because it is high school level chemistry according to https://wmich.edu/sites/default/files/attachments/u684/2016/Chemistry-%20Oakland%20CC_0.pdf  
 ##Found MAT-1045 credits at https://www.oaklandcc.edu/schedule/docs/OCC_Schedule_2017_WI.pdf
 #Found MAT-1140 credits at http://dalnetarchive.org/bitstream/handle/11061/1402/2007%20Mathematics-%20Curriculum%20Review%20Self%20Study.pdf?sequence=1&isAllowed=y
 Course.Credits <- tibble(`Course Code` = unique(Gen_Data4$`Course Code`),
-                  `Course Credits` =  c(4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 3, 4 , 4 , 3, 4, 4, 4, 4, 3, 4, 4, 5, 4) )
+                  `Course Credits` =  c(4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 3, 4 , 4 , 3, 4, 4, 4, 4, 3, 4, 4, 5, 4),
+                    `Course Names` = c("Preparation for Chemistry", "Introductory Chemistry", "Survey of Organic and Biochemistry", "General Chemistry I", "General Chemistry II", "Organic Chemistry I", "Organic Chemistry II", "Organic Chemistry Lab", "Fundamentals of Arithmetic", "Preparation for Algebra", "Buisness Mathematics", "Elementary Algebra", "Math Literacy", "Plane Geometry", "Intermediate Algebra", "Finite Mathematics", "Quantitative Reasoning", "College Algebra", "Trigenometry", "Statistics", "Applied Calculus", "Precalculus", "Calculus I"))
 
 
-Gen_Data5 <- Gen_Data4 %>%
+Gen_Data6 <- Gen_Data5 %>%
                 left_join(Course.Credits, by = "Course Code")
 ```
 
@@ -377,7 +384,7 @@ Gen_Data5 <- Gen_Data4 %>%
 ## This chunk creates the cumulative GPA variable in Gen_Data. This allows us to track our students through OCC without having such a stratified model - cumulative GPA is much less discrete than GPA Assigned.
 
 ##This first section creates the Cum.GPA variable with a simple weighted mean in a dummy dataset which will eventually be stored as Gen_Data
-No_Withdraws <- Gen_Data5 %>%
+No_Withdraws <- Gen_Data6 %>%
                         arrange(`Student Random ID`, Student.Term) %>%
                                 filter(!is.na(`GPA Assigned`)) %>%
                                         mutate(Cum.GPA = 0)
@@ -399,7 +406,7 @@ for(i in 1:n.w){
 }
 
 
-Temp_Data <- Gen_Data5 %>%
+Temp_Data <- Gen_Data6 %>%
                 left_join(No_Withdraws) %>%
                         arrange(`Student Random ID`, Student.Term)
 
@@ -418,20 +425,28 @@ for(i in 2:n){
 
 ```{r Initialize Cum.GPA}
 ##Here we store Cum.GPA into Gen_Data
-Gen_Data6 <- Temp_Data
+Gen_Data7 <- Temp_Data
 ```
 
 ```{r No muli-department faculty}
-## This chunk shows that there are no faculty that teach in multiple departments.
-counter <- Gen_Data6 %>%
-            mutate(Department = str_sub(`Course Code`, 1, 3)) %>%
+## This chunk shows that there are no faculty that teach in both the math and chemistry departments.
+counter <- Gen_Data7 %>%
               group_by(`Faculty Random ID`, Department) %>%
                 count() 
 length(counter$`Faculty Random ID`) - length(unique(Gen_Data6$`Faculty Random ID`))
 ```
 
 
+```{r}
+##Determine course difficulty by average GPA assigned to those who did not withdraw. Proportion of withdraws by course code is represented in future section.
+Course.GPAs <- Gen_Data7 %>%
+                 ungroup() %>%
+                    group_by(`Course Code`) %>%
+                      summarise(Course.Code.Mean.GPA = mean(Cum.GPA, na.rm = TRUE))
 
+Gen_Data8 <- Gen_Data7 %>%
+              left_join(Course.GPAs, by = "Course Code")
+```
 
 
 
@@ -442,21 +457,19 @@ length(counter$`Faculty Random ID`) - length(unique(Gen_Data6$`Faculty Random ID
 
 Questions:
 
-1) Does the grade assigned by first Professor predict / influence future performance in major / out of major?
-
-Does the professor a student encounters first in a department influence future performance in department / out of department?
+1) Does the professor a student encounters first in a department influence future performance in department / out of department? Are some faculty better at teaching some courses than others?
 
 
-  As the below graph shows, it is difficult to create an inference for this question on the entire data set. Many students withdraw from their courses in the first term and thus do not receive grades - it is impossible to predict their GPA assigned in the first term. We can however measure probability of success by filtering for only those students that withdrew from courses in the first term, and those who did not. This brings us to a second issue - the data we have are only for the courses that students took in the math and chemistry departments during their stay at OCC. We cannot with any degree of certainty claim that those first recorded terms in the dataset are indeed the first terms. Student X could have taken an English course for all we know. We have implicitly filtered for: (1) students who did not for some reason attend a standard four year college, and (2) students that wished to take math and/or chemistry courses in community college.
+  As the below graph shows, it is impossible to create an inference for this question on the entire data set. Some students withdraw from their courses in the first term and thus do not receive grades - it is impossible to analyze their GPA assigned in the first term. We can however measure probability of success by filtering for only those students that withdrew from courses in the first term, and those who did not. This brings us to a second issue - the data we have are only for the courses that students took in the math and chemistry departments during their stay at OCC. We cannot with any degree of certainty claim that those first recorded terms in the dataset are indeed the first terms. Student X could have taken an English course in a term before appearing in our data set for all we know. We have implicitly filtered for: (1) students who did not for some reason attend a standard four year college, and (2) students that wished to take math and/or chemistry courses in community college. We have moreover restricted our departmental information to only chemistry and mathematics courses, which removes our ability to deal with the possibility that the math or chemistry departments are outliers in this question. Alas, let's do our best.
   
 ```{r, warning=FALSE}
 ##Create plot to illustrate the inability to use all students for Q1. We must then do a filtration!
-Plot.Data1 <- Gen_Data6 %>%
+Plot.Data1 <- Gen_Data8 %>%
                 group_by(`Student Random ID`) %>%
                   slice(1) %>%
                     mutate(First.Term.Withdraw = if_else(is.na(Cum.GPA), "Yes", "No")) %>%
                       dplyr::select(`Student Random ID`, First.Term.Withdraw, `Class Tracker`) %>%
-                        right_join(Gen_Data6, by = c("Student Random ID"))
+                        right_join(Gen_Data8, by = c("Student Random ID"))
 
 Plot.Data1 %>% 
     filter(`Student Random ID` <= 10^3) %>%
@@ -465,34 +478,244 @@ Plot.Data1 %>%
         geom_smooth(method = "lm", se = FALSE) + 
         labs(x = "Student's Term", y = "Cumulative GPA", title = "Cumulative GPA by Student's Term for 178 Randomly Selected Students", color = "Did student withdraw from first course?")
 ```
-6 out of the total 178 randomly drawn students withdrew from their first course. The GPA they were assigned in their second 
-To partially answer this question, we must first filter for all students that took only one course in their first term, and took more than one term
+6 out of the total 178 randomly drawn students withdrew from their first course. The GPA they were assigned in their second term cannot be considered an accurate substitute, because the question specifically regards the $\textit{experience}$ a student had in their first exposure to community college mathematics or chemistry. To partially answer this question, we must then first filter for all students that took only one course in their first term, did not withdraw from that first course, and took at least two terms total. By mandating these conditions we invariably reduce our sample size, but because our dataset is so large and the conditions rather lenient at this stage we expect no issue. In particular, after this filtration we are left with $35687$ unique students distributed over $267$ unique faculty members. The mean faculty member then will contribute to $\sim 133.66$ measurable outcomes using this scheme - well over the $30 \sim 40$ that is standard guidance for utilizing the $Z$ test statistic .
 
 ```{r}
-##Initialize number of courses per term
-Course.Num <- Gen_Data6 %>%
+##Initialize number of courses per term,  filter for those students that took only one course in their first term and took at least two terms in the math or chemistry departments. That is, math first term then chemistry second term is totally legal.
+Course.Num <- Gen_Data8 %>%
                 group_by(`Student Random ID`, Student.Term) %>%
                   count() %>%
-                    right_join(Gen_Data6, by = c("Student Random ID", "Student.Term")) %>%
+                    right_join(Gen_Data8, by = c("Student Random ID", "Student.Term")) %>%
                       rename(Num.Courses.In.Term = n) %>%
                         filter(max.terms >= 2, Num.Courses.In.Term*Student.Term == 1)
 
 
 
-##Initialize First Prof
-Gen_Data7 <- Course.Num %>%
-              mutate(First.Prof = `Faculty Random ID`) %>%
+##Initialize First Prof and First Course
+Gen_Data9 <- Course.Num %>%
+              mutate(First.Prof = `Faculty Random ID`, First.Course = `Course Code`) %>%
                 ungroup() %>%
-                  select(First.Prof, `Student Random ID`) %>%
-                    right_join(Gen_Data6, by = c("Student Random ID"))
+                  dplyr::select(First.Prof, `Student Random ID`, First.Course) %>%
+                    right_join(Gen_Data8, by = c("Student Random ID"))
+
+
+##Number of remaining unique students after filtration, and number of unique faculty
+length(unique(Gen_Data$`Student Random ID`)) - length(unique(Gen_Data9$`Student Random ID`[!is.na(Gen_Data9$First.Prof)]))
+length(unique(Gen_Data9$`Faculty Random ID`))
+
+##Filter for students that did not withdraw from first course
+Not.First.Withdraw <- Gen_Data9 %>%
+               ungroup()%>%
+                  group_by(`Student Random ID`) %>%
+                    slice(1) %>%
+                      filter(Student.Term == 1, !is.na(`GPA Assigned`), !is.na(First.Prof)) %>%
+                        dplyr::select(`Student Random ID`)
+
+Filtered.Data1 <- Gen_Data9 %>%
+                    semi_join(Not.First.Withdraw, by = "Student Random ID")
+
+##Show that there are no entries of Filtered.Data1 that have an NA value for First.Prof - that is we have successfully chosen only those students who did not withdraw from their first course
+length(Filtered.Data1$First.Prof[is.na(Filtered.Data1$First.Prof)])
+```
+
+Here we have created a variable in Gen_Data that tracks the first professor a student had.   
+
+We can represent the mean student's path through OCC using a linear mixed-effects model. At the time of my writing this, the package lme4 was the most current mixed modeling package available through CRAN. (CITE) A linear mixed-effects model represents a dependent variable - in our case the cumulative GPA of a student - as a linear function of some inputs. The benefit of using such a model is that instead of just using a fixed effect as predictor, such as the student's term number, we can manually specify certain variables to lme4 that either effect the intercept or the slope of our linear model. One possible covariant effect to future cumulative GPA achievement may be the course in which students begin their tenure at OCC's math/chemistry departments. For instance - there may be a difference in both the starting GPA and the slope for cumulative GPA in the mean student that begins their community college math courses in Preparation for Algebra (MAT - 1050) and a student that began in Calculus II (Mat - 1740). Before we can appropriately analyze the effect that individual professors of these courses have on students that begin in these courses, we need to first determine the mean case for all these courses. The below chunk employs lme4 to create a linear mixed-effects model for each course using only those students that: (1) did not withdraw from the course in their first term so that we have a measurable GPA intercept, and (2) took more than one course in the data set so that we can generate a slope between two observations.  An alternative to assumption (1) is to allow students to withdraw from their first course, but in this case it becomes impossible to gauge how their course experience was based on cumulative gpa. We will look at proportion of withdraws against the mean for each course as an additional metric of professor effect later.
+
+```{r}
+## Find those courses that affect a students future cumulative GPA slope as a function of term.
+
+courses <- unique(Filtered.Data1$`Course Code`)
+
+
+## These models predict a student's Cumulative GPA in the math and chemistry departments during their stay at OCC depending on the course they took first. This 
+make.course.model <- function(course){
+  One.Course.Data <- Filtered.Data1 %>%
+                      filter(First.Course == course)
+    if(length(One.Course.Data$`Student Random ID`) > 29){
+      Cum.course.model <- lmer(Cum.GPA ~ Student.Term + (1|`Student Random ID`), data = One.Course.Data)
+      return(summary(Cum.course.model)$coefficients)
+  } else{return(str_c("Insufficient students started at OCC in ",course, " to create an accurate model (minimum 30, observed ", length(One.Course.Data$`Student Random ID`), ")",   sep = ""))}
+}
+
+course.summaries <- sapply(courses, make.course.model)
+
+
+##This function pulls those courses with a significant positive impact on future cumulative gpa
+sig.summaries.positive <- function(list){
+  Sig.Courses.Positive <- rep("Remove", length(list))
+  for(i in 1:length(list)){
+    if(!is.null(dim(course.summaries[[i]]))){
+    intercept.tval <- list[[i]][1,3]
+    Student.Term.tval <- list[[i]][2,3]
+      if(intercept.tval >= qnorm(0.99) & Student.Term.tval >= qnorm(0.99)){
+        Sig.Courses.Positive[i] <- names(course.summaries[i])
+    }
+    }
+  }
+  return(Sig.Courses.Positive[Sig.Courses.Positive != "Remove"])
+}
+
+## And this is a function that extracts those courses that have a significant negative effect on future GPA
+sig.summaries.negative <- function(list){
+  Sig.Courses.Negative <- rep("Remove", length(list))
+  for(i in 1:length(list)){
+    if(!is.null(dim(course.summaries[[i]]))){
+    intercept.tval <- list[[i]][1,3]
+    Student.Term.tval <- list[[i]][2,3]
+      if(intercept.tval >= qnorm(0.99) & Student.Term.tval <= qnorm(0.01)){
+        Sig.Courses.Negative[i] <- names(course.summaries[i])
+    }
+    }
+  }
+  return(Sig.Courses.Negative[Sig.Courses.Negative != "Remove"])
+}
+
+
+##These vectors contain all the courses that had significant effects on future cumulative GPA.
+significant.courses.positive <- sig.summaries.positive(course.summaries)
+significant.courses.negative <- sig.summaries.negative(course.summaries)
+
+##These are the courses that did not have enough students begin in them to use the approximate Z test statistic for estimation of future cumulative GPA
+not.enough.data <- rep("remove", length(course.summaries))
+for(i in 1:length(course.summaries)){
+  if(is.null(dim(course.summaries[[i]]))){
+    not.enough.data[i] <- names(course.summaries[i])
+  }
+}
+not.enough.data <- not.enough.data[not.enough.data != "remove"]
+
+## Finally, these are the courses that did have enough data to use the approximate Z test statistic but did not significantly influence future cumulative GPA. Students that began in these courses will be compared to the global mean.
+`%notin%` <- Negate(`%in%`)
+not.significant <- courses[courses %notin% significant.courses.positive & courses %notin% significant.courses.negative & courses %notin% not.enough.data]
+
+## Tibble used to calculate mean number of courses taught by faculty for following paragraph.
+Prof.Courses <-  Filtered.Data1 %>%
+                    ungroup() %>%
+                      group_by(`Faculty Random ID`, `Course Code`) %>%
+                        count() %>%
+                          dplyr::select(-n) %>%
+                            ungroup() %>%
+                              group_by(`Faculty Random ID`) %>%
+                                summarise(Num.Courses.Taught = n())
+```
+For brevity I will refer to individual courses by their course code, but I have included a lookup table at the end of this document that includes course name and the number of credits for those interested. The courses that had a significant positive effect on future cumulative GPA were `r significant.courses.positive`. The courses that had a significant negative effect on future cumulative GPA were `r significant.courses.negative`. There are two categories of non-significant courses: those in which an insufficient number of students started to draw a proper inference (I used n >= 30), and those which had sufficient data but whose students' GPAS did not follow a statistically significant common pattern using $\alpha = 0.01$. The courses that did not have enough students start in them for analysis were `r not.enough.data`. The courses that had enough students take them first but did not significantly effect future cumulative GPA were `r not.significant`.
+
+To obtain a model of professor influence on future cumulative GPA, we first filter out all those students that begain in courses that did not have enough data to provide inference. This is a source of error in the analysis: there may or may not be a significant effect on future cumulative gpa for those students that began in these courses, but we would need more data to be confident. It is therefore inappropriate to superimpose the mean student's cumulative gpa progression onto the students who took these courses. We therefore cannot measure the future effects of the professors that taught such courses - this may be a big error because on average faculty only teach `r mean(Prof.Courses$Num.Courses.Taught)` different courses. On the other hand, it $\textit{is}$ appropriate to superimpose the mean onto those students whose first math or chemistry course was in the list `r not.significant`. The students whose first class had a significant effect on their outcome will be measured against their peers.
+
+We will next build two vectors for each professor that contain the change in cumulative GPA for all students from first to final term in both the mathematics and chemistry departments. We will then take the difference between this change and the expected change as predicted by our linear mixed effects models (we have adjusted for the slope and intercepts effects caused by course). This is a measure of student outcome. We have then refined our question to: how does the professor a community college student have first in the math or chemistry department affect that student's final performance in those departments? Outside of those departments? After creating this distribution we will bootstrap the values to create a model of the sampling distribution, then create a confidence interval to compare against the mean outcomes. All professors with a statistically significant $\texit{positive}$ effect on student outcomes as compared to the mean student adjusted for course will be categorized as "good", and likewise those with significant $\textit{negative}$ effects will be categorized as "poor". Based on our choice for $\alpha$ we expect some error - there should be approximately $M = \alpha * n_{prof}$ misclassifications. If M is not so different from the sum of the numbers of "good" and "poor" professors, we will be confident that there is little real variance in the effect professors have on students (in the math and chemistry departments of OCC).
+
+
+```{r}
+##Use Cum.GPA as a predictor. First, obtain a confidence interval for the effect of Student.Term on the mean student for superposition onto those courses that had a measurable non-significant deviation from the mean effect on student.term.
+
+##Overall model for students 
+Cum.lmer.model2 <- lmer(Cum.GPA ~ Student.Term + (1|`Student Random ID`), data = Filtered.Data1)
+
+## Determine the first observation of GPA for each student, then use it as the intercept for the mean linear mixed effects model
+First.Course.GPA <-  Filtered.Data1 %>%
+                      ungroup() %>%
+                        group_by(`Student Random ID`) %>%
+                          slice(1) %>%
+                            mutate(First.Course.GPA = Cum.GPA) %>%
+                              dplyr::select(`Student Random ID`, First.Course.GPA)
+
+## Store mean mixed effects model predictions to Filtered.Data
+Filtered.Data2 <- Filtered.Data1 %>%
+                    left_join(First.Course.GPA, by = "Student Random ID")
+           
+##  Store student's last term cumulative GPA to a variable in Filtered.Data for error analysis (the error is what will get bootstrapped) 
+Filtered.Data3 <- Filtered.Data2  %>%
+                    ungroup()%>%
+                      group_by(`Student Random ID`) %>%
+                        slice(n()) %>%
+                          mutate(Last.Term.Cum.GPA = Cum.GPA) %>%
+                            dplyr::select(`Student Random ID`, Last.Term.Cum.GPA) %>%
+                              right_join(Filtered.Data2, by = "Student Random ID")
+```
+
+
+```{r}
+## Create course - specific models of Cum.GPA progression through student's stay at OCC in Filtered.Data
+
+##First need to create tibble containing the variables (1) Course Code, (2) LMER slope for all courses that had a significant effect. If the course had no significant effect the slope will be the mean slope defined in the previous chunk.
+n.courses <- length(unique(Filtered.Data3$`Course Code`))
+course.slopes <- tibble(First.Course = unique(Filtered.Data3$`Course Code`), 
+                        Course.LMER.slope = rep(0, n.courses))
+
+## Grab lmer slopes for significant courses
+set.sig.Course.LMER.Slopes <- function(list){
+  
+  temp.course.slopes <- course.slopes
+  
+  for(i in list){
+    course.slope <- course.summaries[[i]][2,1]
+    temp.course.slopes$Course.LMER.slope[temp.course.slopes$First.Course == i] <- course.slope
+  }
+  return(temp.course.slopes)
+}
+
+course.slopes <- set.sig.Course.LMER.Slopes(significant.courses.positive)
+course.slopes <- set.sig.Course.LMER.Slopes(significant.courses.negative)
+
+##Superimpose mean onto those courses that had at least 30 observations, but did not have significant deviation from the mean 
+
+set.mean.Course.LMER.Slopes <- function(list){
+  
+  temp.course.slopes <- course.slopes
+  
+  for(i in list){
+    course.slope <- summary(Cum.lmer.model2)$coefficients[2,1]
+    temp.course.slopes$Course.LMER.slope[temp.course.slopes$First.Course == i] <- course.slope
+  }
+  return(temp.course.slopes)
+}
+
+course.slopes <- set.mean.Course.LMER.Slopes(not.significant)
+
+## Remove non significant courses for upcoming semi-join, then join back to filtered data.
+course.slopes <- course.slopes %>%
+                    filter(Course.LMER.slope != 0)
+
+##Join significant courses slopes back onto Filtered.Data  
+Filtered.Data4 <- Filtered.Data3 %>%
+                    semi_join(course.slopes, by = "First.Course") %>%
+                      left_join(course.slopes, by = "First.Course")
+
+## Determine difference between expected and observed final cumulative GPA in Delta2, and rejoin into Filtered.Data
+Filtered.Data5 <- Filtered.Data4 %>% 
+                    filter(Student.Term == max.terms) %>%
+                      mutate(LMER.Predict = First.Course.GPA + Course.LMER.slope*max.terms) %>%
+                        mutate(Delta2 = Last.Term.Cum.GPA - LMER.Predict) %>%
+                          dplyr::select(`Student Random ID`, Delta2) %>%
+                            right_join(Filtered.Data4, by = c("Student Random ID"))
+
+Filtered.Data5
+```
+
+Here we have created a dataframe consisting of only those students whose mean course effect on future cumulative gpa was measurable - significant or not. For these students we have measured the difference between their final cumulative GPA in the math and chemistry department and the expected final cumulative GPA adjusted for starting course. We will now assign these $\Delta 2$ values to the student's first professor in a vector as previously stated then bootstrap. We are interested in obtaining results for the following: (1) 
+
+```{r}
+##Assign math to math points
+
+
 ```
 
 
 
+```{r}
+##Use \Delta as predictor, but make sure to adjust \Delta for student.term
+
+
+```
+
+
+Try parallel processing - students can take multiple professors simultaneously
+
 2) Does early exposure to mathematics predict / influence future performance in/out of major? Vice Versa?
 
-  To partially answer this question, we can look at five subsets of students:
-1) Those who had only a math course in their first term, then a math course in their second
+  Early exposure difficult to define. Further analyse course code models
+  
 
 ```{r}
 ##First Course in department Tracker
@@ -540,6 +763,7 @@ First.Math.Data <- Gen_Data %>%
 
 4) Do some teachers have significantly higher Withdraw rates than other professors? (p = .01)
   - Which courses have significantly higher withdraw rates?
+  - Do the professors with significantly higher/lower withdraw rates match up with the professors rated "good"/"poor" by our Cum.GPA and Delta analyses?
 
 
 ```{r Professor Withdraw Tracker}
@@ -618,7 +842,7 @@ for(i in 1:length(Points.Tracker$Professors)){
 ```
 
 
-5) What is the mean number of different courses a prof teaches? What is the mean number of majors a prof teaches?
+5) What is the mean number of different courses a prof teaches? What is the mean number of majors a prof teaches? Other interesting statistics?
 
 ```{r}
 Gen_Data <- Gen_Data %>%
@@ -631,288 +855,12 @@ Gen_Data <- Gen_Data %>%
 
 
 
-
-
-
-
-WITH BIOLOGY STUDENTS
-
-
-
-```{r}
-##Integrate Biology Classes from Easy_Data to Gen_Data
-n <- length(Easy_Data$Unique_Student_ID)
-n.BIO <- 0
-for(i in 1:n){
-  if(startsWith(Easy_Data$SUBJ_CODE[i], "BIO")){
-    n.BIO <- n.BIO + 1
-  }
-}
-Rows.To.Remove <- rep(4,n)
-for(i in 1:n){
-  if(!startsWith(Easy_Data$SUBJ_CODE[i],"BIO")){
-    Rows.To.Remove[i] <- i
-  }
-}
-
-Pre.Bio.Data <- Easy_Data[-Rows.To.Remove,]
-
-Pre.Bio.Data <- mutate(rename(Pre.Bio.Data, GPA = GRDE_CODE), Grade = NA)
-
-##Inverse Grade Converter to normalize grade assignments with GenData
-
-##Save non NA grade points as doubles
-for(i in 1:length(Pre.Bio.Data$GPA)){
-  
-if(is.na(Pre.Bio.Data$GPA[i] == FALSE)){
-  Pre.Bio.Data$GPA[i] <- as.double(Pre.Bio.Data$GPA[i])
-}
-
-}
-   
-for(i in 1:length(Pre.Bio.Data$Unique_Student_ID)){
-  
-  G <- Pre.Bio.Data$GPA[i]
-  
-  if(G == 0.5 || G == 1.5 || G == 2.5 || G == 3.5){
-    G <- as.double(G)
-    flip <- sample(0:1,1)
-    if(flip == 0){
-      G <- G - 0.1
-    }
-    else{
-      G <- G + 0.1
-    }
-  }
-  
-  if(G >= 0 && G <= 4.1){
-    G <- as.double(G)
-  }
-  
-  if(is.character(G)){
-  if(G == "I" || G == "W"){
-    Pre.Bio.Data$Grade[i] <- "W" 
-    Pre.Bio.Data$GPA[i] <- NA
-  }
-  if(G == "R" || G == "Z"){
-   Pre.Bio.Data$Grade[i] <- "F"
-   Pre.Bio.Data$GPA[i] <- 0
-  }
-    G <- NA
-  }
-  
-  
-  
-  if(is.na(G)){
-    
-  }
-  else if(G >= 3.9){
-    Pre.Bio.Data$Grade[i] <- "A"
-    Pre.Bio.Data$GPA[i] <- 4.0
-  }
-  else if(G >= 3.6){
-    Pre.Bio.Data$Grade[i] <- "A-"
-    Pre.Bio.Data$GPA[i] <- 3.7
-  }
-  else if(G >= 3.2){
-    Pre.Bio.Data$Grade[i] <- "B+"
-    Pre.Bio.Data$GPA[i] <- 3.3
-  }
-  else if(G >= 2.9){
-    Pre.Bio.Data$Grade[i] <- "B"
-    Pre.Bio.Data$GPA[i] <- 3.0
-  }
-  else if(G >= 2.6){
-    Pre.Bio.Data$Grade[i] <- "B-"
-    Pre.Bio.Data$GPA[i] <- 2.7
-  }
-  else if(G >= 2.2){
-    Pre.Bio.Data$Grade[i] <- "C+"
-    Pre.Bio.Data$GPA[i] <- 2.3
-  }
-  else if(G >= 1.9){
-    Pre.Bio.Data$Grade[i] <- "C"
-    Pre.Bio.Data$GPA[i] <- 2.0
-  }
-  else if(G >= 1.6){
-    Pre.Bio.Data$Grade[i] <- "C-"
-    Pre.Bio.Data$GPA[i] <- 1.7
-  }
-  else if(G >= 1.2){
-    Pre.Bio.Data$Grade[i] <- "D+"
-    Pre.Bio.Data$GPA[i] <- 1.3
-  }
-  else if(G >= 0.9){
-    Pre.Bio.Data$Grade[i] <- "D"
-    Pre.Bio.Data$GPA[i] <- 1.0
-  }
-  else if(G >= 0.6){
-    Pre.Bio.Data$Grade[i] <- "D-"
-    Pre.Bio.Data$GPA[i] <- 0.7
-  }
-  else{
-    Pre.Bio.Data$Grade[i] <- "F"
-    Pre.Bio.Data$GPA[i] <- 0.0
-  }
-}
-
+```{r Course Lookup Table}
+## This is a course lookup table
+Course.Credits
 ```
 
-```{r}
-##Normalize Pre.Bio.Data Variables into useful object types
-for(i in 1:length(Pre.Bio.Data$Unique_Student_ID)){
-  Pre.Bio.Data$Unique_Student_ID[i] <- as.double(Pre.Bio.Data$Unique_Student_ID[i])
-  Pre.Bio.Data$Unique_Instructor_ID[i] <- as.double(Pre.Bio.Data$Unique_Instructor_ID[i])
-  Pre.Bio.Data$Year[i] <- as.double(Pre.Bio.Data$Year[i])
-  Pre.Bio.Data$SUBJ_CODE[i] <- as.character(Pre.Bio.Data$SUBJ_CODE[i])
-  Pre.Bio.Data$COURSE_NUMBER[i] <- as.double(Pre.Bio.Data$COURSE_NUMBER[i])
-}
 
-```
-Issue with Data Set: Biology students stored seperately from math and chemistry students
 
-```{r}
 
-##Build Random ID assigner to normalize student and faculty naming with GenData
 
-##Student Random ID Assigner
-
-Pre.Bio.Data <- arrange(Pre.Bio.Data, `Unique_Student_ID`)
-
-cntr <- 1
-for(i in 1:length(Pre.Bio.Data$Unique_Student_ID)){
-  
-  if(i == 1){
-    next.terms <- 0
-    while(Pre.Bio.Data$Unique_Student_ID[i] == Pre.Bio.Data$Unique_Student_ID[i+next.terms]){
-      next.terms <- next.terms + 1
-    }
-    next.terms <- next.terms - 1
-    if((cntr %in% Gen_Data$`Student Random ID`) == FALSE){
-      for(k in i: (i + next.terms)){
-      Pre.Bio.Data$Unique_Student_ID[k] <- cntr
-}
-    }
-    cntr <- cntr + 1
-  }
-  
-    else if(Pre.Bio.Data$Unique_Student_ID[i] == Pre.Bio.Data$Unique_Student_ID[i-1]){
-      ##Skips repeat student entry
-      cntr <- cntr + 1
-      
-    }
-    else{
-     next.terms <- 0
-      while(Pre.Bio.Data$Unique_Student_ID[i] == Pre.Bio.Data$Unique_Student_ID[i+next.terms]){
-      next.terms <- next.terms + 1
-    }
-      next.terms <- next.terms - 1
-    
-       
-      if((cntr %in% Gen_Data$`Student Random ID`) == FALSE){
-        for(k in i: (i + next.terms)){
-        Pre.Bio.Data$Unique_Student_ID[k] <- cntr
-}
-    }
-      else{
-        while(cntr %in% Gen_Data$`Student Random ID`){
-        cntr <- cntr + 1
-      }
-        for(k in i: (i + next.terms)){
-        Pre.Bio.Data$Unique_Student_ID[k] <- cntr
-}
-      
-      }
-      cntr <- cntr + 1
-    }
-    
-  cntr < cntr + 1
-}
-```
-
-```{r}
-
-##Faculty Random ID Assigner
-Pre.Bio.Data <- arrange(Pre.Bio.Data, `Unique_Instructor_ID`)
-
-cntr <- as.double(1)
-for(i in 1:length(Pre.Bio.Data$Unique_Instructor_ID)){
-  
-  if(i == 1){
-    next.terms <- 0
-    while(Pre.Bio.Data$Unique_Instructor_ID[i] == Pre.Bio.Data$Unique_Instructor_ID[i+next.terms]){
-      next.terms <- next.terms + 1
-    }
-    next.terms <- next.terms - 1
-    if((cntr %in% Gen_Data$`Faculty Random ID`) == FALSE){
-      for(k in i: (i + next.terms)){
-      Pre.Bio.Data$Unique_Instructor_ID[k] <- as.double(cntr)
-}
-    }
-    cntr <- cntr + 1
-  }
-  
-    else if(Pre.Bio.Data$Unique_Instructor_ID[i] == Pre.Bio.Data$Unique_Instructor_ID[i-1]){
-      ##Skips repeat student entry
-      cntr <- cntr + 1
-      
-    }
-    else{
-     next.terms <- 0
-      while(Pre.Bio.Data$Unique_Instructor_ID[i] == Pre.Bio.Data$Unique_Instructor_ID[i+next.terms]){
-      next.terms <- next.terms + 1
-    }
-      next.terms <- next.terms - 1
-    
-       
-      if((cntr %in% Gen_Data$`Faculty Random ID`) == FALSE){
-        for(k in i: (i + next.terms)){
-        Pre.Bio.Data$Unique_Instructor_ID[k] <- as.double(cntr)
-}
-    }
-      else{
-        while(cntr %in% Gen_Data$`Faculty Random ID`){
-        cntr <- cntr + 1
-      }
-        for(k in i: (i + next.terms)){
-        Pre.Bio.Data$Unique_Instructor_ID[k] <- cntr
-}
-      
-      }
-      cntr <- cntr + 1
-    }
-    
-  cntr < cntr + 1
-}
-```
-Note: In Pre.Bio_Data, there were exactly 100 entries with term "Spring", out of 21538. There are no spring term entries for any of the chemistry nor math students in Gen_Data. In order to rectify this, I used a coin flip to split the spring term students between the winter and summer terms.
-```{r}
-
-##Term-inology converter; that's a pun :)
-for(i in 1:length(Pre.Bio.Data$Term)){
-  this.year <- Pre.Bio.Data$Year[i]
-  if(Pre.Bio.Data$Term[i] == "Summer"){
-    Pre.Bio.Data$Term[i] <- paste(this.year,"/","SU",sep = "")
-  }
-  if(Pre.Bio.Data$Term[i] == "Winter"){
-    Pre.Bio.Data$Term[i] <- paste(this.year,"/","WI",sep = "")
-  }
-  if(Pre.Bio.Data$Term[i] == "Fall"){
-    Pre.Bio.Data$Term[i] <- paste(this.year,"/","FA",sep = "")
-  }
-  if(Pre.Bio.Data$Term[i] == "Spring"){
-    flip <- sample(0:1)
-    if(flip == 0){
-      Pre.Bio.Data$Term[i] <- paste(this.year,"/","WI",sep = "")
-    }
-    if(flip == 1){
-    Pre.Bio.Data$Term[i] <- paste(this.year,"/","SU",sep = "")
-    }
-  }
-}
-rename(Pre.Bio.Data, Semester = Term, `Student Random ID` = Unique_Student_ID, `Faculty Random ID` = Unique_Instructor_ID, )
-```
-
-```{r}
-Bio.Data <- data.frame(`Student Random ID` = Pre.Bio.Data$Unique_Student_ID, `Course Code` = Pre.Bio.Data$COURSE_NUMBER, `Grade` = Pre.Bio.Data$Grade, `Faculty Random ID` = Pre.Bio.Data$Unique_Instructor_ID,  `Semester` = paste(Pre.Bio.Data$Year, "/", Pre.Bio.Data$Term, sep = ""), `GPA` = Pre.Bio.Data$GPA)
-```
