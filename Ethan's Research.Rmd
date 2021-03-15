@@ -548,7 +548,7 @@ sig.summaries.positive <- function(list){
     if(!is.null(dim(course.summaries[[i]]))){
     intercept.tval <- list[[i]][1,3]
     Student.Term.tval <- list[[i]][2,3]
-      if(intercept.tval >= qnorm(0.99) & Student.Term.tval >= qnorm(0.99)){
+      if(intercept.tval >= qnorm(0.95) & Student.Term.tval >= qnorm(0.95)){
         Sig.Courses.Positive[i] <- names(course.summaries[i])
     }
     }
@@ -563,7 +563,7 @@ sig.summaries.negative <- function(list){
     if(!is.null(dim(course.summaries[[i]]))){
     intercept.tval <- list[[i]][1,3]
     Student.Term.tval <- list[[i]][2,3]
-      if(intercept.tval >= qnorm(0.99) & Student.Term.tval <= qnorm(0.01)){
+      if(intercept.tval >= qnorm(0.95) & Student.Term.tval <= qnorm(0.05)){
         Sig.Courses.Negative[i] <- names(course.summaries[i])
     }
     }
@@ -603,7 +603,7 @@ For brevity I will refer to individual courses by their course code, but I have 
 
 To obtain a model of professor influence on future cumulative GPA, we first filter out all those students that begain in courses that did not have enough data to provide inference. This is a source of error in the analysis: there may or may not be a significant effect on future cumulative gpa for those students that began in these courses, but we would need more data to be confident. It is therefore inappropriate to superimpose the mean student's cumulative gpa progression onto the students who took these courses. We therefore cannot measure the future effects of the professors that taught such courses - this may be a big error because on average faculty only teach `r mean(Prof.Courses$Num.Courses.Taught)` different courses. On the other hand, it $\textit{is}$ appropriate to superimpose the mean onto those students whose first math or chemistry course was in the list `r not.significant`. The students whose first class had a significant effect on their outcome will be measured against their peers.
 
-We will next build two vectors for each professor that contain the change in cumulative GPA for all students from first to final term in both the mathematics and chemistry departments. We will then take the difference between this change and the expected change as predicted by our linear mixed effects models (we have adjusted for the slope and intercepts effects caused by course). This is a measure of student outcome. We have then refined our question to: how does the professor a community college student have first in the math or chemistry department affect that student's final performance in those departments? Outside of those departments? After creating this distribution we will bootstrap the values to create a model of the sampling distribution, then create a confidence interval to compare against the mean outcomes. All professors with a statistically significant $\texit{positive}$ effect on student outcomes as compared to the mean student adjusted for course will be categorized as "good", and likewise those with significant $\textit{negative}$ effects will be categorized as "poor". Based on our choice for $\alpha$ we expect some error - there should be approximately $M = \alpha * n_{prof}$ misclassifications. If M is not so different from the sum of the numbers of "good" and "poor" professors, we will be confident that there is little real variance in the effect professors have on students (in the math and chemistry departments of OCC).
+We now begin working towards building vectors for each professor that contain the change in cumulative GPA for all students from first to final term in $\textit{both}$ the mathematics and chemistry departments. We will then take the difference between this change and the expected change as predicted by our linear mixed effects models (we have adjusted for the slope and intercepts effects caused by course). This is a measure of student outcome. We have then refined our question to: how does the professor an OCC student have first in the math or chemistry department affect that student's final performance in those departments? Outside of those departments? After creating this distribution we will test for significant effects two ways. First we will use a standard one sample t-test, obtaining the degrees of freedom from the number of students that started with that faculty member minus one. We will also bootstrap the values to create a model of the sampling distribution, then create a confidence interval to compare against the mean outcome. All professors with a statistically significant $\texit{positive}$ effect on student outcomes as compared to the mean student adjusted for course will be categorized as "good", and likewise those with significant $\textit{negative}$ effects will be categorized as "poor". Based on our choice for $\alpha$ we expect some error - there should be approximately $M = \alpha * n_{prof}$ misclassifications. If M is not so different from the sum of the numbers of "good" and "poor" professors, we will be confident that there is little real variance in the effect professors have on students (in the math and chemistry departments of OCC).
 
 
 ```{r}
@@ -693,15 +693,68 @@ Filtered.Data5 <- Filtered.Data4 %>%
 Filtered.Data5
 ```
 
-Here we have created a dataframe consisting of only those students whose mean course effect on future cumulative gpa was measurable - significant or not. For these students we have measured the difference between their final cumulative GPA in the math and chemistry department and the expected final cumulative GPA adjusted for starting course. We will now assign these $\Delta 2$ values to the student's first professor in a vector as previously stated then bootstrap. We are interested in obtaining results for the following: (1) 
+There are 19 courses with 
+
+Here we have created a dataframe consisting of only those students whose mean course effect on future cumulative gpa was measurable - significant or not. For these students we have measured the difference between their final cumulative GPA in the math and chemistry department and the expected final cumulative GPA adjusted for starting course. We will now assign these $\Delta 2$ values to the student's first professor in a vector as previously stated then bootstrap. 
 
 ```{r}
-##Assign math to math points
+##Assign general points
+
+##Represent the Mean Delta2 values for all professors
+Delta2.Data <- Filtered.Data5 %>% 
+                ungroup() %>%
+                  group_by(`Student Random ID`) %>%
+                    slice(n()) %>%
+                      ungroup() %>%
+                          dplyr::select(`Student Random ID`, Delta2, First.Prof)
+
+head(Delta2.Data,5)
+
+##Create sample size column for t test, and standard error
+Delta2.Data2 <- Delta2.Data %>%
+                group_by(First.Prof) %>%
+                  summarise(Mean.Delta2 = mean(Delta2), sample.size = n(), standard.error = sd(Delta2)/n())
+
+## Find overall mean of Delta2. If there is no residual error in our model, this value should be precisely zero. 
+overall.mean.Delta2 <- Delta2.Data2 %>%
+                    mutate(Net.Delta = Mean.Delta2 * sample.size) %>%
+                      pull(Net.Delta) %>%
+                        sum()/sum(Delta2.Data2$sample.size)
+overall.mean.Delta2
+
+## T test procedure found at https://libguides.library.kent.edu/SPSS/OneSampletTest
+## Carry out t test for those faculty members that had at least 
+Delta2.Data3 <- Delta2.Data2 %>%
+                  filter(sample.size >= 3) %>%
+                    mutate(requisite.tval = qt(0.99, sample.size-1), observed.tval = abs((Mean.Delta2-overall.mean.Delta2))/standard.error) %>%
+                     mutate(significant = if_else(observed.tval > requisite.tval, TRUE, FALSE, FALSE), Prof.Quality = if_else(Mean.Delta2 > overall.mean.Delta2, "Good", "Poor"))
+tail(Delta2.Data3, 6)
+
+##Determine Faculty quality for those professors that had significant effects on future cumulative gpa
+Prof.Qualities <- Delta2.Data3 %>%
+  filter(significant == TRUE) %>%
+      pull(Prof.Quality)
+
+# length(Prof.Qualities) is the total number of faculty that had significant effect on future cumulative GPA
+# length(Prof.Qualities[Prof.Qualities == "Good"]) is the total number of faculty that had significant positive effect on future cumulative GPA. This number can be subtracted from the line above to find total number of faculty that had significant negative effect on future cumulative GPA.
+```
+
+The significance test I have just ran employs the statistic $\Delta 2$, which is calculated as a student's final cumulative GPA minus the final cumulative GPA predicted by the germane of the . That is, $\Delta 2$ is the deviation of an individual student from 
+
+The overall error in our course-corrected linear mixed-effects model after all filtration is $0.01047$ GPA points. That is, if the linear mixed-effects model perfectly described the data, the output $\Delta 2$ would have population mean $0$. The observed population mean for $\Delta 2$ is $0.01047$, which means that either: 1) there is at least one confounding variable that affects a student's cumulative GPA, or that 2) the term dependancy of a student's cumulative GPA is not linear. I am personally more inclined to believe the latter, because GPA is bounded on the interval $[0,4]$, and so cannot perfectly follow an affine path over an arbitrary number of semesters unless the slope were exactly zero. That said, for the mean student taking the mean number of terms the models are pretty good. Now that we know the overall mean value for $\Delta 2$, we can use the one sample t-test and bootstrap confidence intervals with $\alpha = 0.01$ to determine whether a given faculty member had a mean positive or negative on their students final cumulative GPA's. I want to be clear: the $\Delta 2$ statistic I've created is not immune to harsh/lenient grading by the first professor, because it is measured assuming that the first observed GPA value was an accurate intercept for the linear mixed effects model. That said, the model attempts to correct for individual student variance by starting the affine from the first observed GPA value.
+
+In order to apply a one sample t-test using the test statistic $t = \frac{\bar{x} - \mu}{s_e}$, we must have 3 things: 
+1) A sample mean. In my code I have labeled this as a variable of Delta2.Data called Mean.Delta2. It is the mean deviation from the course corrected linear mixed model experienced by all the students that started with the observed faculty member. 
+2) A sample standard error. This is calculated as the sample standard deviation of Delta2 values divided by the square root of the number of students that started with the observed faculty member.
+3) A population mean or estimate for population mean. In our case we have obtained an estimate for population mean because of all the filtration that was necessary. 
+
+The one sample t-test is carried out for all faculty members that had at least 3 students start with them. Significance is determined by whether the absolute value of the observed t statistic surpassed the $0.99$ t quantile with degrees of freedom equal to the number of students that started with the faculty minus one. Results of the one sample t-test are stored in the dataframe Delta2.Data3. In total, there were `r length(Prof.Qualities)` faculty with significant effects on future cumulative GPA for the students that had them first out of the original `r length(unique(Gen_Data$`Faculty Random ID`))` faculty members. Of those `r length(Prof.Qualities)`, `r length(Prof.Qualities[Prof.Qualities == "Good"])` faculty made a positive difference in future cumulative GPA, while `r length(Prof.Qualities)-length(Prof.Qualities[Prof.Qualities == "Good"])` made a $\textit{negative}$ difference in future cumulative GPA. These numbers are very close, because they are measured as whether their students did better or worse than the applicable of the 23 linear mixed-effects models suggested they would do. Because the average linear 
+
+```{r}
+##Get that boot nice and strapped for each professor, then record those that had 
 
 
 ```
-
-
 
 ```{r}
 ##Use \Delta as predictor, but make sure to adjust \Delta for student.term
@@ -757,7 +810,14 @@ First.Math.Data <- Gen_Data %>%
 
 ```
 
+
+2.5) How do individual professors affect the number of courses a student will take in major adjusted for course?
+
+
+
 3) Do grades generally improve, worsen, or remain constant?
+
+
 
 
 
@@ -844,6 +904,8 @@ for(i in 1:length(Points.Tracker$Professors)){
 
 5) What is the mean number of different courses a prof teaches? What is the mean number of majors a prof teaches? Other interesting statistics?
 
+How do individual professors vary in their ability teach various courses?
+
 ```{r}
 Gen_Data <- Gen_Data %>%
               group_by(`Course Code`) %>%
@@ -859,6 +921,8 @@ Gen_Data <- Gen_Data %>%
 ## This is a course lookup table
 Course.Credits
 ```
+
+
 
 
 
