@@ -453,11 +453,11 @@ Gen_Data8 <- Gen_Data7 %>%
 
 
 
-
+It is impossible to differentiate graduate student instructors from full professors based on the random ID's. To avoid being rude, in the following analysis I will refer to an individual faculty member interchangeably as a faculty member or as a professor to avoid repitition, and to grant the anonymous person the highest possible title they might possess. 
 
 Questions:
 
-1) Does the professor a student encounters first in a department influence future performance in department / out of department? Are some faculty better at teaching some courses than others?
+1) Does the professor a student encounters first in a department influence future performance? Are some faculty better at teaching some courses than others?
 
 
   As the below graph shows, it is impossible to create an inference for this question on the entire data set. Some students withdraw from their courses in the first term and thus do not receive grades - it is impossible to analyze their GPA assigned in the first term. We can however measure probability of success by filtering for only those students that withdrew from courses in the first term, and those who did not. This brings us to a second issue - the data we have are only for the courses that students took in the math and chemistry departments during their stay at OCC. We cannot with any degree of certainty claim that those first recorded terms in the dataset are indeed the first terms. Student X could have taken an English course in a term before appearing in our data set for all we know. We have implicitly filtered for: (1) students who did not for some reason attend a standard four year college, and (2) students that wished to take math and/or chemistry courses in community college. We have moreover restricted our departmental information to only chemistry and mathematics courses, which removes our ability to deal with the possibility that the math or chemistry departments are outliers in this question. Alas, let's do our best.
@@ -642,11 +642,11 @@ First.Course.GPA <-  Filtered.Data1 %>%
                             mutate(First.Course.GPA = Cum.GPA) %>%
                               dplyr::select(`Student Random ID`, First.Course.GPA)
 
-## Store mean mixed effects model predictions to Filtered.Data
+## Store student's first course GPA to Filtered Data
 Filtered.Data2 <- Filtered.Data1 %>%
                     left_join(First.Course.GPA, by = "Student Random ID")
            
-##  Store student's last term cumulative GPA to a variable in Filtered.Data for error analysis (the error is what will get bootstrapped) 
+##  Store student's last term cumulative GPA to a variable in Filtered.Data for error analysis 
 Filtered.Data3 <- Filtered.Data2  %>%
                     ungroup()%>%
                       group_by(`Student Random ID`) %>%
@@ -882,21 +882,184 @@ Now we will bootstrap the individual values of difference between expected and o
 
 
 ```{r}
-##Get that boot nice and strapped for each professor, then record those that had 
+##Bootstrap for each faculty member that taught students that passed filtration assumptions
+Boot.Data <- Filtered.Data5 %>%
+              ungroup() %>%
+                group_by(`Student Random ID`) %>%
+                  slice(n()) %>%
+                    dplyr::select(`Student Random ID`, Delta2, First.Prof, First.Course)
+
+##Initialize list of faculty that passed filtration conditions
+Filtered.Profs <- unique(Boot.Data$First.Prof)
+
+##Record mean Delta2 over all students that passed filtration conditions.
+global.mean <- mean(Boot.Data$Delta2)
 
 
+##Create bootstrapper function which creates a bootstrap distribution for a given faculty member
+make.overall.bootstrap.means <- function(prof.num) {
+  og.sample <- Boot.Data$Delta2[Boot.Data$First.Prof == prof.num]
+  samp.size <- length(og.sample)
+  boot.means <- rep(0,10^4)
+    for(i in seq_along(boot.means)){
+      boot.sample <- sample(og.sample, replace = TRUE, size = samp.size)
+      boot.means[i] <- mean(boot.sample)
+    }
+  boot.means <- tibble(Delta2.Boot.Means = boot.means)
+  return(boot.means)
+}
+ 
+##Create observed mean grabber for 
+get.observed.mean <- function(prof.num){
+  observed.delta2s <- Boot.Data %>%
+                        filter(First.Prof == prof.num) %>%
+                          pull(Delta2)
+  return(mean(observed.delta2s))
+}
+
+##Make significance dataframe for bootstraps. The column Significant 2 notes that this significance test may create different results than the one sample t-test. We will use \alpha = 0.05 as we did for the t-test.
+Sig.Profs <- as.data.frame(cbind(`Faculty Random ID` = Filtered.Profs, Significant2 = rep(NA,length(Filtered.Profs))))
+Sig.Profs$Significant2 <- as.logical(Sig.Profs$Significant2)
+
+##Create significance evaluation function to be applied against all faculty in Sig.Profs. The output will be a significance observation for one professor.
+evaluate.significance <- function(prof.num){
+  current.significance <- NA
+  current.bootstrap.distribution <- make.overall.bootstrap.means(prof.num) %>% 
+                                      pull(Delta2.Boot.Means)
+  lower.quantile <- quantile(current.bootstrap.distribution, 0.025)
+  upper.quantile <- quantile(current.bootstrap.distribution, 0.975)
+    if(upper.quantile <= global.mean){
+      current.significance <- TRUE
+    } else if(lower.quantile >= global.mean){
+      current.significance <- TRUE
+    } else{
+      current.significance <- FALSE
+    }
+  return(current.significance)
+}
+
+##Neither sapply nor apply wanted to work so I just manually apply the functions here. This fills out the Significant2 column in Sig.Profs.
+for(i in seq_along(Sig.Profs$`Faculty Random ID`)){
+  Sig.Profs$Significant2[i] <- evaluate.significance(Sig.Profs$`Faculty Random ID`[i])  
+}
+
+##Make two test cases for visualization - one where the faculty has a significant mean delta and one where they do not.
+sig.test.prof <- Filtered.Profs[1]
+nonsig.test.prof <- Filtered.Profs[2]
+
+##Create visualization of a faculty member with a mean Delta2 significantly different from 0.
+make.overall.bootstrap.means(sig.test.prof) %>%
+  ggplot() +
+  geom_histogram(aes(x = Delta2.Boot.Means)) +
+  geom_vline(xintercept = c(quantile(sig.test.data$Delta2.Boot.Means, 0.025), quantile(sig.test.data$Delta2.Boot.Means, 0.975), 0), color = c("red", "red", "blue")) +
+  labs(x = "Mean Delta2 from bootstrap sample", y = "Count", title = "Example Histogram of the Bootstrap Distribution for a Faculty Member with a\nSignificant Mean Delta2")
+
+##Create visualization of a faculty member with a mean Delta2 NOT significantly different from 0.
+make.overall.bootstrap.means(nonsig.test.prof) %>%
+  ggplot() +
+  geom_histogram(aes(x = Delta2.Boot.Means)) +
+  geom_vline(xintercept = c(quantile(nonsig.test.data$Delta2.Boot.Means, 0.025), quantile(nonsig.test.data$Delta2.Boot.Means, 0.975), 0), color = c("red", "red", "blue")) +
+  labs(x = "Mean Delta2 from bootstrap sample", y = "Count", title = "Example Histogram of the Bootstrap Distribution for a Faculty Member with a\nNon-Significant Mean Delta2")
 ```
 
+The general bootstrap process goes as follows:
 
+We can to simulate the sampling distribution to determine whether there is a statistically significant difference between the population Mean $\Delta2$ for all faculty members and an individual professor's observation of Mean $\Delta 2$. We can obtain a more accurate boundary by simulating the sampling distribution using bootstrapping. The general process for the bootstrapping of a population parameter $\theta$ using a given sample containing an estimate $\hat{\theta}$ follows:
+
+1) Create an empty vector $V_{boot}$ with length equal to a large number $n_{sim}$
+2) Create a sample with replacement $S_{boot}$ from the original sample whose length is equal to the length of the original sample
+3) Store the observed mean of $\hat{\theta}$ from (2) into $V_{boot}$
+4) Repeat (2) and (3) $n_{sim}-1$ times.
+
+The resulting vector $V_{boot}$ contains the bootstrap sampling distribution, which is an estimate for the sampling distribution. As such, we can use the bootstrap distribution to create a confidence interval for $\theta$. We then use the built-in quantile() function to create $95\%$ confidence intervals for $\hat{\theta}$. These confidence intervals, represented by red verticle lines in the graphs I have included above, are then checked against the population parameter $\theta$, represented as a blue vertical line. For our case, if the global $\Delta2$ mean of `r global.mean` is within the $95\%$ confidence interval, then the professor is ruled not significantly different from the mean case. That is, we do not have sufficient data to claim that the effect the faculty in question had on the final cumulative GPA of those students that started with them deviated significantly from the mean effect. That is, if the blue line is outside of the two red lines, the result is significant at the  $\alpha = 0.05$ level.  On the other hand, if the global mean $\Delta2$ is not within the bound, then we have shown at the $\alpha = 0.05$ level that the individual faculty in question had a different $\textit{population}$ mean $\Delta2$ than the average faculty member. I would like to emphasize that the bootstrap prediction of significance is adjusted for stratum because the individual observations of $\Delta 2$ are drawn from strata-adjusted values of expected final cumulative GPA. We will now compare the bootstrap-derived significance with the one sample t-test derived significance.
 
 ```{r}
-##Use \Delta as predictor, but make sure to adjust \Delta for student.term
+##Analyse the differences between the bootstrap and t-test results
 
+##Merge bootstrap significance to significance found by t-test for comparison.
+Comparison.Data <- Delta2.Data3 %>%
+                    dplyr::select(First.Prof, significant, Mean.Delta2) %>%
+                      left_join(Sig.Profs, by = c("First.Prof" = "Faculty Random ID")) %>%
+                        mutate(Sig.Agree = if_else(significant == Significant2, TRUE, FALSE)) %>%
+                          rename(T.Test.Sig = significant, Bootstrap.Sig = Significant2)
+
+
+##Determine total proportion of agreements on significance between the t-test and the bootstrap. 
+total.agree <- Comparison.Data %>% 
+                filter(Sig.Agree == TRUE) %>%
+                  pull(Sig.Agree) %>%
+                    sum()
+total.cases <- length(Comparison.Data$Sig.Agree)
+
+prop.agree <- total.agree/total.cases
+
+##Determine the mean of Delta2 for the faculty that obtained differing significance from the t-test and the bootstrap
+differ.mean <- Comparison.Data %>%
+                filter(Sig.Agree == FALSE) %>%
+                  pull(Mean.Delta2) %>%
+                    mean()
+
+##Determine the standard deviation of Delta2 for the faculty that obtained differing significance from the t-test and the bootstrap
+differ.sd <- Comparison.Data %>%
+              filter(Sig.Agree == FALSE) %>%
+                pull(Mean.Delta2) %>%
+                  sd()
+
+##Determine the mean and standard deviation of Delta2 for the faculty that obtained the same significance from the t-test and the bootstrap (POSITIVE DELTA2)
+positive.mean <- Comparison.Data %>%
+                  filter(Sig.Agree == TRUE,  Mean.Delta2 > global.mean) %>%
+                    pull(Mean.Delta2) %>%
+                      mean()
+
+positive.sd <- Comparison.Data %>%
+                  filter(Sig.Agree == TRUE,  Mean.Delta2 > global.mean) %>%
+                    pull(Mean.Delta2) %>%
+                      sd()
+
+##Determine the mean of Delta2 for the faculty that obtained the same significance from the t-test and the bootstrap (NEGATIVE DELTA2)
+negative.mean <- Comparison.Data %>%
+                  filter(Sig.Agree == TRUE,  Mean.Delta2 < global.mean) %>%
+                    pull(Mean.Delta2) %>%
+                      mean()
+
+negative.sd <- Comparison.Data %>%
+                  filter(Sig.Agree == TRUE,  Mean.Delta2 < global.mean) %>%
+                    pull(Mean.Delta2) %>%
+                      sd()
+
+##Overall standard deviation for faculty that had doubly-significant deviation from the average mean Delta2
+significant.sd <- Comparison.Data %>%
+                    filter(Sig.Agree == TRUE, Bootstrap.Sig == TRUE) %>%
+                      pull(Mean.Delta2) %>%
+                        sd()
+
+##Table of differences between t-test significance and bootstrap significance.
+Comparison.Data %>%
+  mutate(T.Test.Only.Reject = if_else(T.Test.Sig == FALSE & Bootstrap.Sig == TRUE, TRUE, FALSE), Bootstrap.Only.Reject = if_else(Bootstrap.Sig == FALSE & T.Test.Sig == TRUE, TRUE, FALSE)) %>%
+      group_by(T.Test.Only.Reject, Bootstrap.Only.Reject) %>%
+        count()
+
+## The two oddities where the t-test suggested the result was not significant, but the bootstrap suggested it was.
+Comparison.Data %>%
+  mutate(T.Test.Only.Reject = if_else(T.Test.Sig == FALSE & Bootstrap.Sig == TRUE, TRUE, FALSE), Bootstrap.Only.Reject = if_else(Bootstrap.Sig == FALSE & T.Test.Sig == TRUE, TRUE, FALSE)) %>%
+    filter(T.Test.Only.Reject == TRUE) %>%
+      dplyr::select(First.Prof, T.Test.Sig, Bootstrap.Sig, everything())
+```
+
+The above tables summarise the differences between the one sample t-test and bootstrap significance measures. We will now discuss some statistics surrounding this comparison. The significance implied by the t-test and the bootstrap agreed for `r total.agree` out of `r total.cases` faculty members, which is approximately  `r prop.agree *100`$\%$ of all professors.  In the vast majority of cases, the bootstrap significance test is more conservative than that of the t-test. This can be seen in the `r total.cases - total.agree` cases where the significance differed between the bootstrap and the t-test. $89$ discrepancies occurred where the t-test implied that the observation of mean $\Delta 2$ for a faculty member was significantly different from the overall average mean, while the bootstrap implied that it was not. Only two cases of the bootstrap failing to reject significance for a faculty member rejected by the t-test occurred, and I have included them above for the reader's consideration. In an effort to be as conservative as possible with inference, we will recreate the previous plots [CITE WHICH] using only those faculty members endorsed by the bootstrap confidence intervals.  Of the cases whose significance differed, the mean value for $\Delta 2$ was `r differ.mean` GPA points, and the standard deviation of the mean $\Delta 2$ was `r differ.sd`. Among the faculty whose significance agreed and had positive mean $\Delta 2$ values, the average mean value for $\Delta 2$ was `r positive.mean` and the standard deviation was `r positive.sd`. As for the faculty whose significance agreed but had negative mean $\Delta 2$ values, the average mean $\Delta 2$ was `r negative.mean` with a standard deviation of `r negative.sd`. The average standard deviation of $\Delta 2$ for a faculty member that had a significantly different $\Delta 2$ from the overall mean was `r significant.sd`.
+
+```{r}
+##Check the overall course distribution for each professor
 
 ```
 
 
-Try parallel processing - students can take multiple professors simultaneously
+##REMOVE DELTA AND SUCH FROM CODE, REWRITE SO ITS NOT NECESSARY. WILL SPEED UP AND PRETTY UP PROGRAM.
+
+```{r}
+Gen_Data9 %>%
+  mutate(Withdraw = if_else(is.na(`GPA Assigned`), TRUE, FALSE))
+```
 
 2) Does early exposure to mathematics predict / influence future performance in/out of major? Vice Versa?
 
