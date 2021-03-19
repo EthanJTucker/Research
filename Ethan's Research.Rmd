@@ -445,7 +445,7 @@ Course.GPAs <- Gen_Data7 %>%
                       summarise(Course.Code.Mean.GPA = mean(Cum.GPA, na.rm = TRUE))
 
 Gen_Data8 <- Gen_Data7 %>%
-              left_join(Course.GPAs, by = "Course Code")
+              left_join(Course.GPAs, by = "Course Code") %>% View()
 ```
 
 
@@ -606,8 +606,30 @@ To obtain a model of professor influence on future cumulative GPA, we first filt
 We now begin working towards building vectors for each professor that contain the change in cumulative GPA for all students from first to final term in $\textit{both}$ the mathematics and chemistry departments. We will then take the difference between this change and the expected change as predicted by our linear mixed effects models (we have adjusted for the slope and intercepts effects caused by course). This is a measure of student outcome. We have then refined our question to: how does the professor an OCC student have first in the math or chemistry department affect that student's final performance in those departments? Outside of those departments? After creating this distribution we will test for significant effects two ways. First we will use a standard one sample t-test, obtaining the degrees of freedom from the number of students that started with that faculty member minus one. We will also bootstrap the values to create a model of the sampling distribution, then create a confidence interval to compare against the mean outcome. All professors with a statistically significant $\texit{positive}$ effect on student outcomes as compared to the mean student adjusted for course will be categorized as "good", and likewise those with significant $\textit{negative}$ effects will be categorized as "poor". Based on our choice for $\alpha$ we expect some error - there should be approximately $M = \alpha * n_{prof}$ misclassifications. If M is not so different from the sum of the numbers of "good" and "poor" professors, we will be confident that there is little real variance in the effect professors have on students (in the math and chemistry departments of OCC).
 
 
-```{r}
-##Use Cum.GPA as a predictor. First, obtain a confidence interval for the effect of Student.Term on the mean student for superposition onto those courses that had a measurable non-significant deviation from the mean effect on student.term.
+```{r Strata Justification}
+##Create overall visualization of final cumulative GPA by first course
+Filtered.Data1 %>%
+  ungroup() %>%
+    group_by(`Student Random ID`) %>%
+      slice(n()) %>%
+        filter(max.terms >= 2) %>%
+          dplyr::select(Cum.GPA, `Student Random ID`) %>%
+            rename(Last.Term.Cum.GPA = Cum.GPA) %>%
+              right_join(Filtered.Data1) %>%
+                left_join(Course.Heights, by = "Course Code") %>%
+                  group_by(`Student Random ID`) %>%
+                    slice(n()) %>%
+                      ungroup() %>%
+                        ggplot() +
+                        geom_boxplot(aes(x = Last.Term.Cum.GPA, color = `First.Course`)) +
+                        labs(x = "Last Term Cumulative GPA", color = "First Course", title = "Boxplots of Final Cumulative GPA for all Students that did not\nWithdraw from their First Course, colored by First Course")
+
+```
+
+As can be seen in the above boxplot, the students that begin in each possible course have inherently different final cumulative GPA distributions. We must then account for this discrepancy when determining the effects that the first professor has on cumulative GPA. We wish to create a linear mixed-effects model that accounts for the projection of future cumulative GPA imparted by the first course a student takes. To do so, we will split students into strata by first course. The courses that have at least 30 students start in it will be ruled sufficient to create a reasonable projection for the mean student. For each student, the increase/decrease per term predicted by the germane linear mixed-effects model will be multiplied by the number of terms the student enrolled in math/chemistry courses at OCC, and added to the initial observation of cumulative GPA - this is the expected outcome. The performance of a student will then be judged by comparing their observed final cumulative GPA to the expected outcome.  In the following chunk we will build these stratified models, and create a statistic called $\Delta 2$ which is the aforementioned difference between observed and expected outcome. A positive $\Delta 2$ implies that the student's final cumulative GPA exceeded the prediction by the linear mixed effects model. I would like to note that the slope predicted by a linear mixed model will be a constant over the entire stratum. As such, a student that scores a $4.0$ GPA in their first course where the course slope was positive will never be able to meet expectations by the model, and so will erroneously have a negative $\Delta 2$ score even if they score straight A's in each math and chemistry course they take at OCC. Similarly, a student that fails the first course with a negative slope cannot obtain a negative $\Delta 2$ score. These errors will be largely outweighed by students that score in the middle in the first course, but are important to note. As we will see briefly, the overall error for the mean student in all strata is around $0.01$ GPA points, and so the models are collectively quite good. Later, we will examine alternate statistics for ranking professor influence that are more error adverse, namely withdraw rate and the number of future courses taken (adjusted for stratum).
+
+```{r Create Delta2 Models}
+## Create course - specific models of Cum.GPA progression through student's stay at OCC in Filtered.Data using Cum.GPA as a predictor. First, obtain a confidence interval for the effect of Student.Term on the mean student for superposition onto those courses that had a measurable non-significant deviation from the mean effect on student.term.
 
 ##Overall model for students 
 Cum.lmer.model2 <- lmer(Cum.GPA ~ Student.Term + (1|`Student Random ID`), data = Filtered.Data1)
@@ -632,11 +654,6 @@ Filtered.Data3 <- Filtered.Data2  %>%
                           mutate(Last.Term.Cum.GPA = Cum.GPA) %>%
                             dplyr::select(`Student Random ID`, Last.Term.Cum.GPA) %>%
                               right_join(Filtered.Data2, by = "Student Random ID")
-```
-
-
-```{r}
-## Create course - specific models of Cum.GPA progression through student's stay at OCC in Filtered.Data
 
 ##First need to create tibble containing the variables (1) Course Code, (2) LMER slope for all courses that had a significant effect. If the course had no significant effect the slope will be the mean slope defined in the previous chunk.
 n.courses <- length(unique(Filtered.Data3$`Course Code`))
@@ -689,15 +706,11 @@ Filtered.Data5 <- Filtered.Data4 %>%
                         mutate(Delta2 = Last.Term.Cum.GPA - LMER.Predict) %>%
                           dplyr::select(`Student Random ID`, Delta2) %>%
                             right_join(Filtered.Data4, by = c("Student Random ID"))
-
-Filtered.Data5
 ```
 
-There are 19 courses with 
+There are the $19$ remaining courses after filtration, using the requirement that a valid course have at least 30 students begin in it. Here we have created a dataframe consisting of only those students whose mean course effect on future cumulative gpa was measurable - significant or not. For these students we have measured the difference between their final cumulative GPA in the math and chemistry department and the expected final cumulative GPA adjusted for starting course. We will now assign these $\Delta 2$ values to the student's first professor, then create several graphs using this statistic. We will furthermore differentiate between the significant mean effects that faculty had on future cumulative GPA and those that we have insufficient data to obtain an accurate estimate for.
 
-Here we have created a dataframe consisting of only those students whose mean course effect on future cumulative gpa was measurable - significant or not. For these students we have measured the difference between their final cumulative GPA in the math and chemistry department and the expected final cumulative GPA adjusted for starting course. We will now assign these $\Delta 2$ values to the student's first professor in a vector as previously stated then bootstrap. 
-
-```{r}
+```{r Assign Prof Delta2s}
 ##Assign general points
 
 ##Represent the Mean Delta2 values for all professors
@@ -720,13 +733,12 @@ overall.mean.Delta2 <- Delta2.Data2 %>%
                     mutate(Net.Delta = Mean.Delta2 * sample.size) %>%
                       pull(Net.Delta) %>%
                         sum()/sum(Delta2.Data2$sample.size)
-overall.mean.Delta2
 
 ## T test procedure found at https://libguides.library.kent.edu/SPSS/OneSampletTest
 ## Carry out t test for those faculty members that had at least 
 Delta2.Data3 <- Delta2.Data2 %>%
                   filter(sample.size >= 3) %>%
-                    mutate(requisite.tval = qt(0.99, sample.size-1), observed.tval = abs((Mean.Delta2-overall.mean.Delta2))/standard.error) %>%
+                    mutate(requisite.tval = qt(0.95, sample.size-1), observed.tval = abs((Mean.Delta2-overall.mean.Delta2))/standard.error) %>%
                      mutate(significant = if_else(observed.tval > requisite.tval, TRUE, FALSE, FALSE), Prof.Quality = if_else(Mean.Delta2 > overall.mean.Delta2, "Good", "Poor"))
 tail(Delta2.Data3, 6)
 
@@ -739,22 +751,143 @@ Prof.Qualities <- Delta2.Data3 %>%
 # length(Prof.Qualities[Prof.Qualities == "Good"]) is the total number of faculty that had significant positive effect on future cumulative GPA. This number can be subtracted from the line above to find total number of faculty that had significant negative effect on future cumulative GPA.
 ```
 
-The significance test I have just ran employs the statistic $\Delta 2$, which is calculated as a student's final cumulative GPA minus the final cumulative GPA predicted by the germane of the . That is, $\Delta 2$ is the deviation of an individual student from 
+The significance test I have just ran employs the statistic $\Delta 2$, which is calculated as a student's final cumulative GPA minus the final cumulative GPA predicted by the germane of the . That is, $\Delta 2$ is the deviation of an individual student's final cumulative GPA from the mean final cumulative GPA of those students that began in the same course (e.g. Trigonometry). I will interchangeably refer to this statistic as $\Delta 2$.
 
-The overall error in our course-corrected linear mixed-effects model after all filtration is $0.01047$ GPA points. That is, if the linear mixed-effects model perfectly described the data, the output $\Delta 2$ would have population mean $0$. The observed population mean for $\Delta 2$ is $0.01047$, which means that either: 1) there is at least one confounding variable that affects a student's cumulative GPA, or that 2) the term dependancy of a student's cumulative GPA is not linear. I am personally more inclined to believe the latter, because GPA is bounded on the interval $[0,4]$, and so cannot perfectly follow an affine path over an arbitrary number of semesters unless the slope were exactly zero. That said, for the mean student taking the mean number of terms the models are pretty good. Now that we know the overall mean value for $\Delta 2$, we can use the one sample t-test and bootstrap confidence intervals with $\alpha = 0.01$ to determine whether a given faculty member had a mean positive or negative on their students final cumulative GPA's. I want to be clear: the $\Delta 2$ statistic I've created is not immune to harsh/lenient grading by the first professor, because it is measured assuming that the first observed GPA value was an accurate intercept for the linear mixed effects model. That said, the model attempts to correct for individual student variance by starting the affine from the first observed GPA value.
+The overall error in our course-corrected linear mixed-effects model after all filtration is $0.01047$ GPA points, with mean standard errors  . That is, if the linear mixed-effects model perfectly described the data, the output $\Delta 2$ would have population mean $0$. The observed population mean for $\Delta 2$ is $0.01047$, which means that either: 1) there is at least one confounding variable that affects a student's cumulative GPA, or that 2) the term dependancy of a student's cumulative GPA is not linear. I am personally more inclined to believe the latter, because GPA is bounded on the interval $[0,4]$, and so cannot perfectly follow an affine path over an arbitrary number of semesters unless the slope were exactly zero. That said, for the mean student taking the mean number of terms the models are pretty good. Now that we know the overall mean value for $\Delta 2$, we can use the one sample t-test and bootstrap confidence intervals with $\alpha = 0.01$ to determine whether a given faculty member had a mean positive or negative on their students final cumulative GPA's. I want to be clear: the $\Delta 2$ statistic I've created is not immune to harsh/lenient grading by the first professor, because it is measured assuming that the first observed GPA value was an accurate intercept for the linear mixed effects model. That said, the model attempts to correct for individual student variance by starting the affine from the first observed GPA value.
 
 In order to apply a one sample t-test using the test statistic $t = \frac{\bar{x} - \mu}{s_e}$, we must have 3 things: 
 1) A sample mean. In my code I have labeled this as a variable of Delta2.Data called Mean.Delta2. It is the mean deviation from the course corrected linear mixed model experienced by all the students that started with the observed faculty member. 
 2) A sample standard error. This is calculated as the sample standard deviation of Delta2 values divided by the square root of the number of students that started with the observed faculty member.
 3) A population mean or estimate for population mean. In our case we have obtained an estimate for population mean because of all the filtration that was necessary. 
 
-The one sample t-test is carried out for all faculty members that had at least 3 students start with them. Significance is determined by whether the absolute value of the observed t statistic surpassed the $0.99$ t quantile with degrees of freedom equal to the number of students that started with the faculty minus one. Results of the one sample t-test are stored in the dataframe Delta2.Data3. In total, there were `r length(Prof.Qualities)` faculty with significant effects on future cumulative GPA for the students that had them first out of the original `r length(unique(Gen_Data$`Faculty Random ID`))` faculty members. Of those `r length(Prof.Qualities)`, `r length(Prof.Qualities[Prof.Qualities == "Good"])` faculty made a positive difference in future cumulative GPA, while `r length(Prof.Qualities)-length(Prof.Qualities[Prof.Qualities == "Good"])` made a $\textit{negative}$ difference in future cumulative GPA. These numbers are very close, because they are measured as whether their students did better or worse than the applicable of the 23 linear mixed-effects models suggested they would do. Because the average linear 
+The one sample t-test is carried out for all faculty members that had at least 3 students start with them. Significance is determined by whether the absolute value of the observed t statistic surpassed the $0.95$ t quantile with degrees of freedom equal to the number of students that started with the faculty minus one. Results of the one sample t-test are stored in the dataframe Delta2.Data3. In total, there were `r length(Prof.Qualities)` faculty with significant effects on future cumulative GPA for the students that had them first out of the original `r length(unique(Gen_Data$`Faculty Random ID`))` faculty members. Of those `r length(Prof.Qualities)`, `r length(Prof.Qualities[Prof.Qualities == "Good"])` faculty made a positive difference in future cumulative GPA, while `r length(Prof.Qualities)-length(Prof.Qualities[Prof.Qualities == "Good"])` made a $\textit{negative}$ difference in future cumulative GPA. These numbers are very close because they are measured from whether the faculty members students that started with them did better or worse than the applicable of the 23 linear mixed-effects models suggested they would do.  
+
+Let's summarize the results from this analysis. Once again, in the following when I reference points, I refer to the difference between the expected final cumulative GPA and the observed final cumulative GPA as predicted by the linear mixed-effects model for students that started in the relevant course. In a nutshell, the professors for which I could distill inference had a range of effects from `r Delta2.Data3 %>% filter(significant == TRUE) %>% pull(Mean.Delta2) %>% min()` cumulative GPA points to `r Delta2.Data3 %>% filter(significant == TRUE) %>% pull(Mean.Delta2) %>% max()` with standard deviation `r Delta2.Data3 %>% filter(significant == TRUE) %>% pull(Mean.Delta2) %>% sd()`. The mean effect for those professors that had significant effect was `r Delta2.Data3 %>% filter(significant == TRUE) %>% pull(Mean.Delta2) %>% mean()` points. I have graphed the effects below.
+```{r Delta2 Plots, warning=FALSE}
+##Course Heights for scatterplot
+Course.Heights <- tibble(`Course Code` = unique(Filtered.Data5$First.Course)) %>%
+                    arrange(`Course Code`) %>%
+                      cbind(tibble(Height = seq(-0.35, 0.35, by = 0.7/18)))
+
+##Boxplots of Difference between Expected and Observed Cumulative GPA as predicted by linear mixed effects models for each course, colored by course code, for students that obeyed filtration assumptions
+Delta2.Data %>%
+  dplyr::select(-First.Prof) %>%
+    right_join(Gen_Data9) %>%
+      group_by(`Student Random ID`) %>%
+        slice(n()) %>%
+          filter(!is.na(First.Prof)) %>%
+            dplyr::select(First.Course, Delta2) %>%
+              ungroup() %>%
+                ggplot(aes(color = First.Course)) +
+                geom_boxplot(aes(x = Delta2), alpha = 0.9) +
+                labs(x = "Delta2 (0-4 scale)", y = "Class", color = "Course Code", title = "Boxplots of Delta2 for each Individual Student that Passed\nFiltration, Colored by Course Code.") +
+                scale_x_continuous(limits = c(-4,4))
+
+##Histogram of significant mean professor effects onto final cumulative GPA for students that obeyed filtration assumptions.
+Delta2.Data3 %>%
+  filter(significant == TRUE) %>%
+    dplyr::select(First.Prof, Mean.Delta2, standard.error) %>%
+      mutate(Hist.Colors = factor(if_else(Mean.Delta2 < mean(pull(filter(Delta2.Data3, significant == TRUE), Mean.Delta2)), "green", "red"))) %>%
+        ggplot() +
+        geom_histogram(aes(x = Mean.Delta2, fill= Hist.Colors), bins = 22) +
+        labs(x = "Mean Delta2 (0-4 scale) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of SIGNIFICANT Mean Professor Delta2 Effects, Filled by Effect\nPolarity from the Mean") +
+        theme(legend.position = "none")
+
+##Histogram of ALL mean professor effects onto final cumulative GPA for students that obeyed filtration assumptions. This graph is just to put the previous one in context, not for inference.
+Delta2.Data3 %>%
+    dplyr::select(First.Prof, Mean.Delta2, standard.error) %>%
+      mutate(Hist.Colors = factor(if_else(Mean.Delta2 < overall.mean.Delta2, "green", "red"))) %>%
+        ggplot() +
+        geom_histogram(aes(x = Mean.Delta2, fill= Hist.Colors), bins = 22) +
+        labs(x = "Mean Delta2 (0-4 scale) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of ALL Mean Professor Delta2 Effects, Filled by Effect\nPolarity from the Mean") +
+        theme(legend.position = "none")
+
+##Normal probability plot for Delta2
+qqnorm(pull(filter(Delta2.Data3, significant == TRUE), Mean.Delta2), main = "Normal Q-Q Plot for Significant Mean Professor Delta2 Effects")
+
+##Course Mean Delta2 Values for all students that passed filtration assumptions
+Course.Delta2.Means <- Filtered.Data5 %>%
+                        ungroup() %>%
+                          group_by(First.Course) %>%
+                            summarise(Course.Mean.Delta2 = mean(Delta2), Course.Sd.Delta2 = sd(Delta2))
+
+##Scatterplot for only significant mean Delta2 values as measured by a one-sample t test onto each of the 19 strata
+Filtered.Data5 %>%
+  ungroup() %>%
+    group_by(`Student Random ID`) %>%
+      slice(n()) %>%
+        select(`Student Random ID`, First.Course, First.Prof, Delta2, Course.Code.Mean.GPA) %>%
+          ungroup() %>%
+            group_by(First.Prof, First.Course) %>%
+              summarise(Mean.Delta2 = mean(Delta2, na.rm = TRUE), n = n()) %>%
+                filter(n >= 3) %>%
+                  left_join(Course.Delta2.Means, by = "First.Course") %>%
+                    mutate(requisite.tval = qt(0.95, n-1), observed.tval = abs(Mean.Delta2 - Course.Mean.Delta2)/(Course.Sd.Delta2/sqrt(n))) %>%
+                      mutate(significant = if_else(observed.tval > requisite.tval, TRUE, FALSE)) %>%
+                        filter(significant == TRUE) %>%
+                          rename(`Faculty Random ID` = First.Prof, `Course Code` = First.Course) %>%
+                            ungroup() %>%               
+                              left_join(Course.Heights, by = "Course Code") %>%
+                                ggplot() +
+                                geom_point(aes(x = Mean.Delta2, y = Height, color = `Course Code`, size = n), position = position_jitter(height = 0.005)) +
+                                labs(x = "Mean Delta2 (0-4 scale) among those students whom started\nwith a professor in a stratum", y = "Class", n = "Number of Students", color = "Course Code", title = "Scatterplot of Mean Faculty Delta2 Effects by Course\nfor SIGNIFICANT Courses") +
+                                scale_x_continuous(limits = c(-2,2))
+           
+##Scatterplot of ALL mean Delta2 values for each of the 19 strata
+Filtered.Data5 %>%
+  ungroup() %>%
+    group_by(`Student Random ID`) %>%
+      slice(n()) %>%
+        select(`Student Random ID`, First.Course, First.Prof, Delta2, Course.Code.Mean.GPA) %>%
+          ungroup() %>%
+            group_by(First.Prof, First.Course) %>%
+              summarise(Mean.Delta2 = mean(Delta2, na.rm = TRUE), n = n()) %>%
+                filter(n >= 3) %>%
+                  left_join(Course.Delta2.Means, by = "First.Course") %>%
+                    rename(`Faculty Random ID` = First.Prof, `Course Code` = First.Course) %>%
+                      ungroup() %>%               
+                        left_join(Course.Heights, by = "Course Code") %>%
+                          ggplot() +
+                          geom_point(aes(x = Mean.Delta2, y = Height, color = `Course Code`, size = n), position = position_jitter(height = 0.005)) +
+                          labs(x = "Mean Delta2 (0-4 scale) among those students whom started\nwith a professor in a stratum", y = "Class", n = "Number of Students", color = "Course Code", title = "Scatterplot of Mean Faculty Delta2 Effects by Course\nfor ALL Courses") +
+                          scale_x_continuous(limits = c(-2,2))
+
+
+##Vector containing the mean number of students that a professor taught for a single course, used in below paragraphs   
+Mean.Students <- Filtered.Data5 %>%
+                  ungroup() %>%
+                    group_by(`Course Code`, `Faculty Random ID`) %>%
+                      count() %>%
+                        ungroup() %>%
+                          group_by(`Faculty Random ID`) %>%
+                            summarise(Mean.Students = mean(n)) %>%
+                              pull(Mean.Students)
+
+##Statistics about Mean.Students vector
+##mean(Mean.Students) is the mean number of students taught by a single faculty member for a single course code.
+##sd(Mean.Students) is the standard deviation of the number of students taught by a single faculty member for a single course code.
+
+
+
+```
+The graph of all mean differences (including professors without significant effect) is included to clarify why a dip exists in the histogram of only significant mean differences. By the nature of the beast non-significant mean differences occur around the mean value of differences in final cumulative GPA, which is why there seems to be a missing bin in the histogram of significant effects. The distribution of this random variable is quite Gaussian, as can be seen in the probability plot above and the overall shape of the histograms. 
+
+  The boxplot I have included is a plot of the individual student's $\Delta 2$ values in the 19 strata wherein at least 30 students started in the course. The courses with more students had a wider range of student outcomes as would be expected. There is no IQR for a single course that is drastically different from any other. This is also not surprising because the linear mixed-effects models take the outcome of the mean student to be the expected value, which invariably causes the mean difference for each course before filtration to be zero. The variation observed by our filtration specifications may simply be random noise. One notable course that may be of interest is CHE-1520, the filtered students of which had an unusually high number of positive outcomes. This may just be variance, because CHE-1520 only had `r Delta2.Data %>% right_join(Gen_Data9, by = "Student Random ID") %>% group_by(`Student Random ID`) %>% slice(n()) %>% ungroup() %>% group_by(First.Course) %>% count() %>% filter(First.Course == "CHE-1520") %>% pull(n)` students start in the course, which is low with respect to the mean of `r Delta2.Data %>% right_join(Gen_Data9, by = "Student Random ID") %>% group_by(`Student Random ID`) %>% slice(n()) %>% ungroup() %>% group_by(First.Course) %>% count() %>% filter(n >= 30) %>% pull(n) %>% mean()` students. 
+  
+  The first scatterplot contains the mean $\Delta 2$ values for the professors the students had first. The courses which the professors taught are separated and then checked for significance at the $\alpha = 0.05$ level. Each professor may have taught several different types of courses, and so their mean $\textit{for each course}$ is represented as a value in the boxplot for that course. Because the average faculty member taught `r mean(Mean.Students)` with a standard deviation of `r sd(Mean.Students)`, it is expected that many faculty-courses will not have enough data to prove significant. Indeed,  
+  
+  By comparison with the previous boxplot, we can gain some insight into the distribution of the $\Delta 2$ values. For example, looking at  CHE-1520, it seems that the students that started in CHE-1520 really did have a higher future cumulative GPA, as the mean $\Delta 2$ values for each of the five faculty that taught at least one CHE-1520 course are all above 0. It is important to note that this is the only case of all-positive $\Delta 2$ values on this plot. However, none of the t values for these faculty teaching this course d met the required $0.95$ quantile, and so we cannot significantly indicate this result as real.
+
+Now we will bootstrap the individual values of difference between expected and observed final cumulative GPA for each professor as an alternative significance test, and we will note the number of professors whose significance changed between experiments. This will determine our confidence in the initial ranking.
+
 
 ```{r}
 ##Get that boot nice and strapped for each professor, then record those that had 
 
 
 ```
+
+
 
 ```{r}
 ##Use \Delta as predictor, but make sure to adjust \Delta for student.term
@@ -866,7 +999,7 @@ plotREsim(REsim(withdraws.model, n.sims = 10^3))
 
 
 ##Do I need the confint? Is that even useful?
-withdraw.conf <- confint(withdraws.model, oldNames = FALSE, level = 0.999)
+withdraw.conf <- confint(withdraws.model, oldNames = FALSE, level = 0.95)
 
 
 Plot.Data1 <- Withdraws.Data %>%
