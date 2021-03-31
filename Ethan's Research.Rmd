@@ -24,7 +24,6 @@ library(readxl)
 library(tidyverse)
 library(merTools)
 library(lme4)
-Easy_Data <- read_excel("/home/local/KNET/k16et01/Homeworks/Research/Stats Research Math, Chemistry, and Biology Grades, Selected Courses.xlsx")
 Gen_Data <- read_excel("/home/local/KNET/k16et01/Homeworks/Research/Stats Research XLS.xlsx")
 set.seed(1000)
 
@@ -185,12 +184,16 @@ Gen_Data <- Gen_Data %>%
 
 ##IMPORTANT NOTE: the new Gen_Data variable Class Mean GPA is calculated with na.rm = TRUE, and therefore it is the mean gpa assigned of those students who did not withdraw or take incompletes that did not get resolved.
 ##Initial Conditions
+
+
+
+
 f <- 1
 c <- 1
 cntr <- 1
 prv.cntr <- 0
 Gen_Data <- mutate(Gen_Data, "Class Tracker" = NA, "Class Mean GPA" = NA, "Delta" = NA)
-Gen_Data <- arrange(arrange(arrange(Gen_Data,`Faculty Random ID`),Semester),`Course Code`)
+Gen_Data <- arrange(arrange(arrange(Gen_Data,`Faculty Random ID`), Semester), `Course Code`)
 
 while(is.na(Gen_Data$`Class Tracker`[n])){
 if(cntr == 4332){
@@ -296,11 +299,10 @@ student.terms <- function(index){
 }
 
 
-##Use functions to assign student terms. This algorithm is very slow - I couldn't think of a better way to do it. It works, so it's good enough.
+##Use functions to assign student terms. This algorithm is very slow - I couldn't think of a better way to do it. It works and only has to compile once, so it's good enough.
 n.s <- length(unique(Gen_Data$`Student Random ID`))
 Gen_Data2 <- Gen_Data %>%
               mutate(Student.Term = 0)
-i <- 1
 for(i in 1:n.s){
   Gen_Data2$Student.Term[student.index(i)] <- student.terms(student.index(i))
 }
@@ -320,7 +322,6 @@ N.Math.By.Term <- Gen_Data3 %>%
                         count()
 
 N.Math.By.Term %>%
-  filter(n > 1) %>%
     ungroup() %>%
       rename(Num.Courses = n) %>%
         group_by(Department, Num.Courses) %>%
@@ -330,15 +331,15 @@ N.Math.By.Term %>%
 ```
 
 ```{r}
-##Create class size variable for statistical significance tests. There are 5 courses with iffy class sizes: 861, 2636, 3894, 4234, and 3148. The first four of these have n = 1 - they are independent studies. 3148 had n = 3, I'm not sure how that happened. Doing this filtration gives n >= 7, which will allow for safe usage of the t test. Fortunately we did not need to remove almost any cases, so validity of results is basically unaffected.
-Sig.Courses <- Gen_Data3 %>%
-                group_by(`Course Code`,`Class Tracker`) %>%
-                  count() %>%
-                      mutate(class_size = n, Significant = if_else(n > 5, TRUE, FALSE)) %>%
-                        dplyr::select(-n) %>%
-                         filter(Significant == TRUE)
+##Create class size variable for statistical significance tests. There are 5 courses with iffy class sizes: 861, 2636, 3894, 4234, and 3148. The first four of these have n = 1 - they are independent studies. 3148 had n = 3, I'm not sure how that happened. Doing this filtration gives n > 7, which will allow for safe usage of the t test and bootstrap. Fortunately we did not need to remove almost any cases, so validity of results is basically unaffected.
+Good.Class.Size <- Gen_Data3 %>%
+                      group_by(`Course Code`,`Class Tracker`) %>%
+                        count() %>%
+                          mutate(class_size = n, Significant = if_else(n > 7, TRUE, FALSE)) %>%
+                            dplyr::select(-n) %>%
+                              filter(Significant == TRUE)
 
-Gen_Data4 <- left_join(Sig.Courses, Gen_Data3, by = c("Class Tracker", "Course Code")) %>%
+Gen_Data4 <- left_join(Good.Class.Size, Gen_Data3, by = c("Class Tracker", "Course Code")) %>%
               dplyr::select(-Significant)
 ```
 
@@ -351,20 +352,6 @@ Max_terms <- Gen_Data4 %>%
 
 Gen_Data5 <- left_join(Gen_Data4, Max_terms)
 ```
-
-
-
-```{r Initialize.Points.Tracker}
-##Creates Points Tracker
-  
-Gen_Data5 %>%
-  group_by(`Class Tracker`) %>% 
-    summarise(Prof = head(`Faculty Random ID`, n = 1))
-  
-Points.Tracker <- data.frame(Prof.Type = NA, Professors = Profs.List, First.Math.Points = 0, First.Chem.Points = 0, First.Bio.Points = 0, First.Withdraw.Prop = 0,  Total.Math.Points = 0, Total.Chem.Points = 0, Total.Bio.Points = 0,  Total.Withdraw.Prop = 0, Future.Withdraw.Prop = 0, Total.Students = 0)
-Points.Tracker <- arrange(Points.Tracker, `Professors`)
-```
-
 ```{r Course Credits}
 ##In order to create cumulative GPA we need to weight by credit hours. This chunk creates a credit variable for each row in Gen Data
 
@@ -409,7 +396,7 @@ for(i in 1:n.w){
 Temp_Data <- Gen_Data6 %>%
                 left_join(No_Withdraws) %>%
                         arrange(`Student Random ID`, Student.Term)
-
+ 
 
 ##This second section assigns the previous Cum.GPA to all withdraws if the student had a previous Cum.GPA. This allows for better visualization in ggplot, and better modeling with lmer.
 
@@ -445,15 +432,17 @@ Course.GPAs <- Gen_Data7 %>%
                       summarise(Course.Code.Mean.GPA = mean(Cum.GPA, na.rm = TRUE))
 
 Gen_Data8 <- Gen_Data7 %>%
-              left_join(Course.GPAs, by = "Course Code") %>% View()
+              left_join(Course.GPAs, by = "Course Code")
 ```
 
 
 
 
+Preliminary disclaimers:
 
+1. It is impossible to differentiate graduate student instructors from full professors based on the random ID's. To avoid being rude, in the following analysis I will refer to an individual faculty member interchangeably as a faculty member or as a professor to avoid repetition, and to grant the anonymous person the highest possible title they might possess.
+2. Plane Geometry was only taught once and had only 15 students, so the data from that course is highly subject to variance. Whenever possible I try to keep the number of observations above 29, and so I will not include Plane Geometry in the following analysis. [ACTUALLY DO THIS]
 
-It is impossible to differentiate graduate student instructors from full professors based on the random ID's. To avoid being rude, in the following analysis I will refer to an individual faculty member interchangeably as a faculty member or as a professor to avoid repitition, and to grant the anonymous person the highest possible title they might possess. 
 
 Questions:
 
@@ -616,7 +605,6 @@ Filtered.Data1 %>%
           dplyr::select(Cum.GPA, `Student Random ID`) %>%
             rename(Last.Term.Cum.GPA = Cum.GPA) %>%
               right_join(Filtered.Data1) %>%
-                left_join(Course.Heights, by = "Course Code") %>%
                   group_by(`Student Random ID`) %>%
                     slice(n()) %>%
                       ungroup() %>%
@@ -626,9 +614,9 @@ Filtered.Data1 %>%
 
 ```
 
-As can be seen in the above boxplot, the students that begin in each possible course have inherently different final cumulative GPA distributions. We must then account for this discrepancy when determining the effects that the first professor has on cumulative GPA. We wish to create a linear mixed-effects model that accounts for the projection of future cumulative GPA imparted by the first course a student takes. To do so, we will split students into strata by first course. The courses that have at least 30 students start in it will be ruled sufficient to create a reasonable projection for the mean student. For each student, the increase/decrease per term predicted by the germane linear mixed-effects model will be multiplied by the number of terms the student enrolled in math/chemistry courses at OCC, and added to the initial observation of cumulative GPA - this is the expected outcome. The performance of a student will then be judged by comparing their observed final cumulative GPA to the expected outcome.  In the following chunk we will build these stratified models, and create a statistic called $\Delta 2$ which is the aforementioned difference between observed and expected outcome. A positive $\Delta 2$ implies that the student's final cumulative GPA exceeded the prediction by the linear mixed effects model. I would like to note that the slope predicted by a linear mixed model will be a constant over the entire stratum. As such, a student that scores a $4.0$ GPA in their first course where the course slope was positive will never be able to meet expectations by the model, and so will erroneously have a negative $\Delta 2$ score even if they score straight A's in each math and chemistry course they take at OCC. Similarly, a student that fails the first course with a negative slope cannot obtain a negative $\Delta 2$ score. These errors will be largely outweighed by students that score in the middle in the first course, but are important to note. As we will see briefly, the overall error for the mean student in all strata is around $0.01$ GPA points, and so the models are collectively quite good. Later, we will examine alternate statistics for ranking professor influence that are more error adverse, namely withdraw rate and the number of future courses taken (adjusted for stratum).
+As can be seen in the above boxplot, the students that begin in each possible course have inherently different final cumulative GPA distributions. We must then account for this discrepancy when determining the effects that the first professor has on cumulative GPA. We wish to create a linear mixed-effects model that accounts for the projection of future cumulative GPA imparted by the first course a student takes. To do so, we will split students into strata by first course. The courses that have at least 30 students start in it will be ruled sufficient to create a reasonable projection for the mean student. For each student, the increase/decrease per term predicted by the germane linear mixed-effects model will be multiplied by the number of terms the student enrolled in math/chemistry courses at OCC, and added to the initial observation of cumulative GPA - this is the expected outcome. The performance of a student will then be judged by comparing their observed final cumulative GPA to the expected outcome.  In the following chunk we will build these stratified models, and create a statistic called $\Delta C$ which is the aforementioned difference between observed and expected outcome. A positive $\Delta C$ implies that the student's final cumulative GPA exceeded the prediction by the linear mixed effects model. I would like to note that the slope predicted by a linear mixed model will be a constant over the entire stratum. As such, a student that scores a $4.0$ GPA in their first course where the course slope was positive will never be able to meet expectations by the model, and so will erroneously have a negative $\Delta C$ score even if they score straight A's in each math and chemistry course they take at OCC. Similarly, a student that fails the first course with a negative slope cannot obtain a negative $\Delta C$ score. These errors will be largely outweighed by students that score in the middle in the first course, but are important to note. As we will see briefly, the overall error for the mean student in all strata is around $0.01$ GPA points, and so the models are collectively quite good. Later, we will examine alternate statistics for ranking professor influence that are more error adverse, namely withdraw rate and the number of future courses taken (adjusted for stratum).
 
-```{r Create Delta2 Models}
+```{r Create DeltaC Models}
 ## Create course - specific models of Cum.GPA progression through student's stay at OCC in Filtered.Data using Cum.GPA as a predictor. First, obtain a confidence interval for the effect of Student.Term on the mean student for superposition onto those courses that had a measurable non-significant deviation from the mean effect on student.term.
 
 ##Overall model for students 
@@ -699,51 +687,74 @@ Filtered.Data4 <- Filtered.Data3 %>%
                     semi_join(course.slopes, by = "First.Course") %>%
                       left_join(course.slopes, by = "First.Course")
 
-## Determine difference between expected and observed final cumulative GPA in Delta2, and rejoin into Filtered.Data
+## Determine difference between expected and observed final cumulative GPA in DeltaC, and rejoin into Filtered.Data
 Filtered.Data5 <- Filtered.Data4 %>% 
                     filter(Student.Term == max.terms) %>%
                       mutate(LMER.Predict = First.Course.GPA + Course.LMER.slope*max.terms) %>%
-                        mutate(Delta2 = Last.Term.Cum.GPA - LMER.Predict) %>%
-                          dplyr::select(`Student Random ID`, Delta2) %>%
+                        mutate(DeltaC = Last.Term.Cum.GPA - LMER.Predict) %>%
+                          dplyr::select(`Student Random ID`, DeltaC) %>%
                             right_join(Filtered.Data4, by = c("Student Random ID"))
 ```
 
-There are the $19$ remaining courses after filtration, using the requirement that a valid course have at least 30 students begin in it. Here we have created a dataframe consisting of only those students whose mean course effect on future cumulative gpa was measurable - significant or not. For these students we have measured the difference between their final cumulative GPA in the math and chemistry department and the expected final cumulative GPA adjusted for starting course. We will now assign these $\Delta 2$ values to the student's first professor, then create several graphs using this statistic. We will furthermore differentiate between the significant mean effects that faculty had on future cumulative GPA and those that we have insufficient data to obtain an accurate estimate for.
+There are the $19$ remaining courses after filtration, using the requirement that a valid course have at least 30 students begin in it. Here we have created a dataframe consisting of only those students whose mean course effect on future cumulative gpa was measurable - significant or not. For these students we have measured the difference between their final cumulative GPA in the math and chemistry department and the expected final cumulative GPA adjusted for starting course. We will now assign these $\Delta C$ values to the student's first professor, then create several graphs using this statistic. We will furthermore differentiate between the significant mean effects that faculty had on future cumulative GPA and those that we have insufficient data to obtain an accurate estimate for.
 
-```{r Assign Prof Delta2s}
+```{r Assign Prof DeltaCs}
 ##Assign general points
 
-##Represent the Mean Delta2 values for all professors
-Delta2.Data <- Filtered.Data5 %>% 
+##Represent the Mean DeltaC values for all professors. We require faculty to have at least 8 students that passed filtration begin in one of their courses for measurement.
+DeltaC.Data <- Filtered.Data5 %>% 
                 ungroup() %>%
                   group_by(`Student Random ID`) %>%
                     slice(n()) %>%
                       ungroup() %>%
-                          dplyr::select(`Student Random ID`, Delta2, First.Prof)
+                        dplyr::select(`Student Random ID`, DeltaC, First.Prof) %>%
+                          group_by(First.Prof) %>%
+                            filter(n() >= 8)
 
-head(Delta2.Data,5)
+head(DeltaC.Data)
 
 ##Create sample size column for t test, and standard error
-Delta2.Data2 <- Delta2.Data %>%
+DeltaC.Data2 <- DeltaC.Data %>%
                 group_by(First.Prof) %>%
-                  summarise(Mean.Delta2 = mean(Delta2), sample.size = n(), standard.error = sd(Delta2)/n())
+                  summarise(Mean.DeltaC = mean(DeltaC), sample.size = n(), standard.error = sd(DeltaC)/sqrt(n()))
 
-## Find overall mean of Delta2. If there is no residual error in our model, this value should be precisely zero. 
-overall.mean.Delta2 <- Delta2.Data2 %>%
-                    mutate(Net.Delta = Mean.Delta2 * sample.size) %>%
-                      pull(Net.Delta) %>%
-                        sum()/sum(Delta2.Data2$sample.size)
+## Find overall mean of DeltaC. If there is no residual error in our model, this value should be precisely zero. 
+overall.mean.DeltaC <- DeltaC.Data %>%
+                        pull(DeltaC) %>%
+                          mean()
+
+## Find the average of the mean DeltaC's amongst all students taught first by faculty members
+prof.mean.DeltaC <- DeltaC.Data2 %>%
+                      pull(Mean.DeltaC) %>%
+                        mean()
+
+## Find overall standard deviation of DeltaC among all students
+overall.sd.DeltaC <- DeltaC.Data %>%
+                        pull(DeltaC) %>%
+                          sd()
+
+## Find standard deviation of mean DeltaC among faculty
+prof.sd.DeltaC <- DeltaC.Data2 %>%
+                    pull(Mean.DeltaC) %>%
+                      sd()
+
+## Find mean standard error amongst faculty mean Delta C's
+prof.mean.se.DeltaC <- DeltaC.Data2 %>%
+                    pull(standard.error) %>%
+                      mean()
 
 ## T test procedure found at https://libguides.library.kent.edu/SPSS/OneSampletTest
 ## Carry out t test for those faculty members that had at least 
-Delta2.Data3 <- Delta2.Data2 %>%
-                  filter(sample.size >= 3) %>%
-                    mutate(requisite.tval = qt(0.95, sample.size-1), observed.tval = abs((Mean.Delta2-overall.mean.Delta2))/standard.error) %>%
-                     mutate(significant = if_else(observed.tval > requisite.tval, TRUE, FALSE, FALSE), Prof.Quality = if_else(Mean.Delta2 > overall.mean.Delta2, "Good", "Poor"))
-tail(Delta2.Data3, 6)
+DeltaC.Data3 <- DeltaC.Data2 %>%
+                  filter(sample.size >= 8) %>%
+                    mutate(requisite.tval = qt(0.95, sample.size-1), observed.tval = abs((Mean.DeltaC-overall.mean.DeltaC))/standard.error) %>%
+                     mutate(significant = if_else(observed.tval > requisite.tval, TRUE, FALSE, FALSE), Prof.Quality = if_else(Mean.DeltaC > overall.mean.DeltaC, "Good", "Poor"))
+tail(DeltaC.Data3)
+
+
 
 ##Determine Faculty quality for those professors that had significant effects on future cumulative gpa
-Prof.Qualities <- Delta2.Data3 %>%
+Prof.Qualities <- DeltaC.Data3 %>%
   filter(significant == TRUE) %>%
       pull(Prof.Quality)
 
@@ -751,105 +762,108 @@ Prof.Qualities <- Delta2.Data3 %>%
 # length(Prof.Qualities[Prof.Qualities == "Good"]) is the total number of faculty that had significant positive effect on future cumulative GPA. This number can be subtracted from the line above to find total number of faculty that had significant negative effect on future cumulative GPA.
 ```
 
-The significance test I have just ran employs the statistic $\Delta 2$, which is calculated as a student's final cumulative GPA minus the final cumulative GPA predicted by the germane of the . That is, $\Delta 2$ is the deviation of an individual student's final cumulative GPA from the mean final cumulative GPA of those students that began in the same course (e.g. Trigonometry). I will interchangeably refer to this statistic as $\Delta 2$.
+The significance test I have just ran employs the statistic $\Delta C$, which is calculated as a student's observed final cumulative GPA minus the expected final cumulative GPA predicted by the germane of the linear models given the student's first recorded value of GPA. That is, $\Delta C$ is the deviation of an individual student's final cumulative GPA from the mean final cumulative GPA of those students that began in the same course (e.g. Trigonometry). I will interchangeably refer to this statistic as $\Delta C$ and the longer definition.
 
-The overall error in our course-corrected linear mixed-effects model after all filtration is $0.01047$ GPA points, with mean standard errors  . That is, if the linear mixed-effects model perfectly described the data, the output $\Delta 2$ would have population mean $0$. The observed population mean for $\Delta 2$ is $0.01047$, which means that either: 1) there is at least one confounding variable that affects a student's cumulative GPA, or that 2) the term dependancy of a student's cumulative GPA is not linear. I am personally more inclined to believe the latter, because GPA is bounded on the interval $[0,4]$, and so cannot perfectly follow an affine path over an arbitrary number of semesters unless the slope were exactly zero. That said, for the mean student taking the mean number of terms the models are pretty good. Now that we know the overall mean value for $\Delta 2$, we can use the one sample t-test and bootstrap confidence intervals with $\alpha = 0.01$ to determine whether a given faculty member had a mean positive or negative on their students final cumulative GPA's. I want to be clear: the $\Delta 2$ statistic I've created is not immune to harsh/lenient grading by the first professor, because it is measured assuming that the first observed GPA value was an accurate intercept for the linear mixed effects model. That said, the model attempts to correct for individual student variance by starting the affine from the first observed GPA value.
+The overall error in our course-corrected linear mixed-effects model after all filtration is `r overall.mean.DeltaC ` GPA points, with mean standard errors . That is, if the linear mixed-effects model perfectly described the data, the output $\Delta C$ would have population mean $0$. The observed population mean for $\Delta C$ is `r overall.mean.DeltaC`, which means that either: 1) there is at least one confounding variable that affects a student's cumulative GPA, or that 2) the term dependency of a student's cumulative GPA is not linear. I am personally more inclined to believe the latter, because GPA is bounded on the interval $[0,4]$, and so cannot perfectly follow an affine path over an arbitrary number of semesters unless the slope were exactly zero. That said, for the mean student taking the mean number of terms the models are pretty good. Now that we know the overall mean value for $\Delta C$, we can use the one sample t-test and bootstrap confidence intervals with $\alpha = 0.01$ to determine whether a given faculty member had a mean positive or negative on their students final cumulative GPA's. I want to be clear: the $\Delta C$ statistic I've created is not immune to harsh/lenient grading by the first professor, because it is measured assuming that the first observed GPA value was an accurate intercept for the linear mixed effects model. That said, the model attempts to correct for individual student variance by starting the affine from the first observed GPA value.
 
 In order to apply a one sample t-test using the test statistic $t = \frac{\bar{x} - \mu}{s_e}$, we must have 3 things: 
-1) A sample mean. In my code I have labeled this as a variable of Delta2.Data called Mean.Delta2. It is the mean deviation from the course corrected linear mixed model experienced by all the students that started with the observed faculty member. 
-2) A sample standard error. This is calculated as the sample standard deviation of Delta2 values divided by the square root of the number of students that started with the observed faculty member.
+1) A sample mean. In my code I have labeled this as a variable of DeltaC.Data called Mean.DeltaC. It is the mean deviation from the course corrected linear mixed model experienced by all the students that started with the observed faculty member. 
+2) A sample standard error. This is calculated as the sample standard deviation of DeltaC values divided by the square root of the number of students that started with the observed faculty member.
 3) A population mean or estimate for population mean. In our case we have obtained an estimate for population mean because of all the filtration that was necessary. 
 
-The one sample t-test is carried out for all faculty members that had at least 3 students start with them. Significance is determined by whether the absolute value of the observed t statistic surpassed the $0.95$ t quantile with degrees of freedom equal to the number of students that started with the faculty minus one. Results of the one sample t-test are stored in the dataframe Delta2.Data3. In total, there were `r length(Prof.Qualities)` faculty with significant effects on future cumulative GPA for the students that had them first out of the original `r length(unique(Gen_Data$`Faculty Random ID`))` faculty members. Of those `r length(Prof.Qualities)`, `r length(Prof.Qualities[Prof.Qualities == "Good"])` faculty made a positive difference in future cumulative GPA, while `r length(Prof.Qualities)-length(Prof.Qualities[Prof.Qualities == "Good"])` made a $\textit{negative}$ difference in future cumulative GPA. These numbers are very close because they are measured from whether the faculty members students that started with them did better or worse than the applicable of the 23 linear mixed-effects models suggested they would do.  
+The one sample t-test is carried out for all faculty members that had at least 3 students start with them. Significance is determined by whether the absolute value of the observed t statistic surpassed the $0.95$ t quantile with degrees of freedom equal to the number of students that started with the faculty minus one. Results of the one sample t-test are stored in the dataframe DeltaC.Data3. In total, there were `r length(Prof.Qualities)` faculty with significant effects on future cumulative GPA for the students that had them first out of the original `r length(unique(Gen_Data$`Faculty Random ID`))` faculty members. Of those `r length(Prof.Qualities)`, `r length(Prof.Qualities[Prof.Qualities == "Good"])` faculty made a positive difference in future cumulative GPA, while `r length(Prof.Qualities)-length(Prof.Qualities[Prof.Qualities == "Good"])` made a $\textit{negative}$ difference in future cumulative GPA. These numbers are very close because they are measured from whether the faculty members students that started with them did better or worse than the applicable of the 23 linear mixed-effects models suggested they would do.  
 
-Let's summarize the results from this analysis. Once again, in the following when I reference points, I refer to the difference between the expected final cumulative GPA and the observed final cumulative GPA as predicted by the linear mixed-effects model for students that started in the relevant course. In a nutshell, the professors for which I could distill inference had a range of effects from `r Delta2.Data3 %>% filter(significant == TRUE) %>% pull(Mean.Delta2) %>% min()` cumulative GPA points to `r Delta2.Data3 %>% filter(significant == TRUE) %>% pull(Mean.Delta2) %>% max()` with standard deviation `r Delta2.Data3 %>% filter(significant == TRUE) %>% pull(Mean.Delta2) %>% sd()`. The mean effect for those professors that had significant effect was `r Delta2.Data3 %>% filter(significant == TRUE) %>% pull(Mean.Delta2) %>% mean()` points. I have graphed the effects below.
-```{r Delta2 Plots, warning=FALSE}
-##Course Heights for scatterplot
+Let's summarize the results from this analysis. Once again, in the following when I reference points, I refer to the difference between the expected final cumulative GPA and the observed final cumulative GPA as predicted by the linear mixed-effects model for students that started in the relevant course. In a nutshell, the professors for which I could distill inference had a range of effects from `r DeltaC.Data3 %>% filter(significant == TRUE) %>% pull(Mean.DeltaC) %>% min()` cumulative GPA points to `r DeltaC.Data3 %>% filter(significant == TRUE) %>% pull(Mean.DeltaC) %>% max()` with standard deviation `r DeltaC.Data3 %>% filter(significant == TRUE) %>% pull(Mean.DeltaC) %>% sd()`. The mean effect for those professors that had significant effect was `r DeltaC.Data3 %>% filter(significant == TRUE) %>% pull(Mean.DeltaC) %>% mean()` points. I have graphed the effects below.
+
+```{r DeltaC Plots, warning=FALSE}
+##Course Heights for plots
 Course.Heights <- tibble(`Course Code` = unique(Filtered.Data5$First.Course)) %>%
                     arrange(`Course Code`) %>%
                       cbind(tibble(Height = seq(-0.35, 0.35, by = 0.7/18)))
 
 ##Boxplots of Difference between Expected and Observed Cumulative GPA as predicted by linear mixed effects models for each course, colored by course code, for students that obeyed filtration assumptions
-Delta2.Data %>%
+DeltaC.Data %>%
   dplyr::select(-First.Prof) %>%
     right_join(Gen_Data9) %>%
       group_by(`Student Random ID`) %>%
         slice(n()) %>%
           filter(!is.na(First.Prof)) %>%
-            dplyr::select(First.Course, Delta2) %>%
+            dplyr::select(First.Course, DeltaC) %>%
               ungroup() %>%
                 ggplot(aes(color = First.Course)) +
-                geom_boxplot(aes(x = Delta2), alpha = 0.9) +
-                labs(x = "Delta2 (0-4 scale)", y = "Class", color = "Course Code", title = "Boxplots of Delta2 for each Individual Student that Passed\nFiltration, Colored by Course Code.") +
+                geom_boxplot(aes(x = DeltaC), alpha = 0.9) +
+                labs(x = "\u0394C (0-4 scale)", y = "Class", color = "Course Code", title = "Boxplots of \u0394C for each Individual Student that Passed\nFiltration, Colored by First Course Code.") +
                 scale_x_continuous(limits = c(-4,4))
 
 ##Histogram of significant mean professor effects onto final cumulative GPA for students that obeyed filtration assumptions.
-Delta2.Data3 %>%
+DeltaC.Data3 %>%
   filter(significant == TRUE) %>%
-    dplyr::select(First.Prof, Mean.Delta2, standard.error) %>%
-      mutate(Hist.Colors = factor(if_else(Mean.Delta2 < mean(pull(filter(Delta2.Data3, significant == TRUE), Mean.Delta2)), "green", "red"))) %>%
+    dplyr::select(First.Prof, Mean.DeltaC, standard.error) %>%
+      mutate(Hist.Colors = factor(if_else(Mean.DeltaC < mean(pull(filter(DeltaC.Data3, significant == TRUE), Mean.DeltaC)), "green", "red"))) %>%
         ggplot() +
-        geom_histogram(aes(x = Mean.Delta2, fill= Hist.Colors), bins = 22) +
-        labs(x = "Mean Delta2 (0-4 scale) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of SIGNIFICANT Mean Professor Delta2 Effects, Filled by Effect\nPolarity from the Mean") +
+        geom_histogram(aes(x = Mean.DeltaC, fill= Hist.Colors), bins = 22) +
+        labs(x = "Mean \u0394C (0-4 scale) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of SIGNIFICANT Mean Professor \u0394C Effects, Filled by Effect\nPolarity from the Mean") +
         theme(legend.position = "none")
 
 ##Histogram of ALL mean professor effects onto final cumulative GPA for students that obeyed filtration assumptions. This graph is just to put the previous one in context, not for inference.
-Delta2.Data3 %>%
-    dplyr::select(First.Prof, Mean.Delta2, standard.error) %>%
-      mutate(Hist.Colors = factor(if_else(Mean.Delta2 < overall.mean.Delta2, "green", "red"))) %>%
+DeltaC.Data3 %>%
+    dplyr::select(First.Prof, Mean.DeltaC, standard.error) %>%
+      mutate(Hist.Colors = factor(if_else(Mean.DeltaC < overall.mean.DeltaC, "green", "red"))) %>%
         ggplot() +
-        geom_histogram(aes(x = Mean.Delta2, fill= Hist.Colors), bins = 22) +
-        labs(x = "Mean Delta2 (0-4 scale) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of ALL Mean Professor Delta2 Effects, Filled by Effect\nPolarity from the Mean") +
+        geom_histogram(aes(x = Mean.DeltaC, fill= Hist.Colors), bins = 22) +
+        labs(x = "Mean \u0394C (0-4 scale) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of ALL Mean Professor \u0394C Effects, Filled by Effect\nPolarity from the Mean") +
         theme(legend.position = "none")
 
-##Normal probability plot for Delta2
-qqnorm(pull(filter(Delta2.Data3, significant == TRUE), Mean.Delta2), main = "Normal Q-Q Plot for Significant Mean Professor Delta2 Effects")
+##Normal probability plot for DeltaC
+qqnorm(pull(filter(DeltaC.Data3, significant == TRUE), Mean.DeltaC), main = "Normal Q-Q Plot for Significant Mean Professor \u0394C Effects")
 
-##Course Mean Delta2 Values for all students that passed filtration assumptions
-Course.Delta2.Means <- Filtered.Data5 %>%
-                        ungroup() %>%
-                          group_by(First.Course) %>%
-                            summarise(Course.Mean.Delta2 = mean(Delta2), Course.Sd.Delta2 = sd(Delta2))
+##Course Mean DeltaC Values for all students that passed filtration assumptions
+Course.DeltaC.Means <- Filtered.Data5 %>%
+                        group_by(`Student Random ID`) %>%
+                          slice(1) %>%
+                            ungroup() %>%
+                              group_by(First.Course) %>%
+                                summarise(Course.Mean.DeltaC = mean(DeltaC), Course.Sd.DeltaC = sd(DeltaC))
 
-##Scatterplot for only significant mean Delta2 values as measured by a one-sample t test onto each of the 19 strata
+##Scatterplot for only significant mean DeltaC values as measured by a one-sample t test onto each of the 19 strata
 Filtered.Data5 %>%
   ungroup() %>%
     group_by(`Student Random ID`) %>%
       slice(n()) %>%
-        select(`Student Random ID`, First.Course, First.Prof, Delta2, Course.Code.Mean.GPA) %>%
+        dplyr::select(`Student Random ID`, First.Course, First.Prof, DeltaC, Course.Code.Mean.GPA) %>%
           ungroup() %>%
             group_by(First.Prof, First.Course) %>%
-              summarise(Mean.Delta2 = mean(Delta2, na.rm = TRUE), n = n()) %>%
+              summarise(Mean.DeltaC = mean(DeltaC, na.rm = TRUE), n = n()) %>%
                 filter(n >= 3) %>%
-                  left_join(Course.Delta2.Means, by = "First.Course") %>%
-                    mutate(requisite.tval = qt(0.95, n-1), observed.tval = abs(Mean.Delta2 - Course.Mean.Delta2)/(Course.Sd.Delta2/sqrt(n))) %>%
+                  left_join(Course.DeltaC.Means, by = "First.Course") %>%
+                    mutate(requisite.tval = qt(0.95, n-1), observed.tval = abs(Mean.DeltaC - Course.Mean.DeltaC)/(Course.Sd.DeltaC/sqrt(n))) %>%
                       mutate(significant = if_else(observed.tval > requisite.tval, TRUE, FALSE)) %>%
                         filter(significant == TRUE) %>%
                           rename(`Faculty Random ID` = First.Prof, `Course Code` = First.Course) %>%
                             ungroup() %>%               
                               left_join(Course.Heights, by = "Course Code") %>%
                                 ggplot() +
-                                geom_point(aes(x = Mean.Delta2, y = Height, color = `Course Code`, size = n), position = position_jitter(height = 0.005)) +
-                                labs(x = "Mean Delta2 (0-4 scale) among those students whom started\nwith a professor in a stratum", y = "Class", n = "Number of Students", color = "Course Code", title = "Scatterplot of Mean Faculty Delta2 Effects by Course\nfor SIGNIFICANT Courses") +
+                                geom_point(aes(x = Mean.DeltaC, y = Height, color = `Course Code`, size = n), position = position_jitter(height = 0.005)) +
+                                labs(x = "Mean \u0394C (0-4 scale) among those students whom started\nwith a professor in a stratum", y = "Class", n = "Number of Students", color = "Course Code", n = "Number of Students", title = "Scatterplot of Mean Faculty \u0394C Effects by Course\nfor SIGNIFICANT Courses") +
                                 scale_x_continuous(limits = c(-2,2))
            
-##Scatterplot of ALL mean Delta2 values for each of the 19 strata
+##Scatterplot of ALL mean DeltaC values for each of the 19 strata
 Filtered.Data5 %>%
   ungroup() %>%
     group_by(`Student Random ID`) %>%
       slice(n()) %>%
-        select(`Student Random ID`, First.Course, First.Prof, Delta2, Course.Code.Mean.GPA) %>%
+        dplyr::select(`Student Random ID`, First.Course, First.Prof, DeltaC, Course.Code.Mean.GPA) %>%
           ungroup() %>%
             group_by(First.Prof, First.Course) %>%
-              summarise(Mean.Delta2 = mean(Delta2, na.rm = TRUE), n = n()) %>%
+              summarise(Mean.DeltaC = mean(DeltaC, na.rm = TRUE), n = n()) %>%
                 filter(n >= 3) %>%
-                  left_join(Course.Delta2.Means, by = "First.Course") %>%
+                  left_join(Course.DeltaC.Means, by = "First.Course") %>%
                     rename(`Faculty Random ID` = First.Prof, `Course Code` = First.Course) %>%
                       ungroup() %>%               
                         left_join(Course.Heights, by = "Course Code") %>%
                           ggplot() +
-                          geom_point(aes(x = Mean.Delta2, y = Height, color = `Course Code`, size = n), position = position_jitter(height = 0.005)) +
-                          labs(x = "Mean Delta2 (0-4 scale) among those students whom started\nwith a professor in a stratum", y = "Class", n = "Number of Students", color = "Course Code", title = "Scatterplot of Mean Faculty Delta2 Effects by Course\nfor ALL Courses") +
+                          geom_point(aes(x = Mean.DeltaC, y = Height, color = `Course Code`, size = n), position = position_jitter(height = 0.005)) +
+                          labs(x = "Mean \u0394C (0-4 scale) among those students whom started\nwith a professor in a stratum", y = "Class", size = "Number of Students", color = "Course Code", title = "Scatterplot of Mean Faculty \u0394C Effects by Course\nfor ALL Courses") +
                           scale_x_continuous(limits = c(-2,2))
 
 
@@ -872,65 +886,100 @@ Mean.Students <- Filtered.Data5 %>%
 ```
 The graph of all mean differences (including professors without significant effect) is included to clarify why a dip exists in the histogram of only significant mean differences. By the nature of the beast non-significant mean differences occur around the mean value of differences in final cumulative GPA, which is why there seems to be a missing bin in the histogram of significant effects. The distribution of this random variable is quite Gaussian, as can be seen in the probability plot above and the overall shape of the histograms. 
 
-  The boxplot I have included is a plot of the individual student's $\Delta 2$ values in the 19 strata wherein at least 30 students started in the course. The courses with more students had a wider range of student outcomes as would be expected. There is no IQR for a single course that is drastically different from any other. This is also not surprising because the linear mixed-effects models take the outcome of the mean student to be the expected value, which invariably causes the mean difference for each course before filtration to be zero. The variation observed by our filtration specifications may simply be random noise. One notable course that may be of interest is CHE-1520, the filtered students of which had an unusually high number of positive outcomes. This may just be variance, because CHE-1520 only had `r Delta2.Data %>% right_join(Gen_Data9, by = "Student Random ID") %>% group_by(`Student Random ID`) %>% slice(n()) %>% ungroup() %>% group_by(First.Course) %>% count() %>% filter(First.Course == "CHE-1520") %>% pull(n)` students start in the course, which is low with respect to the mean of `r Delta2.Data %>% right_join(Gen_Data9, by = "Student Random ID") %>% group_by(`Student Random ID`) %>% slice(n()) %>% ungroup() %>% group_by(First.Course) %>% count() %>% filter(n >= 30) %>% pull(n) %>% mean()` students. 
+  The boxplot I have included is a plot of the individual student's $\Delta C$ values in the 19 strata wherein at least 30 students started in the course. The courses with more students had a wider range of student outcomes as would be expected. There is no IQR for a single course that is drastically different from any other. This is also not surprising because the linear mixed-effects models take the outcome of the mean student to be the expected value, which invariably causes the mean difference for each course before filtration to be zero. The variation observed by our filtration specifications may simply be random noise. One notable course that may be of interest is CHE-1520, the filtered students of which had an unusually high number of positive outcomes. This may just be variance, because CHE-1520 only had `r DeltaC.Data %>% right_join(Gen_Data9, by = "Student Random ID") %>% group_by(`Student Random ID`) %>% slice(n()) %>% ungroup() %>% group_by(First.Course) %>% count() %>% filter(First.Course == "CHE-1520") %>% pull(n)` students start in the course, which is low with respect to the mean of `r DeltaC.Data %>% right_join(Gen_Data9, by = "Student Random ID") %>% group_by(`Student Random ID`) %>% slice(n()) %>% ungroup() %>% group_by(First.Course) %>% count() %>% filter(n >= 30) %>% pull(n) %>% mean()` students. 
   
-  The first scatterplot contains the mean $\Delta 2$ values for the professors the students had first. The courses which the professors taught are separated and then checked for significance at the $\alpha = 0.05$ level. Each professor may have taught several different types of courses, and so their mean $\textit{for each course}$ is represented as a value in the boxplot for that course. Because the average faculty member taught `r mean(Mean.Students)` with a standard deviation of `r sd(Mean.Students)`, it is expected that many faculty-courses will not have enough data to prove significant. Indeed,  
+  The first scatterplot contains the mean $\Delta C$ values for the professors the students had first. The courses which the professors taught are separated and then checked for significance at the $\alpha = 0.05$ level. Each professor may have taught several different types of courses, and so their mean $\textit{for each course}$ is represented as a value in the boxplot for that course. Because the average faculty member taught `r mean(Mean.Students)` with a standard deviation of `r sd(Mean.Students)`, it is expected that many faculty-courses will not have enough data to prove significant. Indeed,  
   
-  By comparison with the previous boxplot, we can gain some insight into the distribution of the $\Delta 2$ values. For example, looking at  CHE-1520, it seems that the students that started in CHE-1520 really did have a higher future cumulative GPA, as the mean $\Delta 2$ values for each of the five faculty that taught at least one CHE-1520 course are all above 0. It is important to note that this is the only case of all-positive $\Delta 2$ values on this plot. However, none of the t values for these faculty teaching this course d met the required $0.95$ quantile, and so we cannot significantly indicate this result as real.
+  By comparison with the previous boxplot, we can gain some insight into the distribution of the $\Delta C$ values. For example, looking at  CHE-1520, it seems that the students that started in CHE-1520 really did have a higher future cumulative GPA, as the mean $\Delta C$ values for each of the five faculty that taught at least one CHE-1520 course are all above 0. It is important to note that this is the only case of all-positive $\Delta C$ values on this plot. However, none of the t values for these faculty teaching this course d met the required $0.95$ quantile, and so we cannot significantly indicate this result as real.
 
 Now we will bootstrap the individual values of difference between expected and observed final cumulative GPA for each professor as an alternative significance test, and we will note the number of professors whose significance changed between experiments. This will determine our confidence in the initial ranking.
 
 
 ```{r}
-##Bootstrap for each faculty member that taught students that passed filtration assumptions
+##Bootstrap for each faculty member that taught students that passed filtration assumptions. This chunk creates the necessary functions.
 Boot.Data <- Filtered.Data5 %>%
               ungroup() %>%
                 group_by(`Student Random ID`) %>%
                   slice(n()) %>%
-                    dplyr::select(`Student Random ID`, Delta2, First.Prof, First.Course)
+                    dplyr::select(`Student Random ID`, DeltaC, First.Prof, First.Course)
 
 ##Initialize list of faculty that passed filtration conditions
 Filtered.Profs <- unique(Boot.Data$First.Prof)
 
-##Record mean Delta2 over all students that passed filtration conditions.
-global.mean <- mean(Boot.Data$Delta2)
+##Record mean DeltaC over all students that passed filtration conditions. Also create boot.data 
+global.mean <- mean(Boot.Data$DeltaC)
 
-
-##Create bootstrapper function which creates a bootstrap distribution for a given faculty member
-make.overall.bootstrap.means <- function(prof.num) {
-  og.sample <- Boot.Data$Delta2[Boot.Data$First.Prof == prof.num]
+##Create bootstrapper function which creates a bootstrap distribution for a given faculty member either overall or by course code
+make.bootstrap.means <- function(prof.num, course.code = NA) {
+  if(is.na(course.code)){
+    og.sample <- Boot.Data$DeltaC[Boot.Data$First.Prof == prof.num]
+  } else{
+    og.sample <- Boot.Data$DeltaC[Boot.Data$First.Prof == prof.num & Boot.Data$First.Course == course.code]
+  }
   samp.size <- length(og.sample)
   boot.means <- rep(0,10^4)
     for(i in seq_along(boot.means)){
       boot.sample <- sample(og.sample, replace = TRUE, size = samp.size)
       boot.means[i] <- mean(boot.sample)
     }
-  boot.means <- tibble(Delta2.Boot.Means = boot.means)
+  boot.means <- tibble(DeltaC.Boot.Means = boot.means)
   return(boot.means)
 }
- 
-##Create observed mean grabber for 
-get.observed.mean <- function(prof.num){
-  observed.delta2s <- Boot.Data %>%
-                        filter(First.Prof == prof.num) %>%
-                          pull(Delta2)
-  return(mean(observed.delta2s))
+
+##Create observed mean grabber for both overall and course-specific bootstraps
+get.observed.mean <- function(course.code = NA){
+  if(is.na(course.code)){
+  observed.DeltaCs <- Boot.Data %>%
+                          pull(DeltaC)
+  } else{
+    observed.DeltaCs <- Boot.Data %>%
+                        filter(First.Course == course.code) %>%
+                          pull(DeltaC)
+  }
+  return(mean(observed.DeltaCs))
 }
+```
 
-##Make significance dataframe for bootstraps. The column Significant 2 notes that this significance test may create different results than the one sample t-test. We will use \alpha = 0.05 as we did for the t-test.
-Sig.Profs <- as.data.frame(cbind(`Faculty Random ID` = Filtered.Profs, Significant2 = rep(NA,length(Filtered.Profs))))
-Sig.Profs$Significant2 <- as.logical(Sig.Profs$Significant2)
+```{r}
+##Make significance dataframes for general bootstraps. The column Significant 2 notes that this significance test may create different results than the one sample t-test. We will use \alpha = 0.05 as we did for the t-test. This  chunk runs slowly due to the fact that it needs to run 10^4 * 10^3 = ten million simulations for accuracy. Increasing runtime will decrease error slightly, but there are exponentially diminishing returns. We need to restrict our bootstraps to at least 8 distinct students so that there is sufficiently rich data. CITATION https://stats.stackexchange.com/questions/33300/determining-sample-size-necessary-for-bootstrap-method-proposed-method
 
-##Create significance evaluation function to be applied against all faculty in Sig.Profs. The output will be a significance observation for one professor.
-evaluate.significance <- function(prof.num){
+##This is for a faculty's overall mean DeltaC's
+Sig.Profs <- Filtered.Data5 %>% 
+                  ungroup() %>%
+                    group_by(First.Prof) %>%
+                      summarise(Mean.DeltaC = mean(DeltaC), Num.Students = n(), SD.DeltaC = sd(DeltaC)) %>%
+                        filter(Num.Students >= 8)
+
+Sig.Profs <- Sig.Profs %>%
+                cbind(Significant2 = rep(NA, length(Sig.Profs$First.Prof)))
+
+##This is for the course-specific bootstraps.
+Sig.Courses <- Filtered.Data5 %>% 
+                  ungroup() %>%
+                    group_by(First.Prof, First.Course) %>%
+                      summarise(Mean.DeltaC = mean(DeltaC), Num.Students = n(), SD.DeltaC = sd(DeltaC)) %>%
+                        filter(Num.Students >= 8)
+Sig.Courses <- Sig.Courses %>%
+                cbind(Significant3 = rep(NA, length(Sig.Courses$First.Prof)))
+
+##Create significance evaluation function to be applied against all faculty in Sig.Profs / Sig.Courses. The output will be a significance observation for one professor.
+evaluate.significance <- function(prof.num, course.code = NA){
   current.significance <- NA
-  current.bootstrap.distribution <- make.overall.bootstrap.means(prof.num) %>% 
-                                      pull(Delta2.Boot.Means)
+  if(is.na(course.code)){
+  current.bootstrap.distribution <- make.bootstrap.means(prof.num) %>% 
+                                      pull(DeltaC.Boot.Means)
+  } else{
+    current.bootstrap.distribution <- make.bootstrap.means(prof.num, course.code) %>% 
+                                        pull(DeltaC.Boot.Means)
+  }
+
   lower.quantile <- quantile(current.bootstrap.distribution, 0.025)
   upper.quantile <- quantile(current.bootstrap.distribution, 0.975)
-    if(upper.quantile <= global.mean){
+  benchmark <- get.observed.mean(course.code)
+  
+    if(upper.quantile <= benchmark){
       current.significance <- TRUE
-    } else if(lower.quantile >= global.mean){
+    } else if(lower.quantile >= benchmark){
       current.significance <- TRUE
     } else{
       current.significance <- FALSE
@@ -938,50 +987,56 @@ evaluate.significance <- function(prof.num){
   return(current.significance)
 }
 
-##Neither sapply nor apply wanted to work so I just manually apply the functions here. This fills out the Significant2 column in Sig.Profs.
-for(i in seq_along(Sig.Profs$`Faculty Random ID`)){
-  Sig.Profs$Significant2[i] <- evaluate.significance(Sig.Profs$`Faculty Random ID`[i])  
+##Neither sapply nor apply wanted to work so I just manually apply the functions here. This fills out the Significant2 column in Sig.Profs, and the Significant3 column in Sig.Courses.
+for(i in seq_along(Sig.Profs$First.Prof)){
+  Sig.Profs$Significant2[i] <- evaluate.significance(Sig.Profs$First.Prof[i])  
+}
+
+for(i in seq_along(Sig.Courses$First.Prof)){
+  Sig.Courses$Significant3[i] <- evaluate.significance(Sig.Courses$First.Prof[i], Sig.Courses$First.Course[i])
 }
 
 ##Make two test cases for visualization - one where the faculty has a significant mean delta and one where they do not.
 sig.test.prof <- Filtered.Profs[1]
 nonsig.test.prof <- Filtered.Profs[2]
 
-##Create visualization of a faculty member with a mean Delta2 significantly different from 0.
-make.overall.bootstrap.means(sig.test.prof) %>%
+##Create visualization of a faculty member with a mean DeltaC significantly different from 0. This is bootstrap of all taught courses
+sig.test.data <- make.bootstrap.means(sig.test.prof)
+sig.test.data %>%
   ggplot() +
-  geom_histogram(aes(x = Delta2.Boot.Means)) +
-  geom_vline(xintercept = c(quantile(sig.test.data$Delta2.Boot.Means, 0.025), quantile(sig.test.data$Delta2.Boot.Means, 0.975), 0), color = c("red", "red", "blue")) +
-  labs(x = "Mean Delta2 from bootstrap sample", y = "Count", title = "Example Histogram of the Bootstrap Distribution for a Faculty Member with a\nSignificant Mean Delta2")
+  geom_histogram(aes(x = DeltaC.Boot.Means)) +
+  geom_vline(xintercept = c(quantile(sig.test.data$DeltaC.Boot.Means, 0.025), quantile(sig.test.data$DeltaC.Boot.Means, 0.975), 0), color = c("red", "red", "blue")) +
+  labs(x = "Mean \u0394C from bootstrap sample", y = "Count", title = "Example Histogram of the Bootstrap Distribution for a Faculty Member with a\nSignificant Mean \u0394C")
 
-##Create visualization of a faculty member with a mean Delta2 NOT significantly different from 0.
-make.overall.bootstrap.means(nonsig.test.prof) %>%
+##Create visualization of a faculty member with a mean DeltaC NOT significantly different from 0.
+nonsig.test.data <- make.bootstrap.means(nonsig.test.prof)
+nonsig.test.data %>%
   ggplot() +
-  geom_histogram(aes(x = Delta2.Boot.Means)) +
-  geom_vline(xintercept = c(quantile(nonsig.test.data$Delta2.Boot.Means, 0.025), quantile(nonsig.test.data$Delta2.Boot.Means, 0.975), 0), color = c("red", "red", "blue")) +
-  labs(x = "Mean Delta2 from bootstrap sample", y = "Count", title = "Example Histogram of the Bootstrap Distribution for a Faculty Member with a\nNon-Significant Mean Delta2")
+  geom_histogram(aes(x = DeltaC.Boot.Means)) +
+  geom_vline(xintercept = c(quantile(nonsig.test.data$DeltaC.Boot.Means, 0.025), quantile(nonsig.test.data$DeltaC.Boot.Means, 0.975), 0), color = c("red", "red", "blue")) +
+  labs(x = "Mean \u0394C from bootstrap sample", y = "Count", title = "Example Histogram of the Bootstrap Distribution for a Faculty Member with a\nNon-Significant Mean \u0394C")
 ```
 
 The general bootstrap process goes as follows:
 
-We can to simulate the sampling distribution to determine whether there is a statistically significant difference between the population Mean $\Delta2$ for all faculty members and an individual professor's observation of Mean $\Delta 2$. We can obtain a more accurate boundary by simulating the sampling distribution using bootstrapping. The general process for the bootstrapping of a population parameter $\theta$ using a given sample containing an estimate $\hat{\theta}$ follows:
+We can to simulate the sampling distribution to determine whether there is a statistically significant difference between the population Mean $\DeltaC$ for all faculty members and an individual professor's observation of Mean $\Delta C$. We can obtain a more accurate boundary by simulating the sampling distribution using bootstrapping. The general process for the bootstrapping of a population parameter $\theta$ using a given sample containing an estimate $\hat{\theta}$ follows:
 
 1) Create an empty vector $V_{boot}$ with length equal to a large number $n_{sim}$
 2) Create a sample with replacement $S_{boot}$ from the original sample whose length is equal to the length of the original sample
 3) Store the observed mean of $\hat{\theta}$ from (2) into $V_{boot}$
 4) Repeat (2) and (3) $n_{sim}-1$ times.
 
-The resulting vector $V_{boot}$ contains the bootstrap sampling distribution, which is an estimate for the sampling distribution. As such, we can use the bootstrap distribution to create a confidence interval for $\theta$. We then use the built-in quantile() function to create $95\%$ confidence intervals for $\hat{\theta}$. These confidence intervals, represented by red verticle lines in the graphs I have included above, are then checked against the population parameter $\theta$, represented as a blue vertical line. For our case, if the global $\Delta2$ mean of `r global.mean` is within the $95\%$ confidence interval, then the professor is ruled not significantly different from the mean case. That is, we do not have sufficient data to claim that the effect the faculty in question had on the final cumulative GPA of those students that started with them deviated significantly from the mean effect. That is, if the blue line is outside of the two red lines, the result is significant at the  $\alpha = 0.05$ level.  On the other hand, if the global mean $\Delta2$ is not within the bound, then we have shown at the $\alpha = 0.05$ level that the individual faculty in question had a different $\textit{population}$ mean $\Delta2$ than the average faculty member. I would like to emphasize that the bootstrap prediction of significance is adjusted for stratum because the individual observations of $\Delta 2$ are drawn from strata-adjusted values of expected final cumulative GPA. We will now compare the bootstrap-derived significance with the one sample t-test derived significance.
+The resulting vector $V_{boot}$ contains the bootstrap sampling distribution, which is an estimate for the sampling distribution. As such, we can use the bootstrap distribution to create a confidence interval for $\theta$. We then use the built-in quantile() function to create $95\%$ confidence intervals for $\hat{\theta}$. These confidence intervals, represented by red verticle lines in the graphs I have included above, are then checked against the population parameter $\theta$, represented as a blue vertical line. For our case, if the global $\DeltaC$ mean of `r global.mean` is within the $95\%$ confidence interval, then the professor is ruled not significantly different from the mean case. That is, we do not have sufficient data to claim that the effect the faculty in question had on the final cumulative GPA of those students that started with them deviated significantly from the mean effect. That is, if the blue line is outside of the two red lines, the result is significant at the  $\alpha = 0.05$ level.  On the other hand, if the global mean $\DeltaC$ is not within the bound, then we have shown at the $\alpha = 0.05$ level that the individual faculty in question had a different $\textit{population}$ mean $\DeltaC$ than the average faculty member. I would like to emphasize that the bootstrap prediction of significance is adjusted for stratum because the individual observations of $\Delta C$ are drawn from strata-adjusted values of expected final cumulative GPA. We will now compare the bootstrap-derived significance with the one sample t-test derived significance.
 
 ```{r}
-##Analyse the differences between the bootstrap and t-test results
+##Analyse the differences between the non-course-specific bootstraps and t-test results
 
 ##Merge bootstrap significance to significance found by t-test for comparison.
-Comparison.Data <- Delta2.Data3 %>%
-                    dplyr::select(First.Prof, significant, Mean.Delta2) %>%
-                      left_join(Sig.Profs, by = c("First.Prof" = "Faculty Random ID")) %>%
+Comparison.Data <- DeltaC.Data3 %>%
+                    dplyr::select(First.Prof, significant, Mean.DeltaC, sample.size) %>%
+                      left_join(dplyr::select(Sig.Profs,-Mean.DeltaC), by = "First.Prof") %>%
                         mutate(Sig.Agree = if_else(significant == Significant2, TRUE, FALSE)) %>%
-                          rename(T.Test.Sig = significant, Bootstrap.Sig = Significant2)
+                          rename(T.Test.Sig = significant, Bootstrap.Sig = Significant2, num.students = sample.size)
 
 
 ##Determine total proportion of agreements on significance between the t-test and the bootstrap. 
@@ -993,126 +1048,395 @@ total.cases <- length(Comparison.Data$Sig.Agree)
 
 prop.agree <- total.agree/total.cases
 
-##Determine the mean of Delta2 for the faculty that obtained differing significance from the t-test and the bootstrap
+##Determine the mean of DeltaC for the faculty that obtained differing significance from the t-test and the bootstrap
 differ.mean <- Comparison.Data %>%
                 filter(Sig.Agree == FALSE) %>%
-                  pull(Mean.Delta2) %>%
+                  pull(Mean.DeltaC) %>%
                     mean()
 
-##Determine the standard deviation of Delta2 for the faculty that obtained differing significance from the t-test and the bootstrap
+##Determine the standard deviation of DeltaC for the faculty that obtained differing significance from the t-test and the bootstrap
 differ.sd <- Comparison.Data %>%
               filter(Sig.Agree == FALSE) %>%
-                pull(Mean.Delta2) %>%
+                pull(Mean.DeltaC) %>%
                   sd()
 
-##Determine the mean and standard deviation of Delta2 for the faculty that obtained the same significance from the t-test and the bootstrap (POSITIVE DELTA2)
+##Determine the mean and standard deviation of DeltaC for the faculty that obtained the same significance from the t-test and the bootstrap (POSITIVE DeltaC)
 positive.mean <- Comparison.Data %>%
-                  filter(Sig.Agree == TRUE,  Mean.Delta2 > global.mean) %>%
-                    pull(Mean.Delta2) %>%
+                  filter(Sig.Agree == TRUE,  Mean.DeltaC > global.mean) %>%
+                    pull(Mean.DeltaC) %>%
                       mean()
 
 positive.sd <- Comparison.Data %>%
-                  filter(Sig.Agree == TRUE,  Mean.Delta2 > global.mean) %>%
-                    pull(Mean.Delta2) %>%
+                  filter(Sig.Agree == TRUE,  Mean.DeltaC > global.mean) %>%
+                    pull(Mean.DeltaC) %>%
                       sd()
 
-##Determine the mean of Delta2 for the faculty that obtained the same significance from the t-test and the bootstrap (NEGATIVE DELTA2)
+##Determine the mean of DeltaC for the faculty that obtained the same significance from the t-test and the bootstrap (NEGATIVE DeltaC)
 negative.mean <- Comparison.Data %>%
-                  filter(Sig.Agree == TRUE,  Mean.Delta2 < global.mean) %>%
-                    pull(Mean.Delta2) %>%
+                  filter(Sig.Agree == TRUE,  Mean.DeltaC < global.mean) %>%
+                    pull(Mean.DeltaC) %>%
                       mean()
 
 negative.sd <- Comparison.Data %>%
-                  filter(Sig.Agree == TRUE,  Mean.Delta2 < global.mean) %>%
-                    pull(Mean.Delta2) %>%
+                  filter(Sig.Agree == TRUE,  Mean.DeltaC < global.mean) %>%
+                    pull(Mean.DeltaC) %>%
                       sd()
 
-##Overall standard deviation for faculty that had doubly-significant deviation from the average mean Delta2
+##Overall standard deviation for faculty that had doubly-significant deviation from the average mean DeltaC
 significant.sd <- Comparison.Data %>%
                     filter(Sig.Agree == TRUE, Bootstrap.Sig == TRUE) %>%
-                      pull(Mean.Delta2) %>%
+                      pull(Mean.DeltaC) %>%
                         sd()
+```
 
-##Table of differences between t-test significance and bootstrap significance.
+```{r}
+##Table of differences between t-test significance and overall bootstrap significance.
 Comparison.Data %>%
   mutate(T.Test.Only.Reject = if_else(T.Test.Sig == FALSE & Bootstrap.Sig == TRUE, TRUE, FALSE), Bootstrap.Only.Reject = if_else(Bootstrap.Sig == FALSE & T.Test.Sig == TRUE, TRUE, FALSE)) %>%
       group_by(T.Test.Only.Reject, Bootstrap.Only.Reject) %>%
         count()
 
-## The two oddities where the t-test suggested the result was not significant, but the bootstrap suggested it was.
-Comparison.Data %>%
-  mutate(T.Test.Only.Reject = if_else(T.Test.Sig == FALSE & Bootstrap.Sig == TRUE, TRUE, FALSE), Bootstrap.Only.Reject = if_else(Bootstrap.Sig == FALSE & T.Test.Sig == TRUE, TRUE, FALSE)) %>%
-    filter(T.Test.Only.Reject == TRUE) %>%
-      dplyr::select(First.Prof, T.Test.Sig, Bootstrap.Sig, everything())
+##Table of differences between t-test and bootstrap for course-specific.
+Double.Courses <- Sig.Courses %>%
+                    left_join(Course.DeltaC.Means, by = "First.Course") %>%
+                      mutate(standard.error = Course.Sd.DeltaC/sqrt(Num.Students)) %>%
+                        mutate(requisite.tval = qt(0.95, Num.Students - 1), observed.tval = abs(Course.Mean.DeltaC - Mean.DeltaC)/(standard.error)) %>%
+                          mutate(T.Sig = if_else(observed.tval > requisite.tval, TRUE, FALSE)) %>%
+                            dplyr::select(First.Prof, First.Course, Significant3, T.Sig, Num.Students, Mean.DeltaC) %>%
+                              mutate(T.Test.Only.Reject = if_else(T.Sig == FALSE & Significant3 == TRUE, TRUE, FALSE), Bootstrap.Only.Reject = if_else(T.Sig == TRUE & Significant3 == FALSE, TRUE, FALSE)) %>%
+                                ungroup()
+
+Double.Courses %>%
+  group_by(T.Test.Only.Reject, Bootstrap.Only.Reject) %>%
+    count()
 ```
 
-The above tables summarise the differences between the one sample t-test and bootstrap significance measures. We will now discuss some statistics surrounding this comparison. The significance implied by the t-test and the bootstrap agreed for `r total.agree` out of `r total.cases` faculty members, which is approximately  `r prop.agree *100`$\%$ of all professors.  In the vast majority of cases, the bootstrap significance test is more conservative than that of the t-test. This can be seen in the `r total.cases - total.agree` cases where the significance differed between the bootstrap and the t-test. $89$ discrepancies occurred where the t-test implied that the observation of mean $\Delta 2$ for a faculty member was significantly different from the overall average mean, while the bootstrap implied that it was not. Only two cases of the bootstrap failing to reject significance for a faculty member rejected by the t-test occurred, and I have included them above for the reader's consideration. In an effort to be as conservative as possible with inference, we will recreate the previous plots [CITE WHICH] using only those faculty members endorsed by the bootstrap confidence intervals.  Of the cases whose significance differed, the mean value for $\Delta 2$ was `r differ.mean` GPA points, and the standard deviation of the mean $\Delta 2$ was `r differ.sd`. Among the faculty whose significance agreed and had positive mean $\Delta 2$ values, the average mean value for $\Delta 2$ was `r positive.mean` and the standard deviation was `r positive.sd`. As for the faculty whose significance agreed but had negative mean $\Delta 2$ values, the average mean $\Delta 2$ was `r negative.mean` with a standard deviation of `r negative.sd`. The average standard deviation of $\Delta 2$ for a faculty member that had a significantly different $\Delta 2$ from the overall mean was `r significant.sd`.
+The first table summarizes the differences between the overall one sample t-test and bootstrap significance measures for all faculty that had at least eight students begin in their courses and pass filtration. We will now discuss some statistics surrounding this comparison. The significance implied by the t-test and the bootstrap agreed for `r total.agree` out of `r total.cases` faculty members, which is approximately  `r prop.agree *100`$\%$ of all professors. We set our $\alpha$ to be $0.05$, so this is a good sign. In the vast majority of cases, the bootstrap significance test agrees with the t-test. This can be seen in that the t-test and bootstrap agreed `r total.agree` times, and differed only in `r total.cases - total.agree` cases. $7$ discrepancies occurred where the t-test implied that the observation of mean $\Delta C$ for a faculty member was significantly different from the overall average mean, while the bootstrap implied that it was not. There were no observed cases where the t-test rejected significance while the bootstrap failed to reject. We would expect more bootstrap rejections than t-test rejections if the sample data were not sufficiently normal due to the sample sizes being too small. We required at least eight students to start with a faculty member, which helps with the minimum sample size issue, but there is still high variance. For example, faculty number $578022$ had $8$ students that passed filtration start in their courses, however just by chance every one of them ended with the same final cumulative GPA, and therefore the standard deviation in $\Delta C$ was precisely zero.
+
+Here are some relevant statistics regarding the overall doubly significant mean $\Delta C$'s between the two measures.  Among the faculty whose significance differed, the mean value for $\Delta C$ was `r differ.mean` GPA points, and the standard deviation of the mean $\Delta C$ was `r differ.sd`. Among the faculty whose significance agreed and had positive mean $\Delta C$ values, the average mean value for $\Delta C$ was `r positive.mean` and the standard deviation was `r positive.sd`. As for the faculty whose significance agreed but had negative mean $\Delta C$ values, the average mean $\Delta C$ was `r negative.mean` with a standard deviation of `r negative.sd`. The average standard deviation of $\Delta C$ for a faculty member that had a significantly different $\Delta C$ from the overall mean was `r significant.sd`. The sample size had mean `r Comparison.Data %>% ungroup() %>% pull(num.students) %>% mean()` and standard deviation `r Comparison.Data %>% ungroup() %>% pull(num.students) %>% sd()`. The distribution of the sample size must therefore not be normal.  
+
+
+The second table shows a more clear critisism of the bootstrap method for small sample size. In table one, we conglomerated all a faculty member's students into one overall rating, and only saw $7$ discrepancies between the tests. In the second experiment where a professor's individual courses are observations, the sample sizes are often too small for the bootstrap method to be accurate.
+
+In an effort to be as conservative as possible with inference, we will now recreate the previous plots [CITE WHICH] using only those faculty members endorsed by both confidence intervals. This will not change much, because only seven additional professors are to be omitted.
 
 ```{r}
-##Check the overall course distribution for each professor
+##Recreate graphs for doubly-significant faculty 
+
+##For overall:
+
+##Determine which faculty members had doubly significant effect onto their students.
+Doubly.Sig.Profs <- Comparison.Data %>%
+                      filter(Sig.Agree == TRUE, Bootstrap.Sig == TRUE) %>%
+                        dplyr::select(First.Prof)
+
+##Rejoin doubly significant faculty. It is sufficient to just filter the above three lines without the select command, but I wanted to call DeltaC.Data3 for continuity.
+DeltaC.Data4 <- DeltaC.Data3 %>%
+                    ungroup() %>%
+                      semi_join(Doubly.Sig.Profs, by = "First.Prof")
+
+##Histogram of doubly-significant mean professor effects onto final cumulative GPA for students that obeyed filtration assumptions.
+DeltaC.Data4 %>%
+  mutate(Hist.Colors = factor(if_else(Mean.DeltaC < mean(pull(DeltaC.Data4, Mean.DeltaC)), "green", "red"))) %>%
+        ggplot() +
+        geom_histogram(aes(x = Mean.DeltaC, fill= Hist.Colors), bins = 22) +
+        labs(x = "Mean DeltaC (0-4 scale) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of Doubly-Significant Professor Mean DeltaC for Conglomerated\nCourses, Filled by Effect Polarity from the Mean") +
+        theme(legend.position = "none")
+
+
+##Normal probability plot for Doubly-Significant Mean DeltaC's
+qqnorm(pull(DeltaC.Data4, Mean.DeltaC), main = "Normal Q-Q Plot for Doubly-Significant Mean Professor DeltaC Effects")
+
+##Scatterplot for only doubly-significant mean DeltaC values 
+Filtered.Data5 %>%
+  ungroup() %>%
+    group_by(`Student Random ID`) %>%
+      slice(n()) %>%
+        dplyr::select(`Student Random ID`, First.Course, First.Prof, DeltaC, Course.Code.Mean.GPA) %>%
+          ungroup() %>%
+            group_by(First.Prof, First.Course) %>%
+              summarise(Mean.DeltaC = mean(DeltaC, na.rm = TRUE), n = n()) %>%
+                filter(n >= 8) %>%
+                  left_join(Course.DeltaC.Means, by = "First.Course") %>%
+                    mutate(requisite.tval = qt(0.95, n-1), observed.tval = abs(Mean.DeltaC - Course.Mean.DeltaC)/(Course.Sd.DeltaC/sqrt(n))) %>%
+                      mutate(significant = if_else(observed.tval > requisite.tval, TRUE, FALSE)) %>%
+                        ungroup() %>%               
+                          left_join(dplyr::select(Sig.Courses, -Mean.DeltaC), by = c("First.Course", "First.Prof")) %>%
+                            rename(`Faculty Random ID` = First.Prof, `Course Code` = First.Course) %>%
+                              left_join(Course.Heights, by = "Course Code") %>%
+                                filter(significant == TRUE, Significant3 == TRUE) %>%
+                                ggplot() +
+                                geom_point(aes(x = Mean.DeltaC, y = Height, color = `Course Code`, size = n), position = position_jitter(height = 0.005)) +
+                                labs(x = "Mean \u0394C (0-4 scale) among those students whom started\nwith a professor in a stratum", y = "Class", n = "Number of Students", color = "Course Code", title = "Scatterplot of Mean Faculty \u0394C Effects by Course\nfor Doubly-Significant Courses") +
+                                scale_x_continuous(limits = c(-2,2))
+
+## Histogram of Sample size for faculty over all courses
+DeltaC.Data4 %>%
+  ungroup() %>%
+    ggplot(aes(x = sample.size)) +
+    geom_histogram() +
+    geom_vline(xintercept = median(DeltaC.Data4$sample.size), color = "red") +
+    labs(x = "Number of Students that passed filtration and started with a specific professor", y = "Count", title = "Histogram of Sample Size for Conglomerated Courses. Red Line is Overall\nMedian.")
+
+##For Course-Specific:
+##Scatterplot of course specific mean DeltaC's
+Double.Courses %>%
+  filter(T.Sig == TRUE, Significant3 == TRUE) %>%
+    left_join(Course.Heights, by = c("First.Course" = "Course Code")) %>%
+      ggplot(aes(x = Mean.DeltaC, y = Height)) +
+      geom_point(aes(color = First.Course, size = Num.Students), position = position_jitter(height = 0.01)) +
+      labs(x = "Mean \u0394C (GPA Points)", y = "Course", title = "Scatterplot of All Faculty Doubly-Significant Course-Specific\nMean \u0394Cs", color = "Course Code", size = "Number of Students")
+
+## Histogram of Sample size for faculty in individual courses
+Double.Courses %>%
+  ungroup() %>%
+    ggplot(aes(x = Num.Students)) +
+    geom_histogram() +
+    geom_vline(xintercept = median(filter(Double.Courses, Significant3 == TRUE, T.Sig == TRUE)$Num.Students), color = "red") +
+    scale_x_continuous(limits = c(0,600), breaks = seq(from = 0, to = 600, by = 100)) +
+    labs(x = "Number of Students that passed filtration and started with a specific professor", y = "Count", title = "Histogram of Sample Size for Individual Courses. Red Line is Overall Median.")
+  
+```
+
+```{r}
+## This table enumerates the possible values of cumulative GPA for a given student's term assuming that all courses have the same weight. This does not include NA's. This is an estimate, and is not mathematically rigorous. It becomes difficult to determine when means using different numbers will yield the same result - the set {1, 2, 3, 4} gives the same mean as {1, 1, 4, 4} and {2, 2, 3, 3}. As such we use the unique() command to filter out these multiplicities. The high simulation size gives a decent confidence bound for small student terms.
+Term.Grades <- Gen_Data %>%
+                filter(!is.na(`GPA Assigned`)) %>%
+                  arrange(`GPA Assigned`) %>%
+                    pull(`GPA Assigned`) %>%
+                      unique()
+
+##This function determines the number of unique cumulative GPA's possible for a given term number
+Possible.Cum.GPAs <- function(term){
+                        n.sims <- 10^6
+                        random.cum.gpas <- rep(-1,n.sims)
+                        
+                        for(i in 1:n.sims){
+                              random.cum.gpas[i] <- mean(sample(Term.Grades, size = term, replace = TRUE))
+                        }
+                        return(unique(random.cum.gpas))
+}
+
+##This function determines the overall proportion of students that took n terms at OCC's math and chemistry departments
+Term.Prop.Students <- function(term){
+                        n.students <- Gen_Data9 %>%
+                                        ungroup() %>%
+                                          group_by(`Student Random ID`) %>%
+                                            slice(1) %>%
+                                              ungroup() %>%
+                                                filter(max.terms == term) %>%
+                                                  pull(max.terms) %>%
+                                                    length()
+                        prop.students <- n.students/(n.s-3)
+                        return(prop.students)
+}
+
+##Print out the possible number of GPA values per term for first eight terms. 
+Cum.GPA.Data <- tibble(Student.Term = seq(from = 1, to = 8, by = 1), Prop.Students = -1, Possible.Cum.GPAs = -1, )
+for(i in 1:8){
+  Cum.GPA.Data$Possible.Cum.GPAs[i] <- length(Possible.Cum.GPAs(i)) + 1
+  Cum.GPA.Data$Prop.Students[i] <- Term.Prop.Students(i)
+}
+
+Cum.GPA.Data
+```
+
+##RESULTS AND ERROR DISCUSSION
+
+The overall shape of the plots for doubly-significant effects are not very different from the plots of t-significant effects. There is a slightly larger gap about Mean $\Delta C = 0 $, but beyond that the distributions is essentially identical to the t-significant version. I must now include a note about why the bootstrap and t-test yield different results. The measures have error in different ways. The one sample t-test assumes that:
+1. Data come from multiple measurements of a continuously distributed random variable,
+2. Any subset of data (an event) is a simple random sample from the overall distribution,
+3. The random variable which is being tested has a Gaussian distribution,
+4. The sample size is sufficiently large (generally n >= 3), and
+5. The random variable has a finite constant standard deviation.
+##Citation https://www.investopedia.com/ask/answers/073115/what-assumptions-are-made-when-conducting-ttest.asp
+For both the overall and course-specific experiments, our data does not satisfy condition one. Cumulative GPA is a fundamentally discrete beast. For a student with a cumulative GPA $c$, the permitted values for cumulative GPA after one more term depend on c, the allowed course credits, and the allowed GPA's obtainable in a course. For example, for a student that took a single course in their first term (which is the filtration assumption) there are only twelve possible values for cumulative GPA: `r Term.Grades` and the NA which corresponds to a withdraw. I have included a very approximate table containing the number of possible Cumulative GPA's under these assumptions, including NA's. The second term already gives $33$ possible values for cumulative GPA
+
+
+
+```{r}
 
 ```
+
+```{r Initialize Results}
+##Creates Results Table called Points Tracker
+      
+##Points Tracker contains Mean.DeltaC which is the mean effect that the faculty had on the final cumulative GPA of their students, Total.Cum.Effect which is the total effect that the faculty had on final cumulative GPA, Mean.DeltaW which is the difference in withdraw rate between this professor and the average, and Total.W.Effect: the total number of withdraws `caused` by the choice of faculty, and Mean.Delta.N: the mean faculty effect on number of future courses taken in the department.
+Overall.Points <- Comparison.Data %>%
+                    filter(Sig.Agree == TRUE, Bootstrap.Sig == TRUE) %>%
+                      dplyr::select(First.Prof, Mean.DeltaC, num.students) %>%
+                        mutate(Total.Cum.GPA.Impact = Mean.DeltaC * num.students) %>%
+                          arrange(Total.Cum.GPA.Impact)
+
+Course.Points <- 
+  
+
+```
+
 
 
 ##REMOVE DELTA AND SUCH FROM CODE, REWRITE SO ITS NOT NECESSARY. WILL SPEED UP AND PRETTY UP PROGRAM.
-
-```{r}
-Gen_Data9 %>%
-  mutate(Withdraw = if_else(is.na(`GPA Assigned`), TRUE, FALSE))
-```
-
-2) Does early exposure to mathematics predict / influence future performance in/out of major? Vice Versa?
-
-  Early exposure difficult to define. Further analyse course code models
-  
-
-```{r}
-##First Course in department Tracker
-
-      
-
-  ## FIRST TEACHER MATH:   Assign math points
-
-First.Math.Data <- Gen_Data %>%
-                    arrange(`Student Random ID`, Student.Term) %>%
-                      group_by(`Student Random ID`) %>% 
-                        filter(Department == "MAT") %>%
-                          slice(1)
-
-
-  ## FIRST TEACHER MATH:   Assign chemistry points
-  
-  
-  ## FIRST TEACHER CHEM:   Assign chem points
-  
-  ## FIRST TEACHER CHEM:   Assign math points
-  
-  
-  
-  
-  
-  ## Here I check the rest of the profs, and assign them points for OUT OF MAJOR classes.
-  
-  ## Here I check the rest of the profs, and assign them points for IN MAJOR classes.
-  
-  
-  
-
-
-```
-
-```{r}
-
-
-```
 
 
 2.5) How do individual professors affect the number of courses a student will take in major adjusted for course?
 
 
+```{r}
+Gen_Data9
+
+```
+
+
 
 3) Do grades generally improve, worsen, or remain constant?
 
+3.5) Is there a trend over the year the class was taught?
+
+Answered in Part (1). Depends on number of future terms in OCC.
+
+Assumption: we take only those students that recieved a GPA assigned for at least one course in the math and chemistry departments. For max.terms > 1 a valid observation can withdraw from the first course as long as they don't from at least one future course. This is a fundamentally different filtration assumption that we did for the first faculty effect on final cumulative GPA. 
+```{r}
+##Plot effect of max.terms onto final cumulative GPA for terms that had at least 30 students.
+Term.Base <- Gen_Data9 %>%
+              filter(max.terms == Student.Term, !is.na(Cum.GPA)) %>%
+                ungroup()
+
+Term.Means <- Term.Base %>%
+                group_by(max.terms) %>%
+                  summarise(Term.Mean.Cum.GPA = mean(Cum.GPA, na.rm = TRUE), Num.Students = n()) %>%
+                    filter(Num.Students >= 30) %>%
+                      mutate(Conf.Int.Low = 0, Conf.Int.High = 0)
+                      
+Term.confint1 <- function(term, conf.side){
+  
+  Term.GPAs <- Term.Base %>%
+                  filter(max.terms == term) %>%
+                    pull(Cum.GPA)
+  n.sims <- 10^4
+  boot.means <- rep(0, n.sims)
+  for(i in 1:n.sims){
+    boot.sample <- sample(Term.GPAs, size = length(Term.GPAs), replace = TRUE)
+    boot.means[i] <- mean(boot.sample)
+  }
+  if(conf.side == "Low"){
+    return(quantile(boot.means, 0.025))
+  }
+  if(conf.side == "High"){
+    return(quantile(boot.means, 0.975))
+  }
+}
+
+for(i in 1:length(Term.Means$max.terms)){
+  Term.Means$Conf.Int.Low[i] <- Term.confint1(i, "Low")
+  Term.Means$Conf.Int.High[i] <- Term.confint1(i, "High")
+}
+
+Term.Means
+
+p <- Term.Means %>%
+      filter(Num.Students >= 30) %>%
+        ggplot(aes(x = max.terms, y = Term.Mean.Cum.GPA)) +
+        geom_point(aes(size = Num.Students)) +
+        geom_smooth() +
+        scale_x_continuous(limits = c(1, 10), breaks = seq(from = 1, to = 10, by = 1)) +
+        labs(x = "Number of Terms in Math and Chemistry Departments", y = "Mean Final Cumulative GPA", title = "Mean Final Cumulative GPA Vs. Number of Terms in the\nMath and Chemistry Departments, with 95% Confidence Interval", size = "Students in Category")
+
+for(i in 1:length(Term.Means$max.terms)){
+  Conf.Low <- Term.Means$Conf.Int.Low[i]
+  Conf.High <- Term.Means$Conf.Int.High[i]
+  p <- p + geom_segment(x = i, xend = i, y = Conf.Low, yend = Conf.High, color = "red")
+}
+
+p
+```
+
+Students take courses in the math and chemistry departments for different number of terms. Oakland Community College only grants 
+Associate's degrees in math and chemistry - the highest math course is Linear Algebra, and the highest chemistry course is Organic Chemistry II. While it may be a false equivalency to compare students that enroll in community college to those that enroll in standard four year schools, the highest courses offered at OCC should be completed at the latest by the end of a four-year student's second year assuming the student is majoring in that field. By this rough heuristic we estimate that a student beginning in Calculus 1 should complete OCC's math regime in about four terms at one course per term. A student might not take a math course every term, and community college students that are seeking mathematics degrees may require additional training before calculus. As can be seen in the graph above, the mean final cumulative GPA for those students that take between three and seven courses are essentially identical. Students that complete their stay in OCC's math and chemistry departments within this five course spread have the empirically highest mean cumulative GPA's by the time they finish. Past each extreme of this range mean final cumulative GPA begins to fall. There are two orientations, to each of which I will assign a speculative reason for the lower cumulative observed GPA. Please note the following hypotheses are merely my guesses at the mechanisms, and there are likely additional factors that I have not thought of that affect mean final cumulative GPA by max term.
+
+1. $\textbf{Less than three terms:}$ A student that takes less than three terms in the math and chemistry departments may be testing out community college itself, or perhaps trialing the courses offered in the respective departments. Such students may not be as committed to their learning as those pursuing an associate's degree in math or chemistry. By choosing the students that only take one two terms of math and chemistry, we have retroactively largely filtered out those students that ARE pursuing such a degree, thus lowering the mean final cumulative GPA. An alternate explanation is that if a student does poorly in their first one or two courses in a department, they become less likely to continue study in that field. There would then be a higher concentration of lower grades in the first few terms, as we observe. 
+
+2. $\textbf{Greater than seven terms:}$ Students that are hellbent on obtaining a degree in math or chemistry will take courses in those departments until they either finish the degree or change their conviction. If a student fails multiple courses within the department, they will necessarily need to take additional terms to retake the classes. They will then have both a higher number of terms taken, and a lower cumulative GPA. 
+
+The mean final cumulative GPA for all terms lie within the set (`r min(Term.Means$Term.Mean.Cum.GPA)`, `r max(Term.Means$Term.Mean.Cum.GPA)`) GPA points. The minimum occurs in those students that only take one term in the math and chemistry departments, and the maximum occurs at five terms. The range is only about 0.3 GPA points, so the effect that the total terms taken is rather small, approximately the difference between a C average and a C+ average.
+
+As the number of terms increases, the number of students that were enrolled in the math and chemistry department for that number of terms decreases exponentially and moreover monotonically. I was forced to filter for terms that had at least thirty students finish within them, thus losing a small amount of data (on the order of 50 students). The confidence intervals for the later terms become increasingly wide, to the point where the negative trend observed in terms 8 through 10 is barely significant at the $\alpha = 0.05$ level. Another interesting statistic is the mean change in cumulative GPA per term, which we will look at presently.
+
+```{r}
+## The following amounts to the first derivative of the previous graph. 
+
+Max.Terms.Base <- Gen_Data9 %>%
+                    ungroup() %>%
+                      filter(!is.na(Cum.GPA)) %>%
+                        group_by(`Student Random ID`) %>%
+                          filter(n() > 1) %>%
+                            slice(n()) %>%
+                              mutate(Final.Cum.GPA = Cum.GPA) %>%
+                                dplyr::select(`Student Random ID`, Final.Cum.GPA) %>%
+                                  right_join(Gen_Data9, by = "Student Random ID") %>%
+                                    filter(!is.na(Cum.GPA), !is.na(Final.Cum.GPA)) %>%
+                                      mutate(Graded.Terms = n()) %>%
+                                        ungroup() %>%
+                                          group_by(`Student Random ID`) %>%
+                                            slice(1) %>%
+                                              mutate(GPA.Slope = (Final.Cum.GPA - Cum.GPA)/Graded.Terms) %>%
+                                                ungroup()
+
+Max.Term.Mean.GPA.Slopes <-  Max.Terms.Base %>%
+                              group_by(max.terms) %>%
+                                summarise(Mean.GPA.Slope = mean(GPA.Slope), Num.Students = n()) %>%
+                                  filter(Num.Students > 30) %>%
+                                    mutate(Conf.Int.Low = NA, Conf.Int.High = NA)
+
+##This function makes a 95% confidence interval for MAx.Term.Mean.GPA.Slopes, the minimum of which will be stored as Cont.Int.Low, and the maximum of which will be stored as Conf.Int.High
+Term.confint2 <- function(term, conf.side){
+  Term.Slopes <- Max.Terms.Base %>%
+                  filter(max.terms == term) %>%
+                    pull(GPA.Slope)
+  
+  n.sims <- 10^4
+  boot.means <- rep(0, n.sims)
+  for(i in 1:n.sims){
+    boot.sample <- sample(Term.Slopes, size = length(Term.Slopes), replace = TRUE)
+    boot.means[i] <- mean(boot.sample)
+  }
+  if(conf.side == "Low"){
+    return(quantile(boot.means, 0.025))
+  }
+  if(conf.side == "High"){
+    return(quantile(boot.means, 0.975))
+  }
+}
+
+for(i in 1:length(Max.Term.Mean.GPA.Slopes$max.terms)){
+  Max.Term.Mean.GPA.Slopes$Conf.Int.Low[i] <- Term.confint2(i, "Low")
+  Max.Term.Mean.GPA.Slopes$Conf.Int.High[i] <- Term.confint2(i, "High")
+}
+
+Max.Term.Mean.GPA.Slopes
+
+p <- Max.Term.Mean.GPA.Slopes %>%
+      ggplot(aes(x = max.terms, y = Mean.GPA.Slope)) +
+      geom_point(aes(size = Num.Students)) + 
+      geom_smooth() +
+      scale_x_continuous(limits = c(1,10), breaks = seq(from = 1,to = 10, by = 1)) +
+      labs(x = "Number of Terms in Math and Chemistry Departments", y = "Mean Change in Cumulative GPA per Term", title = "Mean Change in Cumulative GPA per Term Vs. Number of\nTerms, with 95% Confidence Intervals", size = "Number of Students")
+
+for(i in 1:length(Max.Term.Mean.GPA.Slopes$max.terms)){
+  Conf.Low <- Max.Term.Mean.GPA.Slopes$Conf.Int.Low[i]
+  Conf.High <- Max.Term.Mean.GPA.Slopes$Conf.Int.High[i]
+  p <- p + geom_segment(x = i, xend = i, y = Conf.Low, yend = Conf.High, color = "red")
+}
+  
+p +
+  geom_hline(yintercept = 0, color = "green")
+```
+
+This plot compares the mean change in a student's GPA against the number of terms that they took courses in the math and chemistry departments. This statistic is measured as the difference between final cumulative GPA and the first recorded observation of GPA, divided by the number of graded terms.  As in the previous figure, [GIVE NUMBER] 10 is the highest term number for which there is sufficient data for inference. I did not have any guesses regarding whether certain terms would yield positive or negative effects, so we have used a two-sided confidence interval. These will be compared about the expected effect of zero. If we let the variable measured on the vertical axis be $\Delta_t$ he hypotheses we will test for significance for each term are:
+$$H_0: \Delta_t = 0$$
+$$H_A: \Delta_t \neq 0$$
+For all terms except 10, at the $\alpha = 0.05$ level we reject the null hypothesis in favor of the alternate. Because we were using a two sided confidence interval, we have shown that for terms one through nine that $\Delta_t < 0$. The $95\%$ confidence interval for term 10 intersects with the green line demarking the null hypothesis, so for term 10 we fail to reject $H_0$. We are running ten tests at the $\alpha = 0.05$ level, and so we would expect roughly one in twenty experiments to have a population mean outside of the confidence interval. For most of these CI's, the boundary is rather tight and so even in the case of such errors, the population mean is unlikely to usurp the validity of our results. The one exception may be term one, where ggplot2's standard error shading $\textit{just barely}$ intersect the green line demarking $\Delta_t$ = 0.
+
+Using these plots we have shown that students with the highest mean final cumulative GPA tend to take between three and seven terms in the math and chemistry departments, and that those students also have a downwards trend in their cumulative GPA from their entry into the departments to the last course they take. I have included printouts of the datasets used for these analyses for consideration.
 
 
 
@@ -1122,30 +1446,57 @@ First.Math.Data <- Gen_Data %>%
   - Do the professors with significantly higher/lower withdraw rates match up with the professors rated "good"/"poor" by our Cum.GPA and Delta analyses?
 
 
-```{r Professor Withdraw Tracker}
-##Counts the proportion of withdraws per course that a professor teaches by class size. Compares to expected values.
-Withdraws.Data <- Gen_Data  %>%
-                    arrange(`Class Tracker`) %>%
-                      group_by(`Course Code`, `Faculty Random ID`) %>%
-                        filter(is.na(`GPA Assigned`)) %>%
-                          count() %>%
-                            arrange(`Faculty Random ID`) %>%
-                              rename(n_withdraws = n)
 
-          
-Total <- Gen_Data  %>%
-           arrange(`Class Tracker`) %>%
-              group_by(`Course Code`, `Faculty Random ID`) %>%
-                count() %>%
-                  arrange(`Faculty Random ID`) %>%
-                    rename(total_students = n)
+```{r}
+##Determine each Course's 
+Course.Withdraw.Rates <- Gen_Data9 %>%
+                          ungroup() %>%
+                            group_by(`Course Code`) %>%
+                              mutate(Course.Students = n()) %>%     
+                                filter(Course.Students >= 100) %>%
+                                  filter(is.na(`GPA Assigned`)) %>%
+                                    mutate(Course.Withdraws = n()) %>%
+                                      mutate(Course.Withdraw.Rate = Course.Withdraws/Course.Students) %>%
+                                        slice(1) %>%
+                                          dplyr::select(`Course Code`, Course.Withdraw.Rate)
 
-Gen_Data_withdraw_prop <- length(Gen_Data$`GPA Assigned`[is.na(Gen_Data$`GPA Assigned`)])/n
 
-Withdraws.Data <- left_join(Withdraws.Data, Total, by = c("Course Code", "Faculty Random ID")) %>%
-                    mutate(observed_withdraw_prop = n_withdraws/total_students, expected_withdraws = Gen_Data_withdraw_prop*total_students)
+Withdraws.Data <- Gen_Data9 %>%
+                    ungroup() %>%
+                      group_by(`Faculty Random ID`, `Course Code`) %>%
+                        summarise(Observed.Withdraw.Rate = sum(is.na(`GPA Assigned`)/n()), Num.Students = n()) %>%
+                          left_join(Course.Withdraw.Rates, by = "Course Code") %>%
+                            mutate(Course.DeltaW = Course.Withdraw.Rate - Observed.Withdraw.Rate)
+
+DeltaW.Data1 <- Withdraws.Data %>%
+                  group_by(`Faculty Random ID`) %>%
+                    summarise(DeltaW = sum(Num.Students*Course.DeltaW)/sum(Num.Students))
+
 ```
 
+The courses Quantitative Reasoning and Plane Geometry were only taught once each, by one faculty member. These were likely trial courses that did not prove popular/useful enough to merit becoming a mainstay at OCC. Because the courses were only taught by a single faculty member, it is meaningless to compare the effect the professor had on withdraw rate by comparing to the course average. I have therefore removed them from the following analysis.
+
+```{r}
+##Histogram of course withdraw rates. There seems to be a slight right skew, but this is likely due to variance as there only being 21 remaining courses.
+Course.Withdraw.Rates %>%
+  ggplot(aes(x = Course.Withdraw.Rate)) +
+  geom_histogram(binwidth = 0.05) +
+  labs(x = "Probability of Withdrawal", y = "Count", title = "Histogram of all Course Withdraw Rates")
+
+DeltaW.Data1 %>%
+  ggplot(aes(x = DeltaW)) +
+  geom_histogram(binwidth = 0.05) + 
+  labs(x = "DeltaW", y = "Count", title = "Histogram of Differences between Expected and Observed Faculty Withdraw Rate")
+
+DeltaW.Data1 %>%
+  pull(DeltaW) %>%
+    qqnorm()
+  
+Withdraws.Data %>%
+  left_join(Course.Heights, by = "Course Code") %>%
+    ggplot(aes(x = Course.DeltaW, y = Height)) +
+    geom_boxplot(stat = "identity")
+```
 
 
 ```{r}
