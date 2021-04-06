@@ -1,0 +1,555 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+DATA SET ISSUES
+
+1) GPA's not assigned consistently across all courses / all departments at OCC for the same letter grade. As such we need to build a grade converter that normalizes grades to GPA's. This requires some coin flipping.
+
+2)
+
+STUFF I HAVE
+
+TABLES
+
+1) Number of math and chemistry taken in each student term:
+        <<<r>>> 
+        N.Courses.By.Term 
+        @
+        
+2) Course Code / Course Credit / Course Name lookup table:
+        <<<r>>>
+        Course.Credits
+        @
+
+NUMBERS
+
+1) Difference between the total number of faculty - department combinations and the number of unique faculty. This is zero, so every faculty in the math and chemistry departments in the dataset only taught in one department.
+        <<<r No muli-department faculty>>>
+        ## This chunk shows that there are no faculty that teach in both the math and chemistry departments.
+        counter <- Gen_Data7 %>%
+                      group_by(`Faculty Random ID`, Department) %>%
+                        count() 
+        ##This is the difference between the total number of faculty - department combinations and the number of unique faculty.
+        length(counter$`Faculty Random ID`) - length(unique(Gen_Data7$`Faculty Random ID`))
+        @
+
+2) Statistics regarding first filtration: Students must not withdraw from first course
+        <<<r>>>
+        ##Number of students removed by filtration
+        length(unique(Gen_Data$`Student Random ID`)) - length(unique(Filtered.Data1$`Student Random ID`))
+        ##Number of remaining students
+        length(unique(Filtered.Data1$`Student Random ID`))
+        ##Number of faculty removed by filtration
+        length(unique(Gen_Data$`Faculty Random ID`)) - length(unique(Filtered.Data1$`Faculty Random ID`))
+        ##Number of remaining faculty
+        length(unique(Filtered.Data1$`Faculty Random ID`))
+        
+        ##Show that there are no entries of Filtered.Data1 that have an NA value for First.Prof - that is we have successfully chosen only those students who did not withdraw from their first course
+        length(Filtered.Data1$First.Prof[is.na(Filtered.Data1$First.Prof)])
+        @
+
+3)
+
+GRAPHS
+
+1) Not First Withdraw Justification
+        <<<r Not First Withdraw Justification, warning=FALSE>>>
+        ##Create plot to illustrate the inability to use all students for Q1. We must then do a filtration!
+        Plot.Data1 <- Gen_Data8 %>%
+                        group_by(`Student Random ID`) %>%
+                          slice(1) %>%
+                            mutate(First.Term.Withdraw = if_else(is.na(Cum.GPA), "Yes", "No")) %>%
+                              dplyr::select(`Student Random ID`, First.Term.Withdraw) %>%
+                                right_join(Gen_Data8, by = c("Student Random ID"))
+        
+        Plot.Data1 %>% 
+            filter(`Student Random ID` <= 10^3) %>%
+                ggplot(aes(x = Student.Term, y = Cum.GPA, group = factor(`Student Random ID`), color = First.Term.Withdraw)) +
+                geom_point(position = position_jitter(width = 0.2, height = 0.1)) + 
+                geom_smooth(method = "lm", se = FALSE) + 
+                labs(x = "Student's Term", y = "Cumulative GPA", title = "Cumulative GPA by Student's Term for 178 Randomly Selected Students", color = "Did student withdraw from first course?")
+        @
+
+2) Course Code Stratification Justification
+        <<<r>>>
+        ##Create overall visualization of final cumulative GPA by first course
+        Filtered.Data1 %>%
+          ungroup() %>%
+            group_by(`Student Random ID`) %>%
+              slice(n()) %>%
+                filter(max.terms >= 2) %>%
+                  dplyr::select(Cum.GPA, `Student Random ID`) %>%
+                    rename(Last.Term.Cum.GPA = Cum.GPA) %>%
+                      right_join(Filtered.Data1) %>%
+                          group_by(`Student Random ID`) %>%
+                            slice(n()) %>%
+                              ungroup() %>%
+                                ggplot() +
+                                geom_boxplot(aes(x = Last.Term.Cum.GPA, color = `First.Course`)) +
+                                theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+                                labs(x = "Final Cumulative GPA", y = "Course Code", color = "First Course", title = "Boxplots of Final Cumulative GPA for all Students that \n Passed Filtration Conditions, Colored by First Course")
+        @
+
+
+
+
+I. Introduction
+
+
+R ALLOWS FOR DEFINITION OF BINARY OPERATORS
+
+Outline
+I.	Introduction
+        
+        a.	Tutoring, interest in effects that teachers have on their students 
+        
+        
+I started working as a math tutor for a local company called Thompson Tutoring back in the fall of 2019. At first it was just a way to pay rent and keep myself fed, but I came to enjoy it and care about the success of my students. I have about five students that have stuck with me since the beginning, each of whom I see once a week for an hour. Oftentimes I find myself wondering how much of an effect I really have on their mathematics education. As a tutor I am generally employed by a family in two settings:
+\begin{enumerate}
+\item A student that is struggling in their current math course. In this scenario my role is to be the remedial instructor, trying to fill in the gaps in my student's knowledge while simultaneously preparing them for the next test. 
+\item A wealthy family looking to get their students ahead in mathematics.
+\end{enumerate}
+It is very difficult to measure the effect I have had on my students for a variety of reasons, primary among them small sample size. For my SIP I still wanted to combine my newfound addiction to data analysis with education, so Dr. Nordmoe sent me the link to a datset that Professor Andrew Eckstrom of Oakland Community College had posted to a messageboard. The data contain $139233$ objects in 
+        
+        b.	The Importance of Data-Driven decision making
+                i.	Importance of Data Science
+        c.	R For Data Science (Textbook)
+        d.	Data Science Course
+        e.	Probability and Mathematical Statistics
+        f.	Coursera
+        g.	COVID Difficulties
+II.	Base R
+        a.	Atomic Data Types
+                i.	Numeric
+                ii.	Integer
+                iii.	Character
+                iv.	Logical – Boolean
+                v.	NA values take class invariance based on context
+        b.	Lists
+        c.	Arrays
+                i.	Named Lists
+                ii.	Matrices
+                iii.	Data Frames
+        d.	Restricted phrases
+        e.	Directory Management
+                i.	getwd()
+                ii.	setwd()
+                iii.	conjunction with ReadR and loops
+III.	R Programming
+        a.	Vectors
+                i.	Coercion
+                ii.	rep()
+        b.	Logic
+                i.	Simple evaluation 
+                ii.	Vectors evaluate logic element-wise
+        c.	Subsetting
+                i.	$
+                ii.	[ ] – returns as same data type
+                        1.	[k]
+                        2.	[a, b]
+                        3.	[ ,b]
+                        4.	[a, ]
+                iii.	[[k]] – returns as vector with class equal to the class of its components
+        d.	Simulation
+                i.	
+        e.	Control Structures
+                i.	Syntax
+                ii.	If-else
+                iii.	Loops
+                        1.	For
+                        2.	While
+                        3.	In-loop commands
+                                a.	Repeat
+                                b.	Next
+                                c.	Break
+                iv.	
+                v.	Common applications with vectors
+        f.	Writing Functions
+        g.	Apply Functions
+                i.	lapply
+                ii.	sapply – one dimensional data
+                iii.	others not used
+        h.	
+        i.	The Scoping Rules – why R is great
+IV.	The Tidyverse arsenal
+        a.	The Packages
+                i.	Dplyr
+                1.	filter()
+                2.	mutate()
+                3.	group_by()
+                4.	select
+                5.	arrange
+                6.	join commands
+                        a.	left_join()
+                        b.	right_join()
+                        c.	semi_join()
+                7.	summarise()
+        b.	GGPlot2
+                1.	Aesthetics
+                        a.	X, Y
+                        b.	Color, Fill
+                        c.	
+                2.	geom_point
+                3.	geom_histogram
+                4.	geom_bar
+                5.	geom_boxplot
+                6.	geom_smooth
+                        a.	method = LOESS
+                                i.	locally estimated scatterplot smoothing 
+                                ii.	https://www.epa.gov/sites/production/files/2016-07/documents/loess-lowess.pdf
+                        b.	method = LM
+                                i.	linear model
+                7.	geom_vline, geom_hline
+                8.	geom_segment
+                                iii.	ForCats
+                1.	factor()
+                2.	fct_reorder(x,y)
+        c.	Tibble
+                1.	tibble()
+        d.	Piping
+V.	Coursera Work
+        a.	Overview 
+                i.	Videos
+                        1.	Automated for DSTB to keep material up to date
+                                a.	Transcript + Slideshow
+                        2.	Non-automated for R-Programming
+                ii.	Readings
+                        1.	Some independent readings
+                        2.	All videos have transcripts
+                iii.	Book – R Programming for Data Science by Roger D. Peng [version 9/3/2020]
+                        1.	https://bookdown.org/rdpeng/rprogdatascience/ 
+                iv.	Quizzes
+                v.	Programming Assignments
+                        1.	Graded by quiz
+                        2.	Graded by peers
+        b.	The Data Scientist’s Toolbox – Show Certificate
+                i.	Topics
+                        1.	Week 1
+                                a.	Introduction to Data Science
+                                b.	Getting help on projects appropriately
+                                        i.	Rules of Decorum
+                                        ii.	Forums (I primarily used StackOverflow)
+                                c.	The Data Science Process
+                                        i.	Ask a question
+                                        ii.	Obtain Data for use
+                                        iii.	Analyse Data 
+                                        iv.	Communicate Results
+                        2.	Week 2
+                                a.	Installing RStudio,
+                                        i.	How to install packages
+                                b.	RStudio tour
+                                c.	Superfluous week considering usage of R and RStudio in probability and math stats
+                        3.	Week 3
+                                a.	Version Control
+                                        i.	GitHub
+                                                1.	GitBash – I didn’t end up using my personal copy of RStudio in favor of RStudio Cloud offered through the college. GitBash was therefore ultimately unnecessary
+                                        ii.	Linking GitHub to RStudio
+                                                1.	Commit
+                                                2.	Stage
+                                                3.	Push/Pull
+                                                4.	Also covered in Data Science course
+                                        iii.	Merge Conflicts
+                        4.	Week 4
+                                a.	R Markdown
+                                        i.	How to create reports with knitr
+                                        ii.	R code chunks
+                                                1.	How to label
+                                                2.	Options
+                                                3.	Inline and standalone
+                                        iii.	LaTeX
+                                b.	Asking Data Science Questions
+                                c.	Experimental Design
+                                d.	Big Data
+                                        i.	Three V’s
+                                                1.	Volume
+                                                2.	Variety
+                                                3.	Velocity
+                                        ii.	Benefits
+                                                1.	Can ask questions that are more difficult to statistically infer answers (higher n)
+                                                2.	Can ask new questions due to variety of data available (even if it is really nasty)
+                                                        a.	Can identify hidden correlations – data mining
+                                                3.	New data that measures the same effects can confirm or reject inferences previously held
+                ii.	Course Project
+                        1.	Verification that students had properly connected RStudio to GitHub and learned how to create a GitHub repository and commit changes to it.
+                        2.	Push a markdown file to a repo
+                        3.	Fork a repo
+                        4.	Grade 2 peers
+        c.	R Programming – Show Certificate
+                i.	Week One
+                        1.	Topics
+                                a.	Background Material
+                                        i.	For those students that hadn’t previously taken The Data Scientist’s Toolbox
+                                        ii.	Links to instructor’s book
+                                        iii.	Pre-course survey
+                                        iv.	Directory management
+                                                1.	getwd()
+                                                2.	setwd()
+                                                3.	list.files()
+                                                4.	Restoring directory at end of program
+                                b.	History of R
+                                c.	Reiteration of how to get help
+                                d.	Data Types
+                                        i.	Class Invariants
+                                                1.	Numeric
+                                                2.	Character
+                                                3.	Complex
+                                                4.	Integer
+                                                5.	Logical
+                                                6.	Raw
+                                        ii.	Factors – categorical variables
+                                                1.	Used for sorting by levels
+                                        iii.	Arrays
+                                                1.	Matricies
+                                                2.	Tibbles
+                                        iv.	Vectors
+                                                1.	Only have one class invariant
+                                        v.	Lists
+                                                1.	Can contain multiple class invariants
+                                e.	Read in Data to R
+                                        i.	read.table()
+                                        ii.	read.csv()
+                                        iii.	Not useful in context with readR – I used read_csv()
+                                f.	Subsetting
+                                        i.	Single Brackets - [a:b, c:d]
+                                                1.	Returns object of same class as original
+                                                2.	Can select more than one object using row / column indexing
+                                                        a.	Numeric index
+                                                        b.	Logical index
+                                        ii.	Double Brackets - [[a]]
+                                                1.	Extract element from list / data frame
+                                                2.	
+                                        iii.	$ operator
+                                                1.	Return elements by name, if objects have names
+                                        iv.	Removing NA’s
+                                                1.	is.na()
+                                                2.	is.nan()
+                                g.	Vectorized Operations
+                                        i.	Element wise operations
+                        2.	Week One Swirl Assignments
+                                a.	What is Swirl?
+                                        i.	R Package that teaches R functionality and programming w/in R. 
+                                        ii.	Review and Application of concepts taught in Videos/Readings from previous week
+                                        iii.	Individual Modules = Programming Assignment
+                                        iv.	Links back to Coursera for credit by registered email
+                                b.	Week One Modules
+                                        i.	Basic Building Blocks
+                                                1.	Class Invariants
+                                                2.	Operations
+                                                3.	Saving values to objects
+                                        ii.	Workspace and Files
+                                                1.	Directory Management
+                                        iii.	Sequences of Numbers
+                                                1.	Working with lists
+                                        iv.	Vectors
+                                                1.	Working with vectors
+                                        v.	Missing Values
+                                                1.	Generate NA’s
+                                                2.	Use is.na() and is.nan() to identify indices 
+                                        vi.	Subsetting Vectors
+                                                1.	[]
+                                                2.	[[]]
+                                                3.	$
+                                        vii.	Matrices and Data Frames
+                                                1.	Using names()
+                                                2.	Multidimensional subsetting
+                                                3.	Quiz – 20 Q’s
+                        3.	No Programming Assignment
+        ii.	Week Two – Programming With R
+                1.	Topics
+                        a.	Control Structures
+                                i.	For loops – Run for a predetermined number of iterations
+                                ii.	While loops – Checks a condition
+                                iii.	Repeat loops – Infinite loop
+                                iv.	In-Loop Commands
+                                        1.	Next
+                                        2.	Break
+                                v.	If-else expressions
+                        b.	Functions
+                        c.	Scoping Rules
+                        d.	Coding Standards
+                                i.	Write code using a text editor
+                                ii.	Proper indentation
+                                        1.	Change spacing in RStudio
+                                        2.	Cmd + I
+                        e.	Dates, Times, and DateTimes
+                                i.	Sys.time() gets datetime which has following classes:
+                                ii.	POSIXct - Seconds since 12:00 AM  1/1/1970
+                                iii.	POSIXlt - List of date / time information
+                                        1.	Nine different pieces of information about time in question
+                                iv.	Convert using as.posixct(), as.posixlt()
+                2.	Week Two Swirl Assignments
+                        a.	Logic
+                                i.	Lots of practice problems using Booleans
+                                ii.	Determine what boolean complicated logical expressions evaluate to
+                        b.	Functions
+                                i.	Create functions that take various levels of input
+                                        1.	Required input
+                                        2.	No input
+                                        3.	Optional input
+                                ii.	return()
+                        c.	Dates and Times
+                                i.	Play with conversion between DateTimes, POSIXct, and POSIXlt. 
+                                ii.	Use subsetting to obtain information from POSIXlt
+                3.	Programming Assignment One
+                        a.	Directory Management – 332 CSV files in a file called specdata each containing three variables. One from each of 332 pollution monitoring stations around the US. Names of files are a number from 001 to 332 which indicate which monitoring station data are from. No codebook for location.
+                                i.	date
+                                ii.	sulfate – sulfate in air (micrograms per cubic meter) on that date
+                                iii.	nitrate – nitrate in air (micrograms per cubic meter) on that date
+                        b.	Goal: write three functions that analyse the datasets:
+                                i.	pollutantmean(directory, pollutant, id = 1:332) – calculates the mean of a pollutant given the directory where the csv’s are found, the pollutant over which to average, and a subset of monitoring stations to collect data from.
+                                ii.	complete(directory, id = 1:332) – Determines the total number of completely observed cases over a subset of monitoring stations.
+                                iii.	corr(directory, threshold = 0) – Determines the correlation between  sulfate and nitrate pollution for all monitoring stations that have a number of complete observations at least equal to the threshold specified
+                        c.	Graded by Quiz – Include functions in appendix
+        iii.	Week 3 – Loop Functions and Debugging
+                1.	Topics
+                        a.	Apply functions
+                                i.	lapply – given a list and a functions, applies the function to each element of the list. 
+                                ii.	apply – apply a function across the margins of an array. For example, a rectangular MxN matrix would have margin options 1 or 2. 1 would specify the function to run over rows, while 2 would apply over columns.
+                                iii.	sapply – smart wrapper for lapply, this is the bread and butter. Returns vector, list, or matrix if appropriate.
+                                iv.	mapply – Multivariate apply. Not used in my project.
+                                v.	tapply – Apply a function over subsets of a vector/list given indecies
+                        b.	split()
+                        c.	Debugging Tools
+                                i.	traceback() – prints out the function call stack after an error occurs
+                                ii.	debug() – allows line by line execution of a function
+                                iii.	browser() – suspends execution of a function and puts R into debug mode
+                                iv.	trace() – allows debugging code that does not affect functionality. Generally used in conjunction with browser()
+                                v.	recover() – Whenever an error is encountered in the function,  open the browser.
+                2.	Week 3 Swirl Assignments
+                        a.	lapply and sapply
+                                i.	Make lists and functions, then apply the functions over the lists
+                        b.	vapply and tapply
+                                i.	vapply was not covered in lecture, but it is no more complicated than any other apply. It applies a function specifically over a vector.
+                                ii.	More of the same.
+                3.	Programming Assignment Two – Lexical Scoping
+                        a.	Introduction to cacheing and superassignment. 
+                        b.	Goal: Write two functions:
+                                i.	makeCacheMatrix: Creates a matrix that can cache its inverse (for an invertible matrix)
+                                ii.	cacheSolve: Computes the inverse of the matrix generated by makeCacheMatrix. If this has already been calculated, call the cache instead.
+                        c.	Include functions in Appendix
+                        d.	Peer- Graded through GitHub, so must grade four peers.
+                        e.	https://github.com/firstrider55/ProgrammingAssignment2 
+        iv.	Week Four – Simulation and Profiling
+                1.	Topics:
+                        a.	
+                        b.	str() – Alternative to summary(). Displays the contents and metadata of an input.
+                        c.	ls()
+                        d.	Generating random numbers – used all the time in probability and mathstats
+                        e.	Simulating. Specifically used lm() and plot() to create a linear model for two variables. I use linear mixed-effects models in my study
+                        f.	sample()
+                        g.	Efficiency
+                                i.	system.time()
+                                ii.	Rprof()
+                                        1.	Checks the function call stack at regular intervals and records which function is being executed
+                                iii.	summaryRprof() takes Rprof() as an input, and determines how much time is being spent in each function. Two methods for data normalization:
+                                        1.	“by.total” yields proportion of total run time
+                                        2.	“by.self” does the same but first subtracts time elapsed by already executed functions – the last function (if executed only once) will have proportion 1.
+                2.	Week Four Swirl Assignments
+                        a.	Looking at Data
+                                i.	str()
+                                ii.	dim()
+                                iii.	nrow() and ncol()
+                                iv.	object.size() – returns amount of memory taken by object
+                                v.	names()
+                                vi.	head() and tail()
+                                vii.	summary()
+                                viii.	table()
+                        b.	Simulation
+                                i.	sample()
+                                ii.	rnorm()
+                                iii.	rbinom()
+                        c.	Base Graphics
+                                i.	plot()
+                                ii.	hist()
+                                iii.	boxplot()
+                                iv.	Not useful because I use ggplot2 in my project
+                3.	Programming Assignment Three
+                        a.	Given data contains location information for 4706 hospitals, and patient outcomes statistics regarding:
+                                i.	Heart Attack
+                                ii.	Heart Failure
+                                iii.	Pneumonia
+                        b.	Goal: Write Three functions
+                                i.	best(state, outcome) – determines the best hospital in a state ranked by 30 day mortality for the given outcome. 
+                                        1.	If an invalid state is supplied, throw an error with message “invalid state”. If an invalid outcome is supplied, throw an error with message “invalid outcome”.
+                                        2.	Ties are to be broken by alphabetical ordering of hospital name.
+                                ii.	rankhospital(state, outcome, num = “best”) -  Rank hospitals in a state for the 30 day mortaility in the supplied outcome. Num grabs the rank wanted. “best” corresponds to rank 1, and “worst” corresponds to the last place hospital. If invalid num is supplied return NA. Same caveats as in best()
+                                iii.	 rankall(outcome, num = “best”) – Essentially just applies rankhospital() onto all states. If there are fewer than num hospitals in a state, return NA for that state. No state caveats, otherwise same as rankhospital()
+                        c.	Graded by Quiz
+        v.	Chapter Quizzes
+                1.	One quiz per week, so eight overall. Number of questions range from 5 to 20. Generally concerned with the material covered in the last week, but there were perhaps 3-4 instances of a bug where questions would be pulled from future weeks. Quizzes allowed to be retaken, which helped correct for this bug.
+VI.	Statistical Background
+        a.	One Sample T-Test
+                i.	Minimum sample size
+                ii.	Assumptions
+                iii.	Statistic Derivation
+                iv.	Confidence Interval
+                v.	Hypothesis Testing
+        b.	The Bootstrap Principle
+                i.	Minimum Sample Size
+                ii.	Assumptions
+                iii.	What is a sampling distribution?
+                iv.	Confidence Interval
+                v.	Hypothesis Testing
+        c.	Linear Mixed Effects Modeling
+                i.	https://www.youtube.com/watch/VhMWPkTbXoY 
+                ii.	https://m-clark.github.io/mixed-models-with-R/ 
+                iii.	https://www.datacamp.com/courses/hierarchical-and-mixed-effects-models 
+                iv.	https://www.rensvandeschoot.com/tutorials/lme4/ 
+                v.	Difference between lm and lmer()
+                        1.	Standard Linear Regression formula
+                                a.	Calculation of slope
+                                b.	Calculation of mean intercept
+                                c.	Residual Variance
+                        2.	Fixed Effects Vs. Mixed Effects
+                        3.	lme4 syntax
+                vi.	Terminology
+        d.	Normal approximation
+                i.	Central Limit Theorem
+                ii.	Minimum sample size ~ 30-40
+                iii.	
+VII.	Case Study
+        a.	Introduction to Data Set
+        b.	Question – how does the first professor a student has in a department influence their future scholastic performance? Future Cumulative GPA is optimal tracking method, but requires filtration conditions.
+                i.	Filtration Conditions:
+                        1.	Students must take exactly one course in their first term
+                        2.	Students must not withdraw from their first course
+                        3.	Students must receive at least two grades to create a cumulative GPA progression, which necessarily filters out all students that only take a single course in the math or chemistry departments
+                                i.	We must therefore separately analyze withdraw rates 
+        c.	Plan of Attack for DeltaC Rankings
+                i.	Determine variables that affect final cumulative GPA
+                        1.	Student Variance
+                        2.	Initial Starting Course
+                        3.	Number of Terms in OCC’s Math and Chemistry departments
+                        4.	Faculty effects
+                                a.	Initial faculty
+                                b.	Following faculty effects should “mean out” over sufficient samples. That is, the variance imposed by difference in future faculty should have a Normal distribution centered about the mean of initial faculty
+                                c.	It is possible to assign each faculty “points” for only the change in cumulative GPA that comes after, but the weights are unintuitive due to future courses having less effect on change in cumulative GPA as opposed to the extant value (beyond the second course).
+                ii.	Create stratified models for cumulative GPA slope accounting for said confounding variables
+                        1.	Adjust for starting course
+                                a.	Justify with graphs
+                        2.	Adjust for max.terms
+                                a.	Justify with graphs
+                        3.	Require sufficient observations in a stratum for approximate Normality of data, I choose N >= 40. That is, each valid combination of max.terms and starting course will have at least 40 students for t-test validity.
+                iii.	Apply models onto individual students, starting mean slope at observation of initial cumulative GPA. Expected final cumulative GPA is then calculated as Initial GPA + slope * max.terms. 
+                        1.	This is a mixed model – Fixed effect is Student.Term, random effect is initial gpa of a student. 
+                                a.	Expected final cum GPA is calculated as f(max(Student.Term))
+                        2.	Talk about differences between lmer and manual – compare results. 
+                                a.	lmer automatically captures residual error when given Student Random ID as a random effect, but does I was unable to make the model converge when adjusting for max.terms as acting on slope. My bet is this was automatically captured as part of the student-to-student random deviation. Unfortunately, lmer cannot do data analysis for me so I still need to compare its results with a manual tabulation to check validity.
+                                b.	The issue with doing a manual model is that as a human I cannot imagine all the confounding variables that influence final cumulative GPA. We are measuring first professor effect, so we don’t want to stratify based on that. The big two that I could think of were the number of terms that a student enrolled in OCC’s math and chemistry departments. A third I considered was the overall term students were enrolled in – if a student was enrolled during a term where the average teaching quality for a course was markedly lower/higher than other terms, their final cumulative GPA may decrease/increase. For most courses there are not enough faculty that teach them to adjust for this deviation in a meaningful way – if there are three faculty, two “good” and one “poor”, then when we go to measure the mean effect 
+                iv.	Create statistic called DeltaC = Observed Final Cumulative GPA – Expected Final Cumulative GPA.
+                v.	Determine mean DeltaC of those students that passed filtration and started with a specific professor
+                        1.	Experiment One: Professors are assumed to have one overall level of impact on student’s final cumulative GPA. Sum all DeltaC values of all students that passed filtration and started with that faculty, then divide by the number of students.   This may be unfair if they are made to teach a course they are unfamiliar with instructing, so we also do Experiment Two.
+                        2.	Experiment Two: A Professor’s Mean DeltaC is calculated over each course code they taught using only those students that started in the appropriate course code. Do example with a professor – print out all DeltaC’s for a prof with at least 3.
+                vi.	Test Significance of results using t-test and bootstrap for double confidence. We could validly get away with just the t-test because we ensured that data came from strata with at least 40 observations (thus approximately Normal), but as this is my SIP I want to use all the firepower I can. Additionally, some assumptions of the one sample t-test are not rigorously fulfilled by DeltaC, so usage of the bootstrap can correct for the errors imposed by the t-test.
+                vii.	
+        d.	Basic New Variables (through Gen_Data 9)
+        e.	Plan of Attack for DeltaW
+
+
+
+\end{document}
