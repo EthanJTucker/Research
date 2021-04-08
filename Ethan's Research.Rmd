@@ -346,7 +346,7 @@ Max_terms <- Gen_Data4 %>%
                 group_by(`Student Random ID`) %>%
                   summarise(max.terms = max(Student.Term))
 
-Gen_Data5 <- left_join(Gen_Data4, Max_terms) %>% View()
+Gen_Data5 <- left_join(Gen_Data4, Max_terms)
 ```
 ```{r Initialize Course Credits and Course Names}
 ##In order to create cumulative GPA we need to weight by credit hours. This chunk creates a credit variable for each row in Gen Data
@@ -398,21 +398,25 @@ Temp_Data <- Gen_Data6 %>%
 
 ##This second section assigns the previous Cum.GPA to all withdraws if the student had a previous Cum.GPA. This allows for better visualization in ggplot, and better modeling with lmer.
 
-##This chunk throws an error at the end of execution, but it's fine. Run the next chunk to store the cumulative GPA's to Gen_Data
-for(i in 2:n){
+
+for(i in 2:length(Temp_Data$`Student Random ID`)){
         current.student <- Temp_Data$`Student Random ID`[i]
         previous.student <- Temp_Data$`Student Random ID`[i-1]
         
         if(is.na(Temp_Data$Cum.GPA[i])){
-                if(current.student == previous.student){Temp_Data$Cum.GPA[i] <- Temp_Data$Cum.GPA[i-1] }
+          if(is.na(current.student)){
+            break
+          }
+          if(current.student == previous.student){
+            Temp_Data$Cum.GPA[i] <- Temp_Data$Cum.GPA[i-1] 
+          }
         }
 }
-```
 
-```{r Initialize Cum.GPA}
 ##Here we store Cum.GPA into Gen_Data
 Gen_Data7 <- Temp_Data
 ```
+
 
 ```{r No muli-department faculty}
 ## This chunk shows that there are no faculty that teach in both the math and chemistry departments.
@@ -510,6 +514,7 @@ At.Least.Two.Graded.Terms <- Filtered.Data1 %>%
 
 Filtered.Data1 <- Filtered.Data1 %>%
                     semi_join(At.Least.Two.Graded.Terms, by = "Student Random ID")
+                      
 
 ##Number of students removed by filtration
 length(unique(Gen_Data$`Student Random ID`)) - length(unique(Filtered.Data1$`Student Random ID`))
@@ -523,6 +528,54 @@ length(unique(Filtered.Data1$`Faculty Random ID`))
 ##Show that there are no entries of Filtered.Data1 that have an NA value for First.Prof - that is we have successfully chosen only those students who did not withdraw from their first course
 length(Filtered.Data1$First.Prof[is.na(Filtered.Data1$First.Prof)])
 ```
+
+```{r Initialize Graded.Term, cache = TRUE}
+##Here we convert Total.Term into numeric, and create the Graded.Term variable which describes which terms had effect on cumulative GPA
+
+##Here we filter out all entries that resulted in Withdraws. Withdraws do not affect cumulative GPA, and they make the calculation of slope more diffcult. We will analyze withdraw rate separately later.
+Temp_Data2 <- Filtered.Data1 %>%
+                filter(Withdraw == FALSE)
+
+##Function that determines which indecies within Temp_Data2 a given student possesses
+student.index2 <- function(cntr){
+  student.id <- unique(Temp_Data2$`Student Random ID`)[cntr]
+  student.indecies <- which(Temp_Data2$`Student Random ID` == student.id)
+  return(student.indecies)
+}
+    
+##Function that numbers a student's graded terms in OCC's math and chemistry departments using positive integers. 
+graded.terms <- function(index){
+  total.terms <- Temp_Data2$Total.Term[index]
+  graded.terms <- rep(0, length(total.terms))
+  last.total.term <- total.terms[1]
+  graded.terms[1] <- 1
+  
+  if(length(graded.terms) >=2){
+  
+    for(i in 2:length(graded.terms)){
+      if(last.total.term == total.terms[i]){
+        graded.terms[i] <- graded.terms[i-1]
+      } else{
+        last.total.term <- total.terms[i]
+        graded.terms[i] <- graded.terms[i-1] + 1
+      }
+  }
+    
+  }
+  return(graded.terms)
+}
+
+
+##Use functions to assign graded terms.
+n.s <- length(unique(Temp_Data2$`Student Random ID`))
+
+Filtered.Data1 <- Temp_Data2 %>%
+                    mutate(Graded.Term = 0)
+for(i in 1:n.s){
+  Filtered.Data1$Graded.Term[student.index2(i)] <- graded.terms(student.index2(i))
+}
+```
+
 
 Here we have created a variable in Gen_Data that tracks the first professor a student had.   
 
@@ -557,7 +610,7 @@ Course.Mean.Cum.GPA.Slopes <- Filtered.Data4 %>%
                                   ungroup() %>%
                                     group_by(First.Course, max.terms) %>%
                                       summarise(Course.Mean.Cum.GPA.Slope = mean(Cum.GPA.Slope), Num.Students = n()) %>%
-                                        filter(Num.Students >= 40)
+                                        filter(Num.Students >= 8)
 
 Manual.DeltaC.Data <- Filtered.Data4 %>%
                         semi_join(Course.Mean.Cum.GPA.Slopes, by = c("First.Course", "max.terms")) %>%
@@ -568,35 +621,40 @@ Manual.DeltaC.Data <- Filtered.Data4 %>%
                                   group_by(`Student Random ID`) %>%
                                     slice(1)
 
-Experiment.One.Mean.DeltaCs <- Manual.DeltaC.Data %>%
+Manual.Experiment.One.Mean.DeltaCs <- Manual.DeltaC.Data %>%
                                 ungroup() %>%
                                   group_by(First.Prof) %>%
                                     summarise(Mean.DeltaC2 = mean(DeltaC), Sd.DeltaC2 = sd(DeltaC), Num.Students = n()) %>%
                                       filter(Num.Students >= 8)
 
-Experiment.Two.Mean.DeltaCs <- Manual.DeltaC.Data %>%
+Manual.Experiment.Two.Mean.DeltaCs <- Manual.DeltaC.Data %>%
                                 ungroup() %>%
                                   group_by(First.Prof, First.Course) %>%
                                     summarise(Mean.DeltaC2 = mean(DeltaC), Sd.DeltaC2 = sd(DeltaC), Num.Students = n()) %>%
                                       filter(Num.Students >= 8)
 ```
 
-
-
 ```{r Make LME4 Models}
-## Find those courses that affect a students future cumulative GPA slope as a function of term.
+## Find those courses that affect a students future cumulative GPA slope as a function of term. ERROR SOURCE: LMER CREATES T VALUES UNDER THE NULL HYPOTHESIS THAT MU EQUALS ZERO - SMALL ERROR.
 
-courses <- unique(Filtered.Data1$`Course Code`)
+courses <- Filtered.Data1 %>%
+            arrange(`Course Code`) %>%
+              pull(`Course Code`) %>%
+                unique()
 
 
-## These models predict a student's Cumulative GPA in the math and chemistry departments during their stay at OCC depending on the course they took first. This 
+## These linear mixed-effects models predict a student's Cumulative GPA in the math and chemistry departments during their stay at OCC depending on the course they took first.
 make.course.model <- function(course){
+  
   One.Course.Data <- Filtered.Data1 %>%
                       filter(First.Course == course)
-    if(length(One.Course.Data$`Student Random ID`) >= 40){
-      Cum.course.model <- lmer(Cum.GPA ~ Student.Term + (1|`Student Random ID`), data = One.Course.Data)
+  
+    if(length(unique(One.Course.Data$`Student Random ID`)) >= 8){
+      Cum.course.model <- lmer(Cum.GPA ~ Graded.Term + (1|`Student Random ID`), data = One.Course.Data)
       return(summary(Cum.course.model)$coefficients)
-  } else{return(str_c("Insufficient students started at OCC in ",course, " to create an accurate model (minimum 40, observed ", length(One.Course.Data$`Student Random ID`), ")",   sep = ""))}
+  
+    } else{return(str_c("Insufficient students started at OCC in ", course, " to create an accurate model (minimum 8, observed ", length(One.Course.Data$`Student Random ID`), ")",   sep = ""))}
+  
 }
 
 course.summaries <- sapply(courses, make.course.model)
@@ -604,12 +662,23 @@ course.summaries <- sapply(courses, make.course.model)
 
 ##This function pulls those courses with a significant positive impact on future cumulative gpa
 sig.summaries.positive <- function(list){
+  
   Sig.Courses.Positive <- rep("Remove", length(list))
+  
   for(i in 1:length(list)){
+    this.course.code <- courses[i]
+    this.course.sample.size <- Filtered.Data1 %>%
+                                  filter(`Course Code` == this.course.code) %>%
+                                    pull(`Student Random ID`) %>%
+                                      unique() %>%
+                                        length()
+    
     if(!is.null(dim(course.summaries[[i]]))){
-    intercept.tval <- list[[i]][1,3]
-    Student.Term.tval <- list[[i]][2,3]
-      if(intercept.tval >= qnorm(0.95) & Student.Term.tval >= qnorm(0.95)){
+    
+      intercept.tval <- list[[i]][1,3]
+      Graded.Term.tval <- list[[i]][2,3]
+      
+      if(intercept.tval >= qt(0.95, this.course.sample.size - 1) & Graded.Term.tval >= qt(0.95, this.course.sample.size - 1)){ 
         Sig.Courses.Positive[i] <- names(course.summaries[i])
     }
     }
@@ -621,10 +690,16 @@ sig.summaries.positive <- function(list){
 sig.summaries.negative <- function(list){
   Sig.Courses.Negative <- rep("Remove", length(list))
   for(i in 1:length(list)){
-    if(!is.null(dim(course.summaries[[i]]))){
-    intercept.tval <- list[[i]][1,3]
-    Student.Term.tval <- list[[i]][2,3]
-      if(intercept.tval >= qnorm(0.95) & Student.Term.tval <= qnorm(0.05)){
+    this.course.code <- courses[i]
+    this.course.sample.size <- Filtered.Data1 %>%
+                                pull(`Student Random ID`) %>%
+                                  unique() %>%
+                                    length()
+    
+    if(!is.null(dim(list[[i]]))){
+    intercept.tval <- course.summaries[[i]][1,3]
+    Graded.Term.tval <- course.summaries[[i]][2,3]
+      if(intercept.tval >= qt(0.95, this.course.sample.size - 1) & Graded.Term.tval <= qt(0.05, this.course.sample.size - 1)){
         Sig.Courses.Negative[i] <- names(course.summaries[i])
     }
     }
@@ -691,10 +766,10 @@ Filtered.Data1 %>%
 As can be seen in the above boxplot, the students that begin in each possible course have inherently different final cumulative GPA distributions. We must then account for this discrepancy when determining the effects that the first professor has on cumulative GPA. We wish to create a linear mixed-effects model that accounts for the projection of future cumulative GPA imparted by the first course a student takes. To do so, we will split students into strata by first course. The courses that have at least 30 students start in it will be ruled sufficient to create a reasonable projection for the mean student. For each student, the increase/decrease per term predicted by the germane linear mixed-effects model will be multiplied by the number of terms the student enrolled in math/chemistry courses at OCC, and added to the initial observation of cumulative GPA - this is the expected outcome. The performance of a student will then be judged by comparing their observed final cumulative GPA to the expected outcome.  In the following chunk we will build these stratified models, and create a statistic called $\Delta C$ which is the aforementioned difference between observed and expected outcome. A positive $\Delta C$ implies that the student's final cumulative GPA exceeded the prediction by the linear mixed effects model. I would like to note that the slope predicted by a linear mixed model will be a constant over the entire stratum. As such, a student that scores a $4.0$ GPA in their first course where the course slope was positive will never be able to meet expectations by the model, and so will erroneously have a negative $\Delta C$ score even if they score straight A's in each math and chemistry course they take at OCC. Similarly, a student that fails the first course with a negative slope cannot obtain a negative $\Delta C$ score. These errors will be largely outweighed by students that score in the middle in the first course, but are important to note. As we will see briefly, the overall error for the mean student in all strata is around $0.01$ GPA points, and so the models are collectively quite good. Later, we will examine alternate statistics for ranking professor influence that are more error adverse, namely withdraw rate and the number of future courses taken (adjusted for stratum).
 
 ```{r Create LME4 DeltaC's}
-## Create course - specific models of Cum.GPA progression through student's stay at OCC in Filtered.Data using Cum.GPA as a predictor. First, obtain a confidence interval for the effect of Student.Term on the mean student for superposition onto those courses that had a measurable non-significant deviation from the mean effect on student.term.
+## Create course - specific models of Cum.GPA progression through student's stay at OCC in Filtered.Data using Cum.GPA as a predictor. First, obtain a confidence interval for the effect of Graded.Term on the mean student for superposition onto those courses that had a measurable non-significant deviation from the mean effect on Graded.Term.
 
 ##Overall model for students 
-Cum.lmer.model2 <- lmer(Cum.GPA ~ Student.Term + (1|`Student Random ID`), data = Filtered.Data1)
+Overall.Cum.lmer.model2 <- lmer(Cum.GPA ~ Graded.Term + (1|`Student Random ID`), data = Filtered.Data1)
 
 ##First need to create tibble containing the variables (1) Course Code, (2) LMER slope for all courses that had a significant effect. If the course had no significant effect the slope will be the mean slope defined in the previous chunk.
 n.courses <- length(unique(Filtered.Data3$`Course Code`))
@@ -729,11 +804,10 @@ set.mean.Course.LMER.Slopes <- function(list){
   return(temp.course.slopes)
 }
 
-course.slopes <- set.mean.Course.LMER.Slopes(not.significant)
-
-## Remove non significant courses for upcoming semi-join, then join back to filtered data.
-course.slopes <- course.slopes %>%
+course.slopes <- set.mean.Course.LMER.Slopes(not.significant) %>%
                     filter(Course.LMER.slope != 0)
+
+
 
 ##Join significant courses slopes back onto Filtered.Data  
 LMER.Slopes.Data <- Filtered.Data3 %>%
@@ -742,19 +816,22 @@ LMER.Slopes.Data <- Filtered.Data3 %>%
 
 ## Determine difference between expected and observed final cumulative GPA in DeltaC, and rejoin into Filtered.Data
 LMER.DeltaC.Data <- LMER.Slopes.Data %>% 
-                      filter(Student.Term == max.terms) %>%
-                        mutate(LMER.Predict = First.Course.GPA + Course.LMER.slope*max.terms) %>%
-                          mutate(DeltaC = Last.Term.Cum.GPA - LMER.Predict) %>%
-                            dplyr::select(`Student Random ID`, DeltaC) %>%
-                              right_join(LMER.Slopes.Data, by = c("Student Random ID"))
+                      ungroup() %>%
+                        group_by(`Student Random ID`) %>%
+                          filter(Graded.Term == n()) %>%
+                            ungroup() %>%
+                              mutate(LMER.Predict = First.Course.GPA + Course.LMER.slope*max.terms) %>%
+                                mutate(DeltaC = Last.Term.Cum.GPA - LMER.Predict) %>%
+                                  dplyr::select(`Student Random ID`, DeltaC) %>%
+                                    right_join(LMER.Slopes.Data, by = c("Student Random ID"))
 ```
 
-There are the $19$ remaining courses after filtration, using the requirement that a valid course have at least 30 students begin in it. Here we have created a dataframe consisting of only those students whose mean course effect on future cumulative gpa was measurable - significant or not. For these students we have measured the difference between their final cumulative GPA in the math and chemistry department and the expected final cumulative GPA adjusted for starting course. We will now assign these $\Delta C$ values to the student's first professor, then create several graphs using this statistic. We will furthermore differentiate between the significant mean effects that faculty had on future cumulative GPA and those that we have insufficient data to obtain an accurate estimate for.
+There are the $21$ remaining courses after filtration, using the requirement that a valid course have at least 8 students begin in it. Here we have created a dataframe consisting of only those students whose mean course effect on future cumulative gpa was measurable - significant or not. For these students we have measured the difference between their final cumulative GPA in the math and chemistry department and the expected final cumulative GPA adjusted for starting course. We will now assign these $\Delta C$ values to the student's first professor, then create several graphs using this statistic. We will furthermore differentiate between the significant mean effects that faculty had on future cumulative GPA and those that we have insufficient data to obtain an accurate estimate for.
 
 ```{r Assign LME4 Prof DeltaCs and Make Stats}
 ##Assign general points
 
-##Represent the Mean DeltaC values for all professors. We require faculty to have at least 8 students that passed filtration begin in one of their courses for measurement.
+##Represent the Mean DeltaC values for all professors. We require faculty to have at least 8 students that passed filtration begin in one of their courses for measurement. This is experiment one.
 LMER.DeltaC.Data2 <- LMER.DeltaC.Data %>% 
                       ungroup() %>%
                         group_by(`Student Random ID`) %>%
@@ -840,14 +917,21 @@ LMER.Comparison.Data <- LMER.DeltaC.Data %>%
                                 dplyr::select(`Student Random ID`, DeltaC, First.Course, First.Prof, max.terms) %>%
                                   rename(LMER.DeltaC = DeltaC)
   
-full_join(Manual.Comparison.Data, LMER.Comparison.Data, by = c("Student Random ID", "First.Course", "First.Prof", "max.terms")) %>%
-  mutate(Delta.DeltaC = Manual.DeltaC - LMER.DeltaC) %>%
-    dplyr::select(`Student Random ID`, Delta.DeltaC, First.Prof, First.Course) %>%
-      left_join(Course.Heights, by = c("First.Course" = "Course Code")) %>%
-      ggplot(aes(x = Delta.DeltaC, y = Height)) + 
-      geom_point(aes(color = First.Course))
+Comparison.Data <- full_join(Manual.Comparison.Data, LMER.Comparison.Data, by = c("Student Random ID", "First.Course", "First.Prof", "max.terms")) %>%
+                    mutate(Delta.DeltaC = Manual.DeltaC - LMER.DeltaC) %>%
+                      dplyr::select(`Student Random ID`, Delta.DeltaC, Manual.DeltaC, LMER.DeltaC, First.Prof, First.Course)
 
+Comparison.Data %>%
+  left_join(Course.Heights, by = c("First.Course" = "Course Code")) %>%
+    ggplot(aes(x = LMER.DeltaC, y = Height)) +
+    geom_boxplot(aes(color = First.Course)) +
+    labs(x = "\u0394C (GPA Points)", y = "Course Code", color = "Course Code", title = "Distribution of \u0394C using LME4 Models for each Course")
 
+Comparison.Data %>%
+  left_join(Course.Heights, by = c("First.Course" = "Course Code")) %>%
+    ggplot(aes(x = Manual.DeltaC, y = Height)) +
+    geom_boxplot(aes(color = First.Course)) +
+    labs(x = "\u0394C (GPA Points)", y = "Course Code", color = "Course Code", title = "Distribution of \u0394C using LME4 Models for each Course")
 ```
 
 Let's summarize the results from this analysis. Once again, in the following when I reference points, I refer to the difference between the expected final cumulative GPA and the observed final cumulative GPA as predicted by the linear mixed-effects model for students that started in the relevant course. In a nutshell, the professors for which I could distill inference had a range of effects from `r DeltaC.Data3 %>% filter(significant == TRUE) %>% pull(Mean.DeltaC) %>% min()` cumulative GPA points to `r DeltaC.Data3 %>% filter(significant == TRUE) %>% pull(Mean.DeltaC) %>% max()` with standard deviation `r DeltaC.Data3 %>% filter(significant == TRUE) %>% pull(Mean.DeltaC) %>% sd()`. The mean effect for those professors that had significant effect was `r DeltaC.Data3 %>% filter(significant == TRUE) %>% pull(Mean.DeltaC) %>% mean()` points. I have graphed the effects below.
@@ -866,53 +950,46 @@ LMER.DeltaC.Data %>%
           theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
           scale_x_continuous(limits = c(-4,4))
 
+##Histogram of ALL mean professor effects onto final cumulative GPA for students that obeyed filtration assumptions. This graph is just to put the previous one in context, not for inference.
+LMER.DeltaC.Data4 %>%
+  dplyr::select(First.Prof, Mean.DeltaC, standard.error) %>%
+    mutate(Hist.Colors = factor(if_else(Mean.DeltaC < mean(pull(filter(LMER.DeltaC.Data4, significant == TRUE), Mean.DeltaC)), "green", "red"))) %>%
+      ggplot() +
+      geom_histogram(aes(x = Mean.DeltaC, fill= Hist.Colors), bins = 22) +
+      labs(x = "T-Significant Mean \u0394C (GPA Points) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of T-Significant Professor Mean \u0394C's, Filled by Effect\nPolarity from the Mean") +
+      theme(legend.position = "none")
+
 ##Histogram of significant mean professor effects onto final cumulative GPA for students that obeyed filtration assumptions.
 LMER.DeltaC.Data4 %>%
   filter(significant == TRUE) %>%
     dplyr::select(First.Prof, Mean.DeltaC, standard.error) %>%
-      mutate(Hist.Colors = factor(if_else(Mean.DeltaC < mean(pull(filter(DeltaC.Data3, significant == TRUE), Mean.DeltaC)), "green", "red"))) %>%
+      mutate(Hist.Colors = factor(if_else(Mean.DeltaC < mean(pull(filter(LMER.DeltaC.Data4, significant == TRUE), Mean.DeltaC)), "green", "red"))) %>%
         ggplot() +
         geom_histogram(aes(x = Mean.DeltaC, fill= Hist.Colors), bins = 22) +
         labs(x = "T-Significant Mean \u0394C (GPA Points) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of T-Significant Professor Mean \u0394C's, Filled by Effect\nPolarity from the Mean") +
-        theme(legend.position = "none")
-
-Experiment.One.Mean.DeltaCs %>%
-  mutate(Hist.Colors = factor(if_else(Mean.DeltaC < mean(pull(filter(DeltaC.Data3, significant == TRUE), Mean.DeltaC)), "green", "red"))) %>%
-        ggplot() +
-        geom_histogram(aes(x = Mean.DeltaC, fill= Hist.Colors), bins = 22) +
-        labs(x = "T-Significant Mean \u0394C (GPA Points) among those students whom started with a professor and passed filtration", y = "Count", title = "Histogram of T-Significant Professor Mean \u0394C's, Filled by Effect\nPolarity from the Mean") +
-        theme(legend.position = "none")
-
-##Histogram of ALL mean professor effects onto final cumulative GPA for students that obeyed filtration assumptions. This graph is just to put the previous one in context, not for inference.
-DeltaC.Data3 %>%
-    dplyr::select(First.Prof, Mean.DeltaC, standard.error) %>%
-      mutate(Hist.Colors = factor(if_else(Mean.DeltaC < overall.mean.DeltaC, "green", "red"))) %>%
-        ggplot() +
-        geom_histogram(aes(x = Mean.DeltaC, fill= Hist.Colors), bins = 22) +
-        labs(x = "Mean \u0394C (GPA Points)", y = "Count", title = "Histogram of ALL Mean Professor \u0394C Effects, Filled by Effect\nPolarity from the Mean") +
         theme(legend.position = "none")
 
 ##Normal probability plot for T-Significant DeltaC
-DeltaC.Data3 %>%
+LMER.DeltaC.Data4 %>%
   filter(significant == TRUE) %>%
     pull(Mean.DeltaC) %>%
-     qqnorm(main = "Normal Q-Q Plot for Significant Mean Professor \u0394C Effects")
+     qqnorm(main = "Normal Q-Q Plot for T-Significant Mean Professor \u0394C Effects")
 
 ##Normal probability plot for All DeltaC
-DeltaC.Data3 %>%
+LMER.DeltaC.Data4 %>%
   pull(Mean.DeltaC) %>%
-   qqnorm(main = "Normal Q-Q Plot for Significant Mean Professor \u0394C Effects")
+   qqnorm(main = "Normal Q-Q Plot for ALL Mean Professor \u0394C Effects")
 
 ##Course Mean DeltaC Values for all students that passed filtration assumptions
-Course.DeltaC.Means <- Filtered.Data5 %>%
+Course.DeltaC.Means <- LMER.DeltaC.Data %>%
                         group_by(`Student Random ID`) %>%
                           slice(1) %>%
                             ungroup() %>%
                               group_by(First.Course) %>%
                                 summarise(Course.Mean.DeltaC = mean(DeltaC), Course.Sd.DeltaC = sd(DeltaC))
 
-##Scatterplot for only significant mean DeltaC values as measured by a one-sample t test onto each of the 19 strata
-Filtered.Data5 %>%
+##Scatterplot for only significant mean DeltaC values as measured by a one-sample t test onto each of the 23 strata
+LMER.DeltaC.Data %>%
   ungroup() %>%
     group_by(`Student Random ID`) %>%
       slice(n()) %>%
@@ -920,7 +997,7 @@ Filtered.Data5 %>%
           ungroup() %>%
             group_by(First.Prof, First.Course) %>%
               summarise(Mean.DeltaC = mean(DeltaC, na.rm = TRUE), n = n()) %>%
-                filter(n >= 3) %>%
+                filter(n >= 8) %>%
                   left_join(Course.DeltaC.Means, by = "First.Course") %>%
                     mutate(requisite.tval = qt(0.95, n-1), observed.tval = abs(Mean.DeltaC - Course.Mean.DeltaC)/(Course.Sd.DeltaC/sqrt(n))) %>%
                       mutate(significant = if_else(observed.tval > requisite.tval, TRUE, FALSE)) %>%
@@ -934,7 +1011,7 @@ Filtered.Data5 %>%
                                 scale_x_continuous(limits = c(-2,2))
            
 ##Scatterplot of ALL mean DeltaC values for each of the 19 strata
-Filtered.Data5 %>%
+LMER.DeltaC.Data %>%
   ungroup() %>%
     group_by(`Student Random ID`) %>%
       slice(n()) %>%
@@ -942,7 +1019,7 @@ Filtered.Data5 %>%
           ungroup() %>%
             group_by(First.Prof, First.Course) %>%
               summarise(Mean.DeltaC = mean(DeltaC, na.rm = TRUE), n = n()) %>%
-                filter(n >= 3) %>%
+                filter(n >= 8) %>%
                   left_join(Course.DeltaC.Means, by = "First.Course") %>%
                     rename(`Faculty Random ID` = First.Prof, `Course Code` = First.Course) %>%
                       ungroup() %>%               
@@ -954,16 +1031,20 @@ Filtered.Data5 %>%
 
 
 ##Vector containing the mean number of students that a professor taught for a single course, used in below paragraphs   
-Mean.Students <- Filtered.Data5 %>%
+Mean.Students <- Filtered.Data4 %>%
                   ungroup() %>%
-                    group_by(`Course Code`, `Faculty Random ID`) %>%
-                      count() %>%
-                        ungroup() %>%
-                          group_by(`Faculty Random ID`) %>%
-                            summarise(Mean.Students = mean(n)) %>%
-                              pull(Mean.Students)
+                    group_by(`Student Random ID`) %>%
+                      slice(1) %>%
+                        ungroup()%>%
+                          group_by(`Course Code`, `Faculty Random ID`) %>%
+                            count() %>%
+                              ungroup() %>%
+                                group_by(`Faculty Random ID`) %>%
+                                  summarise(Mean.Students = mean(n)) %>%
+                                    pull(Mean.Students)
 
-DeltaC.Data %>%
+##Bar Chart of Course Mean Delta C's for LMER Models
+LMER.DeltaC.Data %>%
   mutate(First.Course = as.factor(First.Course)) %>%
     group_by(First.Course) %>%
       summarise(Course.Mean.DeltaC = mean(DeltaC)) %>%

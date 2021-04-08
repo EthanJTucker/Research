@@ -1,12 +1,28 @@
-\documentclass{article}
-\usepackage[utf8]{inputenc}
-\usepackage{graphicx}
-\usepackage{amsmath}
+---
+title: "SIP_Report.Rmd"
+author: "Ethan Tucker"
+date: "4/7/2021"
+output: html_document
+---
 
-\begin{document}
-\SweaveOpts{concordance=TRUE}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE, message = FALSE)
+options(digits = 3)
+```
 
-%Sweave resource https://rpubs.com/YaRrr/SweaveIntro
+```{r Initialize, include = FALSE}
+library(readxl)
+library(tidyverse)
+library(knitr)
+# library(merTools)
+library(lme4)
+Gen_Data <- read_excel("Stats Research XLS.xlsx")
+set.seed(1000)
+
+
+Gen_Data <- Gen_Data %>%
+                  filter(`Student Random ID` != 649419)
+```
 
 DATA SET ISSUES
 
@@ -19,83 +35,83 @@ STUFF I HAVE
 TABLES
 
 1) Number of math and chemistry taken in each student term:
-        <<<r>>> 
-        N.Courses.By.Term 
-        @
+```{r} 
+N.Courses.By.Term 
+```
         
 2) Course Code / Course Credit / Course Name lookup table:
-        <<<r>>>
-        Course.Credits
-        @
+```{r}
+Course.Credits
+```
 
 NUMBERS
 
 1) Difference between the total number of faculty - department combinations and the number of unique faculty. This is zero, so every faculty in the math and chemistry departments in the dataset only taught in one department.
-        <<<r No muli-department faculty>>>
-        % This chunk shows that there are no faculty that teach in both the math and chemistry departments.
-        counter <- Gen_Data7 %>%
-                      group_by(`Faculty Random ID`, Department) %>%
-                        count() 
-        %This is the difference between the total number of faculty - department combinations and the number of unique faculty.
-        length(counter$`Faculty Random ID`) - length(unique(Gen_Data7$`Faculty Random ID`))
-        @
+```{r No muli-department faculty}
+## This chunk shows that there are no faculty that teach in both the math and chemistry departments.
+counter <- Gen_Data7 %>%
+              group_by(`Faculty Random ID`, Department) %>%
+                count() 
+##This is the difference between the total number of faculty - department combinations and the number of unique faculty.
+length(counter$`Faculty Random ID`) - length(unique(Gen_Data7$`Faculty Random ID`))
+```
 
 2) Statistics regarding first filtration: Students must not withdraw from first course
-        <<<r>>>
-        %Number of students removed by filtration
-        length(unique(Gen_Data$`Student Random ID`)) - length(unique(Filtered.Data1$`Student Random ID`))
-        %Number of remaining students
-        length(unique(Filtered.Data1$`Student Random ID`))
-        %Number of faculty removed by filtration
-        length(unique(Gen_Data$`Faculty Random ID`)) - length(unique(Filtered.Data1$`Faculty Random ID`))
-        %Number of remaining faculty
-        length(unique(Filtered.Data1$`Faculty Random ID`))
-        
-        %Show that there are no entries of Filtered.Data1 that have an NA value for First.Prof - that is we have successfully chosen only those students who did not withdraw from their first course
-        length(Filtered.Data1$First.Prof[is.na(Filtered.Data1$First.Prof)])
-        @
+```{r}
+##Number of students removed by filtration
+length(unique(Gen_Data$`Student Random ID`)) - length(unique(Filtered.Data1$`Student Random ID`))
+##Number of remaining students
+length(unique(Filtered.Data1$`Student Random ID`))
+##Number of faculty removed by filtration
+length(unique(Gen_Data$`Faculty Random ID`)) - length(unique(Filtered.Data1$`Faculty Random ID`))
+##Number of remaining faculty
+length(unique(Filtered.Data1$`Faculty Random ID`))
+
+##Show that there are no entries of Filtered.Data1 that have an NA value for First.Prof - that is we have successfully chosen only those students who did not withdraw from their first course
+length(Filtered.Data1$First.Prof[is.na(Filtered.Data1$First.Prof)])
+```
 
 
 
 GRAPHS
 
 1) Not First Withdraw Justification
-        <<<r Not First Withdraw Justification, warning=FALSE>>>
-        %Create plot to illustrate the inability to use all students for Q1. We must then do a filtration!
-        Plot.Data1 <- Gen_Data8 %>%
-                        group_by(`Student Random ID`) %>%
-                          slice(1) %>%
-                            mutate(First.Term.Withdraw = if_else(is.na(Cum.GPA), "Yes", "No")) %>%
-                              dplyr::select(`Student Random ID`, First.Term.Withdraw) %>%
-                                right_join(Gen_Data8, by = c("Student Random ID"))
-        
-        Plot.Data1 %>% 
-            filter(`Student Random ID` <= 10^3) %>%
-                ggplot(aes(x = Student.Term, y = Cum.GPA, group = factor(`Student Random ID`), color = First.Term.Withdraw)) +
-                geom_point(position = position_jitter(width = 0.2, height = 0.1)) + 
-                geom_smooth(method = "lm", se = FALSE) + 
-                labs(x = "Student's Term", y = "Cumulative GPA", title = "Cumulative GPA by Student's Term for 178 Randomly Selected Students", color = "Did student withdraw from first course?")
-        @
+```{r Not First Withdraw Justification, warning=FALSE}
+##Create plot to illustrate the inability to use all students for Q1. We must then do a filtration!
+Plot.Data1 <- Gen_Data8 %>%
+                group_by(`Student Random ID`) %>%
+                  slice(1) %>%
+                    mutate(First.Term.Withdraw = if_else(is.na(Cum.GPA), "Yes", "No")) %>%
+                      dplyr::select(`Student Random ID`, First.Term.Withdraw) %>%
+                        right_join(Gen_Data8, by = c("Student Random ID"))
+
+Plot.Data1 %>% 
+    filter(`Student Random ID` <= 10^3) %>%
+        ggplot(aes(x = Student.Term, y = Cum.GPA, group = factor(`Student Random ID`), color = First.Term.Withdraw)) +
+        geom_point(position = position_jitter(width = 0.2, height = 0.1)) + 
+        geom_smooth(method = "lm", se = FALSE) + 
+        labs(x = "Student's Term", y = "Cumulative GPA", title = "Cumulative GPA by Student's Term for 178 Randomly Selected Students", color = "Did student withdraw from first course?")
+```
 
 2) Course Code Stratification Justification
-        <<<r>>>
-        %Create overall visualization of final cumulative GPA by first course
-        Filtered.Data1 %>%
-          ungroup() %>%
-            group_by(`Student Random ID`) %>%
-              slice(n()) %>%
-                filter(max.terms >= 2) %>%
-                  dplyr::select(Cum.GPA, `Student Random ID`) %>%
-                    rename(Last.Term.Cum.GPA = Cum.GPA) %>%
-                      right_join(Filtered.Data1) %>%
-                          group_by(`Student Random ID`) %>%
-                            slice(n()) %>%
-                              ungroup() %>%
-                                ggplot() +
-                                geom_boxplot(aes(x = Last.Term.Cum.GPA, color = `First.Course`)) +
-                                theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
-                                labs(x = "Final Cumulative GPA", y = "Course Code", color = "First Course", title = "Boxplots of Final Cumulative GPA for all Students that \n Passed Filtration Conditions, Colored by First Course")
-        @
+```{r}
+#Create overall visualization of final cumulative GPA by first course
+Filtered.Data1 %>%
+  ungroup() %>%
+    group_by(`Student Random ID`) %>%
+      slice(n()) %>%
+        filter(max.terms >= 2) %>%
+          dplyr::select(Cum.GPA, `Student Random ID`) %>%
+            rename(Last.Term.Cum.GPA = Cum.GPA) %>%
+              right_join(Filtered.Data1) %>%
+                  group_by(`Student Random ID`) %>%
+                    slice(n()) %>%
+                      ungroup() %>%
+                        ggplot() +
+                        geom_boxplot(aes(x = Last.Term.Cum.GPA, color = `First.Course`)) +
+                        theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+                        labs(x = "Final Cumulative GPA", y = "Course Code", color = "First Course", title = "Boxplots of Final Cumulative GPA for all Students that \n Passed Filtration Conditions, Colored by First Course")
+```
 
 
 R ALLOWS FOR DEFINITION OF BINARY OPERATORS
@@ -109,60 +125,139 @@ I.	Introduction
         
         
 I started working as a math tutor for a local company called Thompson Tutoring back in the fall of 2019. At first it was just a way to pay rent and keep myself fed, but I came to enjoy it and care about the success of my students. I have about five students that have stuck with me since the beginning, each of whom I see once a week for an hour. Oftentimes I find myself wondering how much of an effect I really have on their mathematics education. As a tutor I am generally employed by a family in two settings:
-\begin{enumerate}
-\item A student that is struggling in their current math course. In this scenario my role is to be the remedial instructor, trying to fill in the gaps in my student's knowledge while simultaneously preparing them for the next test. 
-\item A wealthy family looking to get their students ahead in mathematics.
-\end{enumerate}
-        
-        It is very difficult to measure the effect I have had on my students for a variety of reasons, primary among them small sample size. For my SIP I still wanted to combine my newfound addiction to data analysis with education, so Dr. Nordmoe sent me the link to a datset that Professor Andrew Eckstrom of Oakland Community College (hereafter OCC) had posted to a messageboard. The source data contain $139233$ objects in $5$ variables - "Student Random ID", "Course Code", "Grade", "Faculty Random ID", and "Semester". Each row corresponds to one course taken by one student in one semester between the fall of $2010$ and the winter of $2017$ in the mathematics and chemistry departments of Oakland Community College. "Student Random ID" and "Faculty Random ID" are as expected randomly generated integers than track a given student or faculty member through the file. My SIP (in half) is a statistical analysis on new variables I create from Dr. Eckstrom's dataset.
 
-        To explain the goal of my project, we will need to briefly diverge into a personal tangent. I came into Kalamazoo College thinking I would follow the pre-med track and thus need to major in chemistry or biology. Four and a half years later, I am graduating with two majors, among them neither chemistry nor biology. I only took one course each in those department because in one course I found the professor unenthusiastic, and in the other borderline hostile. In the math and physics departments I found faculty that were both more personable and frankly better at teaching their subject. My majors in math and physics developed as I continued to take courses with these faculty. The central question I pose in my SIP is this: how does the first faculty member a student encounters in a department influence a student's outcome? 
+1. A student that is struggling in their current math course. In this scenario my role is to be the remedial instructor, trying to fill in the gaps in my student's knowledge while simultaneously preparing them for the next test. 
+2. A wealthy family looking to get their students ahead in mathematics.
         
-        The data tracks students through time, so in conjunction with grading policies and course credits obtainable through OCC's website we can track each student's cumulative GPA through their stay in the math and chemistry departments. We will build linear mixed effects models stratified to avoid some confounding variables to determine an expected final cumulative GPA for each student that passes a few conditions, then determine the difference between observed and expected final cumulative GPA. I call this statistic $\Delta C$, short for difference in cumulative GPA. We will then take the mean $\Delta C$ among all students that started with a certain faculty, which can be thought of as the average benefit to final cumulative GPA a student that started with the professor had with respect to the mean student. Finally, after running significance tests we will create faculty rankings based on their (1) the overall mean $\Delta C$, and (2) mean $\Delta C$ per course they taught. I promise there will be pretty pictures.
+  It is very difficult to measure the effect I have had on my students for a variety of reasons, primary among them small sample size. For my SIP I still wanted to combine my newfound addiction to data analysis with education, so Dr. Nordmoe sent me the link to a datset that Professor Andrew Eckstrom of Oakland Community College (hereafter OCC) had posted to a messageboard. The source data contain `r nrow(Gen_Data)` observations in `r ncol(Gen_Data)` variables - "Student Random ID", "Course Code", "Grade", "Faculty Random ID", and "Semester". Each row corresponds to one course taken by one student in one semester between the fall of $2010$ and the winter of $2017$ in the mathematics and chemistry departments of Oakland Community College. "Student Random ID" and "Faculty Random ID" are as expected randomly generated integers than track a given student or faculty member through the file. In total, the file tracks `r length(unique(Gen_Data$`Student Random ID`))` students and `r length(unique(Gen_Data$`Faculty Random ID`))` faculty. My SIP (in half) is a statistical analysis on new variables I create from Dr. Eckstrom's dataset.
+
+  To explain the goal of my project, we will need to briefly diverge into a personal tangent. I came into Kalamazoo College thinking I would follow the pre-med track and thus need to major in chemistry or biology. Four and a half years later, I am graduating with two majors, among them neither chemistry nor biology. I only took one course each in those department because in one course I found the professor unenthusiastic, and in the other borderline hostile. In the math and physics departments I found faculty that were both more personable and frankly better at teaching their subject. My majors in math and physics developed as I continued to take courses with these faculty. The central question I pose in my SIP is this: how does the first faculty member a student encounters in a department influence a student's outcome? 
         
-                
+  The data tracks students through time, so in conjunction with grading policies and course credits obtainable through OCC's website we can track each student's cumulative GPA through their stay in the math and chemistry departments. We will build linear mixed-effects models stratified to avoid some confounding variables to determine an expected final cumulative GPA for each student that passes a few conditions, then determine the difference between observed and expected final cumulative GPA. I call this statistic $\Delta C$, short for difference in cumulative GPA. Where $C_O$ is a student's observed final cumulative GPA and $C_E$ is the final cumulative GPA predicted by the linear mixed-effects model:
+  
+\begin{equation}
+\Delta C = C_{O} - C_{E}
+\end{equation}
+
+We will then take the mean $\Delta C$ among all students that started with a certain faculty, which can be thought of as the average benefit to final cumulative GPA a student that started with the professor had with respect to the mean student. Finally, after running significance tests we will create faculty rankings based on their (1) the overall mean $\Delta C$, and (2) mean $\Delta C$ per course they taught. I promise there will be pretty pictures along the way.
+        
+        One of the conditions required to create the $\Delta C$ statistic is that students take multiple terms in the math and/or chemistry departments. This happens to be a pretty large requirement, especially for a community college such as OCC. I have pulled public data from DataUSA regarding OCC's enrollment statistics for all years available, which ended up being the years $2012$ through $2019$. The following tables and graph summarise this enrollment data.
+        
+```{r Load OCC Enrollment, include = FALSE}
+##Load in OCC_Enrollment from 2012 to 2017. I am missing years 2010 - 2012. Data from https://datausa.io/profile/university/oakland-community-college
+OCC_Enrollment <- read_csv("OCC_Enrollment.csv")
+```
+
+```{r Create Enrollment Tables and Graph, echo = FALSE}
+##Create Enrollment table, obtained by manual data entry from 
+OCC_Enrollment_Table <- OCC_Enrollment %>%
+                          mutate(Total = `Full Time` + `Part Time`)
+
+kable(OCC_Enrollment_Table, caption = "OCC Fall Enrollment by Year, 2012-2019", padding = 3)
+
+##Create mean enrollment statistics
+Mean.OCC_Enrollment <- OCC_Enrollment %>%
+                        mutate(Total = `Full Time` + `Part Time`) %>%
+                          summarise(`Mean Full Time` = mean(`Full Time`), `Mean Part Time` = mean(`Part Time`), `Mean Total` = mean(Total))
+
+kable(OCC_Enrollment_Table, caption = "OCC Mean Enrollment Statistics", padding = 3)
+
+##Legend creation method from https://community.rstudio.com/t/adding-manual-legend-to-ggplot2/41651
+colors <- c("Full Time" = "blue", "Part Time" = "red", "Total" = "green")
+
+OCC_Enrollment_Plot <- OCC_Enrollment %>%
+                        mutate(Total = `Full Time` + `Part Time`) %>%
+                            ggplot(aes(x = Year)) +
+                            geom_line(aes(y = `Full Time`, color = "Full Time")) +
+                            geom_line(aes(y = `Part Time`, color = "Part Time")) +
+                            geom_line(aes(y = Total, color = "Total")) +
+                            labs(x = "Year", y = "Enrollment (Number of Students)", color = "Legend", title = "OCC Enrollment Vs. Year") +
+                            scale_y_continuous(limits = c(0,30000), breaks = seq(0,30000, 5000)) +
+                            scale_color_manual(values = colors)
+```
+```{r OCC Enrollments Plot, fig.cap = "OCC Enrollments By Year for Full Time, Part Time, and Total Student Body"}
+OCC_Enrollment_Plot
+```
+    
+  Both full and part time enrollment monotonically declining over the reported years. Unfortunately, professor Eckstrom's dataset begins in the year 2010, so there are two relevant years we do not have data regarding enrollment. Regardless, between $2012$ and $2019$ on average only `r Mean.OCC_Enrollment[[1]]/Mean.OCC_Enrollment[[3]]*100`$\%$ of students were enrolled full time. According to the National Student Clearinghouse, community college dropout rate is a function of time enrolled - therefore part time students are less likely to take multiple courses in the same department due to a lower course load per term. (https://www.studentclearinghouse.org/nscblog/research-center-snapshot-report-showcases-yearly-success-and-progress-rates-for-fall-2012-freshman-class/) As we will see, requiring students to have two *graded* terms drastically reduces the sample size, but still allows for many faculty to be evaluated by the $\Delta C$ metric. 
+  
+  Another difficulty in light of a second filtration condition - students must not withdraw from the first course they take in the math or chemistry departments. It would be possible to start the models at the first graded term, but if a student withdraws from a course then takes it again, their grade may be artificially inflated and thus not serve as an honest intercept. As a result, the expectation on $\Delta C$ becomes negative rather than zero. Requiring students to receive a standard letter grade ensures that the linear mixed effects models have a consistent starting point, and that individual teachers are evaluated fairly. What if a certain faculty member had a high withdraw rate due to their course being hard, but prepared their students well for future courses and thus also had a high mean $\Delta C$? Simply put, is there a correlation between a faculty's mean $\Delta C$ and their withdraw rate? $\Delta C$ is blind to any effect outside the realm of cumulative GPA, so we must introduce a new statistic to capture variance in withdraw rates. Fortunately, the calculation of withdraw rate for individual faculty does not require filtration so the sample sizes will be much larger and thus the results much more accurate. As with the $\Delta C$ rankings, we will construct rankings using the difference between the overall withdraw rate and a faculty's observed rate for: (1) the overall case, and (2) by course taught. To be clear, where $W_O$ is a faculty's mean withdraw rate and $W_E$ is the germane expected rate, this statistic will be calculated as:
+
+\begin{equation}
+\Delta W = W_E - W_O
+\end{equation}
+
+  Note that we have reversed the direction of difference with respect to $\Delta C$. We have chosen orientations such that positive $\Delta$ values correspond to "good" effects for ease of human interpretation. Additionally, note that while an observation on $\Delta C$ corresponds to one student, an observation on $\Delta W$ is specific to a faculty member. To reiterate, we will average over the $\Delta C$ values among those students that started with a professor to obtain a value unique to that faculty.
         
         b.	The Importance of Data-Driven decision making
         
-        Dr. Tobochnik has drilled into my mind that any conclusions we make about the world around us need to be supported by data. Theory is nice, but even if the math is pretty and complete there is no guarantee the assumptions we made to create the model were correct. I will therefore be conservative in speculation and only make conjecture regarding trends demonstrably present in the data. As a brief corollary, the entreat of plentiful data into the world is a godsend for the creation of new knowledge. The collection of such data is an art in and of itself, but this is a focus of my paper.
-        Any empirically derived model will have error. Statistical methods such as hypothesis testing employ \S significance tests to create a . Even if the data collected are accurate and complete, confounding variables 
+  Dr. Tobochnik has drilled into my mind that any conclusions we make about the world around us need to be supported by data. Theory is nice, but even if the math is pretty and complete there is no guarantee the assumptions we made to create the model were correct. I will therefore be conservative in speculation and only make conjecture regarding trends demonstrably present in the data. This is in accordance to the dogma of facts-based decision making. In the context of corporate decision making, David Fradin says "The reasons why facts drive better decisions include – the ability of the computer to find non-obvious answers, ability to crunch large datasets very fast, can take into account hundreds of market variables and ability to adopt a methodical repeatable process for analysis." (“Organizing and Managing Insanely Great Products” by David Fradin with RN Prasad) Reproducibility and objectivity are key to any good data analysis, and are necessary when seeking optimal answers to any scientific problems. (https://plato.stanford.edu/entries/scientific-reproducibility/) 
+  
+  Any empirically derived model will have error. Statistical methods such as hypothesis testing employ significance tests to determine whether a measured effect is "real". Such tests remove the human element by determining the likelihood a measured result could be generated by random chance under the assumption that the effect is "fake". (Laura M. Chihara and Tim C. Hesterberg, Mathematical Statistics with Resampling and R).
+  
+  Even if the data collected are accurate and complete, confounding variables may still be present in any models created based on choice of groups and variables. According to Glenn Hymel, "If an extraneous variable is not appropriately controlled, it may be unequally present in the comparison groups. As a result, the variable becomes a confounding variable." (Research Essentials for Massage in the Healthcare Setting, Glenn M. Hymel, in Clinical Massage in the Healthcare Setting, 2008) 
         
                 i.	Importance of Data Science
-        As of 4/6/2021, Glassdoor ranks Data Scientist as the second best job in America, with a median starting salary of $113,736. (https://www.glassdoor.com/List/Best-Jobs-in-America-LST_KQ0,20.htm) Data Scientists use techniques from mathematics, statistics, and computer science to create and use tools for the purpose of collecting data and analysing potentially hidden trends stored within. 
+  As of 4/6/2021, Glassdoor ranks Data Scientist as the second best job in America, with a median starting salary of $\$113,736$. (https://www.glassdoor.com/List/Best-Jobs-in-America-LST_KQ0,20.htm) Data Scientists use techniques from mathematics, statistics, and computer science to create and use tools for the purpose of collecting data and analysing potentially hidden trends stored within. (Grolemund and Wickham, 2017) The world around us is being deluged with a treasure trove of data, waiting to be analysed. In machine learning, programmers feed trial data to their AI, which then creates a model. This model is then used to predict the distribution of future data. According to 
                         
         c.	R For Data Science (Textbook)
         
-        When I began this project, I had no idea what I was doing. For the first month or so I was using some retrospectively atrocious C++ inspired hard-coding methods, one remnant of which I have included commented out in the code that follows this paper. When I showed Dr. Nordmoe one copious script I had created to determine the total number of students/faculty in the data, he told me to install the tidyverse and call the unique() function. In approximately twenty seconds the process I had spent several hours on had been recreated. Moreover, the runtime was spectacularly improved. I was then told to read chapter five of \textit{R For Data Science} by Hadley Wickham and Garrett Grolemund. Chapter five is a guide to the R package dplyr, one of the many packages from the tidyverse I used in the construction of this project. As it happens, I didn't need to reinvent the wheel.  A lot of smart people have built a lot of nice functions to make R a phenomenal work environment for data analysis. \textit{R For Data Science} was immensely helpful to my project, and was my primary guide to working with tidyverse functions beyone Dr. Nordmoe's data science course. The full book can be found online for free at https://r4ds.had.co.nz/. I would like to relay the author's wishes for support of the Kakapo parrot, a critically endangered New Zealand native, at https://www.doc.govt.nz/kakapo-donate.
+  When I began this project, I had no idea what I was doing. For the first month or so I was using some retrospectively atrocious C++ inspired hard-coding methods, one remnant of which I have included commented out in the code that follows this paper. When I showed Dr. Nordmoe one copious script I had created to determine the total number of students/faculty in the data, he told me to install the tidyverse and call the unique() function. In approximately twenty seconds the process I had spent several hours on had been recreated. Moreover, the runtime was spectacularly improved. I was then told to read chapter five of \textit{R For Data Science} by Hadley Wickham and Garrett Grolemund. Chapter five is a guide to the R package dplyr, one of the many packages from the tidyverse I used in the construction of this project. As it happens, I didn't need to reinvent the wheel.  A lot of smart people have built a lot of nice functions to make R a phenomenal work environment for data analysis. \textit{R For Data Science} was immensely helpful to my project, and was my primary guide to working with tidyverse functions beyone Dr. Nordmoe's data science course. The full book can be found online for free at https://r4ds.had.co.nz/. I would like to relay the author's wishes for support of the Kakapo parrot, a critically endangered New Zealand native, at https://www.doc.govt.nz/kakapo-donate.
         
         d.	Data Science Course
         
-        In order to help learn skills for this project, I enrolled in MAT-295 (Introduction to Data Science) here at K. The course used the same free textbook that I read for this project, and so is an excellent offering for all students regardless of means. MAT-295 covered tidying and presenting data, text manipulation by means of regular expressions, manipulation of categorical variables, basic date/time conversion methods, creation of simple linear models, and a brief introduction to programming in R among other subjects. Course material does not include any mathematical theory such as probability or mathematical statistics, though the math department offers courses in those subjects in the Winter/Spring each year.  Introduction to Data Science does not require probability or math stats for enrollment, but statistics in particular is a powerful weapon in data analysis that we will be making heavy use of in this paper.
+  In order to help learn skills for this project, I enrolled in MAT-295 (Introduction to Data Science) at K. The course used the same free textbook that I read for this project, and so is an excellent offering for all students regardless of means. MAT-295 covered tidying and presenting data, text manipulation by means of regular expressions, manipulation of categorical variables, basic date/time conversion methods, creation of simple linear models, and a brief introduction to programming in R among other subjects. Course material does not include any mathematical theory such as probability or mathematical statistics, though the math department offers courses in those subjects in the Winter/Spring each year.  Introduction to Data Science does not require probability or math stats for enrollment, but statistics in particular is a powerful weapon in data analysis that we will be making heavy use of in this paper. MAT-295 was enormously helpful in giving me practice manipulating and presenting data using the tidyverse approach, which comprises at least half of the following project.
         
         
         e.	Probability and Mathematical Statistics
         
-        Probability theory is the backbone of any statistical method. In particular, the central limit theorem is an amazing piece of technology that guarantees when sufficiently many nicely behaved i.i.d. random variables are added, their sum will have a Gaussian distribution. (https://sphweb.bumc.bu.edu/otlt/mph-modules/bs/bs704_probability/BS704_Probability12.html) Where the i.i.d. random variables $X_i$ with population mean $\mu$ and standard deviation $\sigma$:
+ Probability theory is the backbone of any statistical method. In particular, the central limit theorem is an amazing piece of technology that guarantees when sufficiently many nicely behaved i.i.d. random variables are added, their sum will have a Gaussian distribution. (https://sphweb.bumc.bu.edu/otlt/mph-modules/bs/bs704_probability/BS704_Probability12.html) Where the i.i.d. random variables $X_i$ with population mean $\mu$ and standard deviation $\sigma$:
 
 \begin{equation}
-$$\sum_{i=1}^\infty X_i ~ N(\mu, \sigma^2)$$
+\lim_{k \to \infty} \sum_{i=1}^k X_i ~  N(k\mu, \frac{\sigma^2}{k})
 \label{Large N CLT}
 \end{equation}
         
-        Clearly a perfectly Normal distribution would require the sum of infinitely many random variables. In reality it is quite tedious to attempt to collect an infinite number of values to add together, so it is common practice to set a lower bound of observations before data is considered approximately Normal. This bound is often considered 30, but this value can decrease arbitrarily if the random variables themselves have Normal distribution. Unfortunately, final cumulative GPA is inherintly discrete, and withdraw rate is binomial.   I will measure in the following analysis is discrete,  
-        That is, where the random variables $X_1$ through $X_n$ are i.i.d. with sample mean $\bar{x}$ and standard error $\frac{\sigma_x}{\sqrt{n}}$,
+(CITE PROBABILITY BOOK)        
         
+ Clearly a perfectly Normal distribution would require the sum of infinitely many random variables. In reality it is quite tedious to attempt to collect an infinite number of values to add together, so it is common practice to set a lower bound of observations before data is considered approximately Normal. This bound is often considered to be between $30$ and $40$ depending on the author, but this value can decrease arbitrarily if the random variables themselves have Normal distribution. (https://www.investopedia.com/terms/c/central_limit_theorem.asp#:~:text=Sample%20sizes%20equal%20to%20or,characteristics%20of%20a%20population%20accurately., https://guides.fscj.edu/Statistics/centrallimit) Unfortunately, final cumulative GPA is inherently discrete, and withdraw rate is binomial. As such we must use an approximation to the central limit theorem. In my analysis, I use the more conservative minimum of 40 cases per stratum. Where the random variables $X_1$ through $X_n$ are i.i.d. each with sample mean $\bar{x}$ and standard error $s = \frac{\sigma_x}{\sqrt{n}}$,
+
+\begin{equation}
+X = \sum_{i=1}^n X_i \sim N(n\bar{x}, s^2)
+\label{Small N CLT}
+\end{equation}
+(CITE MATHSTATS BOOK)
+
+  Like the Gaussian distribution, Student's t distribution is heavily used in significance testing. For a sample of $N$ i.i.d. random variables with sample mean $\bar{x}$, a-priori population mean $\mu$, and sample standard deviation $\sigma_x$, the t statistic is defined to be:
+
+\begin{equation}
+t = \frac{\bar{x} - \mu}{\sigma_x / \sqrt{N}}
+\label{T  Statistic}
+\end{equation}
+  
+The t distribution is designed to enable the analysis of small sample size, in accordance to a few conditions. According to CITE STATISTICS TEXTBOOK, these are:
+  
+1. Data must be collected from random variables that come from a continuous scale. This assumption is relaxed as the number of possible values increases. As I will show later, both $\Delta C$ and $\Delta W$ have sufficient possible values per case to pass this condition.  
+2. Data must be collected by way of a simple random sample. From what I can tell, Professor Eckstrom's file contains a census, and so is immune to this requirement.
+3. Random variables must resemble the Normal random variable under combination. This assumption protects against pathological cases such as the Cauchy distribution that has undefined variance. The possible range for $\Delta C$ is given by the set $(-4,4)$ in units GPA points, and the possible range for $\Delta W$ is given by $(-1,1)$. The empirical mean $\Delta C$ distribution will ultimately have range $()$
+4. The sample must have a reasonable sample size. The central t-statistic is undefined for $N = 1$, and gradually converges to the standard normal z-statistic as $N$ increases. The smaller the original sample size, the higher the requisite t-value for significance. The only requirement on sample size is that there are enough data points to calculate the sample standard deviation. For safety, in my analysis I will mandate a minimum sample size of 8 students for calculation of both $\Delta C$ and $\Delta W$.
+
+1. 
+
+  As previously stated, when I first began this project I had never taken a programming course. A large chunk of the project boiled down to creation and manipulation of new variables through the tidyverse method, but there was still many pieces of knowledge I lacked to make the analysis run. Coursera offers many excellent online courses on a wide variety of subjects, among them computer science and data science. To learn the programming skills I required to analyse Professor Eckstrom's data, I enrolled in and completed the first two modules of the *Data Science: Foundations Using R Specialization* offered by Johns Hopkins University on the Coursera platform: (1) The Data Scientist's Toolbox, and (2) R Programming. My certificates for these courses along with the grade I recieved are available in the appendix. I dedicate the following section as a summary of my learning from these courses. 
         
         f.	Coursera
         In this project my goal was to create a method of modeling the effects teachers have on their students. To do this, I needed to 
         g.	COVID Difficulties
 II.	Base R
         a.	Atomic Data Types
-                i.	Numeric
-                ii.	Integer
-                iii.	Character
-                iv.	Logical – Boolean
-                v.	NA values take class invariance based on context
+CITATION FOR ENTIRE SECTION IS R Programming for Data Science by Roger D. Peng [version 9/3/2020]    
+  In the R language, there are five atomic data types or class invariants. Numeric data, often also referred to as double-precision data, are real numbers. They can have up to fifteen significant digits, but generally are limited by observation to many fewer. In RMarkdown it is common practice to include the option "digits = k", which restricts the printing of doubles to k decimal points. Numeric data have the additional option of having the value NAN (for not a number), which most often corresponds to undefined in mathematical language. For instance, $\log(-1)$ yields the output `r log(-1)`. Integer data can only be real integers, and are useful in programming aspects such as indexing and preventing rounding errors. Character data, or strings, are the broadest class. Any set of alphanumeric+ characters can be represented in a *string* as a character object. Packages such as stringr are available to manipulate character variables with plentiful functions equipped for regular expressions.  The most important data type for programming in R is the logical, or Boolean. A Boolean datum either has the value TRUE or FALSE. When two Booleans $b_1$ and $b_2$ are compared over equality - i.e. $b_1 = b_2$ - R will output TRUE if both data have the same value. As will be apparent when discussing subsetting, the ability to programmatically compare large quantities of logical data allows for fast and convenient indexing, sorting, and filtering. The final class in the R language is complex, an element of which has the form $a + bi$, where $a$ and $b$ are numeric data. I personally never used this beyond the single Coursera quiz that asked for the identification of a complex datum among a list of options. One last important note - data can be missing in any class. A missing value is denoted with NA (for not available). The NA can therefore be represented in each class, and converted using the as.xxx() family of functions. R treats NA values as if they did have a value, but that the value is not known. For instance - the mean of the numeric vector c(.5, 2, NA) is `r mean(c(.5, 2, NA))`, because R cannot determine the third element's effect on the average.
+
         b.	Lists
+        
+  
+        
         c.	Arrays
                 i.	Named Lists
                 ii.	Matrices
@@ -585,7 +680,10 @@ VII.	Case Study
                 vii.	
         d.	Basic New Variables (through Gen_Data 9)
         e.	Plan of Attack for DeltaW
+        
+      ERROR ANALYSIS
+1. Who teaches OCC courses?  https://oaklandcc.edu/faculty/default.aspx
+  49 Math Faculty
+  12 Chemistry Faculty
+  Are some faculty being recyled for anonymity, or does OCC not report former facult?
 
-
-
-\end{document}
