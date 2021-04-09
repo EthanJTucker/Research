@@ -2,7 +2,9 @@
 title: "SIP_Report.Rmd"
 author: "Ethan Tucker"
 date: "4/7/2021"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -35,40 +37,40 @@ STUFF I HAVE
 TABLES
 
 1) Number of math and chemistry taken in each student term:
-```{r} 
-N.Courses.By.Term 
-```
+# ```{r} 
+# N.Courses.By.Term 
+# ```
         
 2) Course Code / Course Credit / Course Name lookup table:
 ```{r}
-Course.Credits
+# Course.Credits
 ```
 
 NUMBERS
 
 1) Difference between the total number of faculty - department combinations and the number of unique faculty. This is zero, so every faculty in the math and chemistry departments in the dataset only taught in one department.
 ```{r No muli-department faculty}
-## This chunk shows that there are no faculty that teach in both the math and chemistry departments.
-counter <- Gen_Data7 %>%
-              group_by(`Faculty Random ID`, Department) %>%
-                count() 
-##This is the difference between the total number of faculty - department combinations and the number of unique faculty.
-length(counter$`Faculty Random ID`) - length(unique(Gen_Data7$`Faculty Random ID`))
+# ## This chunk shows that there are no faculty that teach in both the math and chemistry departments.
+# counter <- Gen_Data7 %>%
+#               group_by(`Faculty Random ID`, Department) %>%
+#                 count() 
+# ##This is the difference between the total number of faculty - department combinations and the number of unique faculty.
+# length(counter$`Faculty Random ID`) - length(unique(Gen_Data7$`Faculty Random ID`))
 ```
 
 2) Statistics regarding first filtration: Students must not withdraw from first course
 ```{r}
-##Number of students removed by filtration
-length(unique(Gen_Data$`Student Random ID`)) - length(unique(Filtered.Data1$`Student Random ID`))
-##Number of remaining students
-length(unique(Filtered.Data1$`Student Random ID`))
-##Number of faculty removed by filtration
-length(unique(Gen_Data$`Faculty Random ID`)) - length(unique(Filtered.Data1$`Faculty Random ID`))
-##Number of remaining faculty
-length(unique(Filtered.Data1$`Faculty Random ID`))
-
-##Show that there are no entries of Filtered.Data1 that have an NA value for First.Prof - that is we have successfully chosen only those students who did not withdraw from their first course
-length(Filtered.Data1$First.Prof[is.na(Filtered.Data1$First.Prof)])
+# ##Number of students removed by filtration
+# length(unique(Gen_Data$`Student Random ID`)) - length(unique(Filtered.Data1$`Student Random ID`))
+# ##Number of remaining students
+# length(unique(Filtered.Data1$`Student Random ID`))
+# ##Number of faculty removed by filtration
+# length(unique(Gen_Data$`Faculty Random ID`)) - length(unique(Filtered.Data1$`Faculty Random ID`))
+# ##Number of remaining faculty
+# length(unique(Filtered.Data1$`Faculty Random ID`))
+# 
+# ##Show that there are no entries of Filtered.Data1 that have an NA value for First.Prof - that is we have successfully chosen only those students who did not withdraw from their first course
+# length(Filtered.Data1$First.Prof[is.na(Filtered.Data1$First.Prof)])
 ```
 
 
@@ -77,51 +79,51 @@ GRAPHS
 
 1) Not First Withdraw Justification
 ```{r Not First Withdraw Justification, warning=FALSE}
-##Create plot to illustrate the inability to use all students for Q1. We must then do a filtration!
-Plot.Data1 <- Gen_Data8 %>%
-                group_by(`Student Random ID`) %>%
-                  slice(1) %>%
-                    mutate(First.Term.Withdraw = if_else(is.na(Cum.GPA), "Yes", "No")) %>%
-                      dplyr::select(`Student Random ID`, First.Term.Withdraw) %>%
-                        right_join(Gen_Data8, by = c("Student Random ID"))
-
-Plot.Data1 %>% 
-    filter(`Student Random ID` <= 10^3) %>%
-        ggplot(aes(x = Student.Term, y = Cum.GPA, group = factor(`Student Random ID`), color = First.Term.Withdraw)) +
-        geom_point(position = position_jitter(width = 0.2, height = 0.1)) + 
-        geom_smooth(method = "lm", se = FALSE) + 
-        labs(x = "Student's Term", y = "Cumulative GPA", title = "Cumulative GPA by Student's Term for 178 Randomly Selected Students", color = "Did student withdraw from first course?")
+# ##Create plot to illustrate the inability to use all students for Q1. We must then do a filtration!
+# Plot.Data1 <- Gen_Data8 %>%
+#                 group_by(`Student Random ID`) %>%
+#                   slice(1) %>%
+#                     mutate(First.Term.Withdraw = if_else(is.na(Cum.GPA), "Yes", "No")) %>%
+#                       dplyr::select(`Student Random ID`, First.Term.Withdraw) %>%
+#                         right_join(Gen_Data8, by = c("Student Random ID"))
+# 
+# Plot.Data1 %>% 
+#     filter(`Student Random ID` <= 10^3) %>%
+#         ggplot(aes(x = Student.Term, y = Cum.GPA, group = factor(`Student Random ID`), color = First.Term.Withdraw)) +
+#         geom_point(position = position_jitter(width = 0.2, height = 0.1)) + 
+#         geom_smooth(method = "lm", se = FALSE) + 
+#         labs(x = "Student's Term", y = "Cumulative GPA", title = "Cumulative GPA by Student's Term for 178 Randomly Selected Students", color = "Did student withdraw from first course?")
 ```
 
 2) Course Code Stratification Justification
 ```{r}
-#Create overall visualization of final cumulative GPA by first course
-Filtered.Data1 %>%
-  ungroup() %>%
-    group_by(`Student Random ID`) %>%
-      slice(n()) %>%
-        filter(max.terms >= 2) %>%
-          dplyr::select(Cum.GPA, `Student Random ID`) %>%
-            rename(Last.Term.Cum.GPA = Cum.GPA) %>%
-              right_join(Filtered.Data1) %>%
-                  group_by(`Student Random ID`) %>%
-                    slice(n()) %>%
-                      ungroup() %>%
-                        ggplot() +
-                        geom_boxplot(aes(x = Last.Term.Cum.GPA, color = `First.Course`)) +
-                        theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
-                        labs(x = "Final Cumulative GPA", y = "Course Code", color = "First Course", title = "Boxplots of Final Cumulative GPA for all Students that \n Passed Filtration Conditions, Colored by First Course")
+# #Create overall visualization of final cumulative GPA by first course
+# Filtered.Data1 %>%
+#   ungroup() %>%
+#     group_by(`Student Random ID`) %>%
+#       slice(n()) %>%
+#         filter(max.terms >= 2) %>%
+#           dplyr::select(Cum.GPA, `Student Random ID`) %>%
+#             rename(Last.Term.Cum.GPA = Cum.GPA) %>%
+#               right_join(Filtered.Data1) %>%
+#                   group_by(`Student Random ID`) %>%
+#                     slice(n()) %>%
+#                       ungroup() %>%
+#                         ggplot() +
+#                         geom_boxplot(aes(x = Last.Term.Cum.GPA, color = `First.Course`)) +
+#                         theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+#                         labs(x = "Final Cumulative GPA", y = "Course Code", color = "First Course", title = "Boxplots of Final Cumulative GPA for all Students that \n Passed Filtration Conditions, Colored by First Course")
 ```
 
 
-R ALLOWS FOR DEFINITION OF BINARY OPERATORS
+#R ALLOWS FOR DEFINITION OF BINARY OPERATORS
 
 0. Table of Contents
 
 Outline
 I.	Introduction
         
-        a.	Tutoring, interest in effects that teachers have on their students 
+  a.	Tutoring, interest in effects that teachers have on their students 
         
         
 I started working as a math tutor for a local company called Thompson Tutoring back in the fall of 2019. At first it was just a way to pay rent and keep myself fed, but I came to enjoy it and care about the success of my students. I have about five students that have stuck with me since the beginning, each of whom I see once a week for an hour. Oftentimes I find myself wondering how much of an effect I really have on their mathematics education. As a tutor I am generally employed by a family in two settings:
@@ -129,7 +131,7 @@ I started working as a math tutor for a local company called Thompson Tutoring b
 1. A student that is struggling in their current math course. In this scenario my role is to be the remedial instructor, trying to fill in the gaps in my student's knowledge while simultaneously preparing them for the next test. 
 2. A wealthy family looking to get their students ahead in mathematics.
         
-  It is very difficult to measure the effect I have had on my students for a variety of reasons, primary among them small sample size. For my SIP I still wanted to combine my newfound addiction to data analysis with education, so Dr. Nordmoe sent me the link to a datset that Professor Andrew Eckstrom of Oakland Community College (hereafter OCC) had posted to a messageboard. The source data contain `r nrow(Gen_Data)` observations in `r ncol(Gen_Data)` variables - "Student Random ID", "Course Code", "Grade", "Faculty Random ID", and "Semester". Each row corresponds to one course taken by one student in one semester between the fall of $2010$ and the winter of $2017$ in the mathematics and chemistry departments of Oakland Community College. "Student Random ID" and "Faculty Random ID" are as expected randomly generated integers than track a given student or faculty member through the file. In total, the file tracks `r length(unique(Gen_Data$`Student Random ID`))` students and `r length(unique(Gen_Data$`Faculty Random ID`))` faculty. My SIP (in half) is a statistical analysis on new variables I create from Dr. Eckstrom's dataset.
+  It is very difficult to measure the effect I have had on my students for a variety of reasons, primary among them small sample size. For my SIP I still wanted to combine my newfound addiction to data analysis with education, so Dr. Nordmoe sent me the link to a datset that Professor Andrew Eckstrom of Oakland Community College (hereafter OCC) had posted to a messageboard. The source data contain `r nrow(Gen_Data)` observations in `r ncol(Gen_Data)` variables - "Student Random ID", "Course Code", "Grade", "Faculty Random ID", and "Semester". Each row corresponds to one course taken by one student in one semester between the fall of $2010$ and the winter of $2017$ in the mathematics and chemistry departments of Oakland Community College. "Student Random ID" and "Faculty Random ID" are as expected randomly generated integers than track a given student or faculty member through the file. In total, the file tracks $66164$ students and $268$ faculty. My SIP (in half) is a statistical analysis on new variables I create from Dr. Eckstrom's dataset.
 
   To explain the goal of my project, we will need to briefly diverge into a personal tangent. I came into Kalamazoo College thinking I would follow the pre-med track and thus need to major in chemistry or biology. Four and a half years later, I am graduating with two majors, among them neither chemistry nor biology. I only took one course each in those department because in one course I found the professor unenthusiastic, and in the other borderline hostile. In the math and physics departments I found faculty that were both more personable and frankly better at teaching their subject. My majors in math and physics developed as I continued to take courses with these faculty. The central question I pose in my SIP is this: how does the first faculty member a student encounters in a department influence a student's outcome? 
         
@@ -209,7 +211,7 @@ OCC_Enrollment_Plot
   In order to help learn skills for this project, I enrolled in MAT-295 (Introduction to Data Science) at K. The course used the same free textbook that I read for this project, and so is an excellent offering for all students regardless of means. MAT-295 covered tidying and presenting data, text manipulation by means of regular expressions, manipulation of categorical variables, basic date/time conversion methods, creation of simple linear models, and a brief introduction to programming in R among other subjects. Course material does not include any mathematical theory such as probability or mathematical statistics, though the math department offers courses in those subjects in the Winter/Spring each year.  Introduction to Data Science does not require probability or math stats for enrollment, but statistics in particular is a powerful weapon in data analysis that we will be making heavy use of in this paper. MAT-295 was enormously helpful in giving me practice manipulating and presenting data using the tidyverse approach, which comprises at least half of the following project.
         
         
-        e.	Probability and Mathematical Statistics
+        e.	Statistical Background
         
  Probability theory is the backbone of any statistical method. In particular, the central limit theorem is an amazing piece of technology that guarantees when sufficiently many nicely behaved i.i.d. random variables are added, their sum will have a Gaussian distribution. (https://sphweb.bumc.bu.edu/otlt/mph-modules/bs/bs704_probability/BS704_Probability12.html) Where the i.i.d. random variables $X_i$ with population mean $\mu$ and standard deviation $\sigma$:
 
@@ -239,10 +241,40 @@ The t distribution is designed to enable the analysis of small sample size, in a
   
 1. Data must be collected from random variables that come from a continuous scale. This assumption is relaxed as the number of possible values increases. As I will show later, both $\Delta C$ and $\Delta W$ have sufficient possible values per case to pass this condition.  
 2. Data must be collected by way of a simple random sample. From what I can tell, Professor Eckstrom's file contains a census, and so is immune to this requirement.
-3. Random variables must resemble the Normal random variable under combination. This assumption protects against pathological cases such as the Cauchy distribution that has undefined variance. The possible range for $\Delta C$ is given by the set $(-4,4)$ in units GPA points, and the possible range for $\Delta W$ is given by $(-1,1)$. The empirical mean $\Delta C$ distribution will ultimately have range $()$
+3. Random variables must resemble the Normal random variable under combination. This assumption protects against pathological cases such as the Cauchy distribution that has undefined variance. The possible range for $\Delta C$ is given by the set $(-4,4)$ in units GPA points, and the possible range for $\Delta W$ is given by $(-1,1)$. The empirical mean $\Delta C$ distribution will ultimately have range $()$, as $\Delta W$ will have empirical range $()$ **[FILL THIS IN]**
 4. The sample must have a reasonable sample size. The central t-statistic is undefined for $N = 1$, and gradually converges to the standard normal z-statistic as $N$ increases. The smaller the original sample size, the higher the requisite t-value for significance. The only requirement on sample size is that there are enough data points to calculate the sample standard deviation. For safety, in my analysis I will mandate a minimum sample size of 8 students for calculation of both $\Delta C$ and $\Delta W$.
 
-1. 
+  We will use the t distribution to perform significance tests at the $\alpha = 0.05$ level, where $\alpha$ is the probability of rejecting the null hypothesis when it is true. (CITE STATISTICS TEXTBOOK) $\alpha$ is also known as the type I error. (CITE STATISTICS TEXTBOOK) For any significance test, we first define the null and alternate hypotheses. Faculty effects on future cumulative GPA can be either positive, zero, or negative, as can their effect on withdraw rate. There is no information outside the data that lead us to believe an individual faculty member will have a positive or negative $\Delta W$ or mean $\Delta C$, so we will use a two sided hypothesis. Where $\theta$ is the true value of a statistic (i.e. the $\Delta W$ or mean $\Delta C$ which would be calculated after an infinite number of students for one faculty):
+
+\begin{align}
+H_0: \theta = 0 \\
+H_A: \theta \neq 0
+\label{Hypotheses}
+\end{align}
+
+  Just as it would be impossible to collect infinite variables to ensure perfect Normality, we cannot mathematically prove from a sample which provides an estimate $\hat{\theta}$ that the null hypothesis is false. However, we can create a range of values where $\theta$ is expected to lie based on the observation of $\hat{\theta}$. This concept is called a confidence interval. In my analysis, I will construct such confidence intervals using two techniques from mathematical statistics:
+
+1. The one sample t-test. As the name suggests, the one sample t-test utilizes the t distribution. Where $\alpha$ is the probability of type I error and $t_{\alpha/2, N-1}$ is the t statistic's $\frac{\alpha}{2}$ quantile for N degrees of freedom, the derivation of the $100(1 - \alpha)\%$ confidence interval follows: ##CITATION http://www.ams.sunysb.edu/~zhu/ams571/Lecture11_571.pdf
+\begin{align*}
+P(-t_{\alpha/2, N-1} \leq t \leq t_{\alpha/2, N-1}) = 1 - \alpha \\
+P(-t_{\alpha/2, N-1} \leq \frac{\bar{x} - \mu}{\sigma_x / \sqrt{N}} \leq \leq t_{\alpha/2, N-1}) = 1 - \alpha \\
+P(\bar{x} - t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}} \leq \mu \leq \bar{x} + t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}}) = 1 - \alpha\\
+\end{align*}
+\begin{equation}
+100(1-\alpha)\% \quad CI = [\bar{x} - t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}}, \bar{x} + t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}}]
+\label{T Confidence Interval}
+\end{equation}
+
+2. The bootstrap. The bootstrap principle is a powerful tool that can allow fo significance testing with fewer assumptions than the one sample t-test. The general process for the bootstrapping of a population parameter $\theta$ using a given sample containing an estimate $\hat{\theta}$ follows:
+
+1) Create an empty vector $V_{boot}$ with length equal to a large number $n_{sim}$
+2) Create a sample with replacement $S_{boot}$ from the original sample whose length is equal to the length of the original sample. In this example this length is N.
+3) Store the observed mean of $\hat{\theta}$ from (2) into $V_{boot}$
+4) Repeat (2) and (3) $n_{sim}-1$ times.
+
+The resulting vector $V_{boot}$ contains the bootstrap sampling distribution, which is an estimate for the sampling distribution. Due to $\ref{Small N CLT}$ As such, we can use the bootstrap distribution to create a confidence interval for $\theta$. R's built-in quantile() function is used to create $95\%$ confidence intervals for $\hat{\theta}$ from this bootstrap sampling distribution. The $100(1-\alpha)\%$ bootstrap CI is given by the set $[\textbf{quantile}(V_{boot}, .025),\quad \textbf{quantile}(V_{boot}, .975)]$. 
+
+1. COURSERA
 
   As previously stated, when I first began this project I had never taken a programming course. A large chunk of the project boiled down to creation and manipulation of new variables through the tidyverse method, but there was still many pieces of knowledge I lacked to make the analysis run. Coursera offers many excellent online courses on a wide variety of subjects, among them computer science and data science. To learn the programming skills I required to analyse Professor Eckstrom's data, I enrolled in and completed the first two modules of the *Data Science: Foundations Using R Specialization* offered by Johns Hopkins University on the Coursera platform: (1) The Data Scientist's Toolbox, and (2) R Programming. My certificates for these courses along with the grade I recieved are available in the appendix. I dedicate the following section as a summary of my learning from these courses. 
         
@@ -252,11 +284,113 @@ The t distribution is designed to enable the analysis of small sample size, in a
 II.	Base R
         a.	Atomic Data Types
 CITATION FOR ENTIRE SECTION IS R Programming for Data Science by Roger D. Peng [version 9/3/2020]    
-  In the R language, there are five atomic data types or class invariants. Numeric data, often also referred to as double-precision data, are real numbers. They can have up to fifteen significant digits, but generally are limited by observation to many fewer. In RMarkdown it is common practice to include the option "digits = k", which restricts the printing of doubles to k decimal points. Numeric data have the additional option of having the value NAN (for not a number), which most often corresponds to undefined in mathematical language. For instance, $\log(-1)$ yields the output `r log(-1)`. Integer data can only be real integers, and are useful in programming aspects such as indexing and preventing rounding errors. Character data, or strings, are the broadest class. Any set of alphanumeric+ characters can be represented in a *string* as a character object. Packages such as stringr are available to manipulate character variables with plentiful functions equipped for regular expressions.  The most important data type for programming in R is the logical, or Boolean. A Boolean datum either has the value TRUE or FALSE. When two Booleans $b_1$ and $b_2$ are compared over equality - i.e. $b_1 = b_2$ - R will output TRUE if both data have the same value. As will be apparent when discussing subsetting, the ability to programmatically compare large quantities of logical data allows for fast and convenient indexing, sorting, and filtering. The final class in the R language is complex, an element of which has the form $a + bi$, where $a$ and $b$ are numeric data. I personally never used this beyond the single Coursera quiz that asked for the identification of a complex datum among a list of options. One last important note - data can be missing in any class. A missing value is denoted with NA (for not available). The NA can therefore be represented in each class, and converted using the as.xxx() family of functions. R treats NA values as if they did have a value, but that the value is not known. For instance - the mean of the numeric vector c(.5, 2, NA) is `r mean(c(.5, 2, NA))`, because R cannot determine the third element's effect on the average.
+
+\subsection{The Atomic Data Types}
+  In the R language, there are five atomic data types or class invariants. 
+1. Numeric data, often also referred to as double-precision data, are real numbers. They can have up to fifteen significant digits, but generally are limited by observation to many fewer. In RMarkdown it is common practice to include the option "digits = k", which restricts the printing of doubles to k decimal points. Numeric data have the additional option of having the value NAN (for not a number), which most often corresponds to undefined in mathematical language. For instance, $\log(-1)$ yields the output `r log(-1)`. 
+2. Integer data can only be real integers, and are useful in programming aspects such as indexing and preventing rounding errors. 
+3. Character data, or strings, are the broadest class. Any set of alphanumeric+ characters can be represented in a *string* as a character object. Packages such as stringr are available to manipulate character variables with plentiful functions equipped for regular expressions.  
+4. One of if not the most important data type for programming in R is the logical, or Boolean. A logical datum either has the value `r TRUE` or `r FALSE`. When two logicals $b_1$ and $b_2$ are compared over equality - i.e. $b_1 = b_2$ - R will output `r TRUE` if both data have the same value. We will momentarily investigate the behavior of logical data. As will be apparent when discussing subsetting, the ability to programmatically compare large quantities of logical data allows for fast and convenient indexing, sorting, and filtering.
+5.The final class in the R language is complex, an element of which has the form $a + bi$, where $a$ and $b$ are numeric data. I personally never used complex data beyond the single Coursera quiz that asked for the identification of a complex datum among a list of options.
+
+  One last important note - data can be missing in any class. A missing value is denoted with NA (for not available). The NA can therefore be represented in each class, and converted using the as.xxx() family of functions. R treats NA values as if they did have a value, but that the value is not known. For instance - the mean of the numeric vector c(.5, 2, NA) is `r mean(c(.5, 2, NA))` with class `r class(mean(c(.5, 2, NA)))`, because R cannot determine the third element's effect on the average but assumes it was a number due to how vectors are defined.
+  
+
+\subsection{Vectors}
+  On that note, let's discuss one of the primary weapons of the R language - vectors. R can store any sequence of data from a single class as a vector and do operations on it. Such operations are performed element-wise unless else specified. The vector's class will be the same as that of its constituent data. There are several ways to create a vector including the concatenation operator c(), the sequence generator seq(), the replicate function rep(), the colon operaton :,  and extracting a column out of a dataframe either by using pull() or by subsetting.  Individual elements can have names, for instance:
+  
+```{r Demo Named Vector, echo = TRUE}
+vector.names <- c("Jimmy", "Sammy", "Katrina")
+my.vector <- c(17, 18, 17)
+names(my.vector) <- vector.names
+
+my.vector
+```
+
+  Vectors can sometimes be changed from one class to another through a process called coercion. The family of functions as.class() performs this conversion. Below is some sample output demonstrating the coercion capabilities of different classes using three demo vectors: num for numeric, chr for character, and log for logical:
+
+```{r demo vectors, echo = TRUE}
+##Define demo vectors. num is a numeric vector, chr is a character vector, and log is a logical vector.
+num <- c(-1, 0, 1, 2)
+chr <- c("a", "b", "0", "FALSE")
+log <- c(TRUE, FALSE)
+
+##Coercion of numeric vector to character
+as.character(num)
+##Coercion of numeric vector to logical
+as.logical(num)
+##Coercion of character vector to numeric
+as.numeric(chr)
+##Coercion of character vector to logical
+as.logical(chr)
+##Coercion of logical vector to numeric
+as.numeric(log)
+##Coercion of logical vector to character
+as.character(log)
+```
+When coercing a numeric object into the character class, each element becomes represented as a string and loses its ability to partake in arithmetic operations. Conversion from double to logical is possible, but one must be careful - only zeroes get mapped to `r FALSE`, while all other numbers get mapped to `r TRUE` unlike in some other languages. Character vectors are the least coercible. While each unicode character is stored in memory as a very large integer, R doesn't want to return these for user safety. As a result, coercion of a vector from the character class to the numeric class will result in a missing value unless R thinks the string already represents a number. Strangely, `r TRUE` / `r FALSE` values stored in a character vector will be mapped to missing values in this coercion, even though they can be coerced into numerics. Calling as.logical() will similarly fail to notice $0$ as `r FALSE`.  If a vector's class is not clear, the class() method is an excellent tool, and can also be used programmatically to obtain the class(es) of an object. In my project I used the as.class() functions rather rarely, but they serve to elucidate the inner workings of the classes themselves. 
+
+
+
+\subsection{Logic}
+  Before moving on to subsetting vectors and lists, we first take a foray into R's evaluation of logical statements. The most straightforward way to do this is to look at some examples.
+
+```{r Logical Practice 1, echo = TRUE}
+##Practice with logical data
+TRUE == TRUE
+TRUE != TRUE
+FALSE < TRUE
+FALSE > TRUE
+```
+The double equals is a binary operator that outputs `r TRUE` i.f.f. both sides of the operator have the same evaluation. The less than and greater than operators work in a similarly intuitive manner. $!$ is the negation operator, which inverts the meaning of the logical operator it is paired with. Additionally a logical datum itself can be negated, such that !`r TRUE` evaluates to `r !TRUE`. Note that the expression `r FALSE` $<$ `r TRUE` evaluates to `r TRUE` and `r FALSE` $>$ `r TRUE` evaluates to `r FALSE` because R considers `r FALSE` to be the number $0$ and `r TRUE` to be the number $1$. This feels less than intuitive because as seen above any nonzero number coerces to `r TRUE` under the method as.logical(). Just as $0 < 1$ gets a `r TRUE`, when character data are compared over the binary operators, R considers the lexicographic ordering. This is worth exploring, but not relevant to my project. More pertinent is the evaluation of vector comparisons. Let's do another example.
+
+```{r Logical Practice 2, echo = TRUE, warning == FALSE}
+##Define some vectors to compare with different lengths.
+##Vector a contains the sequence 1, 2.
+a <- c(1, 2)
+##Vector b contains the sequence 1, 2, 3, 4, 0.
+b <- c(1:4,0)
+
+##Compare a and b over equality
+a == b
+##Compare a and b over a formula
+a + 2 == b
+```
+
+  R evaluates vector comparisons element-wise and outputs a vector with length equal to the longest input vector. If the compared vectors are not the same length, R will repeatedly replicates the shorter vector end-to-end until the lengths are equal. In the above example, R changed the expression $\{1,2\} == \{1,2,3,4,0\}$ into $\{1,2,1,2,1\} == \{1,2,3,4,0\}$. The shorter length of $2$ does not evenly divide the longer length $5$ so R throws a warning, but continued with evaluation regardless. The output of any logical comparison is a logical vector, the previous comparisons were simply a special case where the input vector lengths were each one. $a == b$ returns a five element output vector, because the longer of the two input vectors had five elements.
+  
+  The final hitch to logical evaluation in R are conditional expressions. R is equipped with three basic binary conditions: the and statement "&", the or statement "|", and the xor function xor(). A more complicated binary operator I use for the data analysis is the in operator "%in%", which checks whether the left object is within a range of values specified by the right object. These conditions work just as they do in set theory. Or has low priority in R's evaluation queue while and has high priority so that conditions evaluate in accordance to the generally desired order of operations. Just like in mathematics parenthetical statements are evaluated before their exterior for additional control over the evaluation queue. R allows for the user to define their own logical operators, a privilege I used one time to create a negated version of the "%in%" operator called "%notin%".
+
+\subsection{Subsetting}
+
+  CRAN outlines three operators for subsetting sequences in R: (https://cran.r-project.org/doc/manuals/R-lang.html#Indexing)
+1. The single bracket operator $X[i]$, where $X$ is some array and $i$ is a set of indecies. Single bracket subsetting is generally used with vectors to extract the $i^{th}$ elements of X. When used on a list, the single bracket will return the $i^{th}$ elements as a list. The user can supply indecies either as an integer vector or a logical vector. To see how this works, examine the sample output below.
+
+```{r}
+
+```
+
+2. 
+3. 
+.  Here elements are extracted from the demo vector used earlier.
+  
+  Lists are another common form of array that can be thought of as a hierarchical pyramid that can hold any type of object, including other lists. Just like vectors, list elements can have names. Lists are excellent organizational tools because they are not beholden to the stipulation that each element have the same class invariant; a two element list may for example contain one function and one dataframe. Because lists may contain a variety of information, a couple good ways to obtain a sense of the contents are the str() and  glimpse() commands. I am personally partial towards glimpse due to its good behavior with other dplyr verbs. 
+
+```{r List Example, echo = TRUE}
+##Create dummy functions for list
+test.mean <- function(x){mean(x)}
+test.median <- function(x){median(x)}
+##Create list with multiple layers
+my.list <- list(list(test.mean, list(test.median)), list(test.median), 100)
+##Print the list
+my.list
+```
+The double bracket operator is at its best when working with lists
+
 
         b.	Lists
         
-  
+ The special double bracket operator [[ ]] extracts 
         
         c.	Arrays
                 i.	Named Lists
@@ -686,4 +820,5 @@ VII.	Case Study
   49 Math Faculty
   12 Chemistry Faculty
   Are some faculty being recyled for anonymity, or does OCC not report former facult?
+
 
