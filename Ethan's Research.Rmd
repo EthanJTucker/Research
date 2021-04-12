@@ -180,8 +180,8 @@ Gen_Data <- Gen_Data %>%
                 mutate(Department = str_sub(`Course Code`, 1, 3))
 ```
 
-# ```{r Class Tracker Mean GPA Assigned and Delta, cache=TRUE}
-# ##This chunk creates the Class Tracker, Mean GPA, and Delta columns in Gen_Data. This takes a while to run.
+```{r Vestigial Garbage, include = FALSE}
+# ##This chunk creates the Class Tracker, Mean GPA, and Delta columns in Gen_Data. This takes a while to run. I have included it in the appendix for an idea of how I was initially approaching R programming. As it happens learning more efficient methods makes things a lot more legible. Attempt to understand this chunk at your own peril. The output isn't even useful for the project, but is a bit interesting. This entire function could be replicated easily with the which() command.
 # 
 # ##IMPORTANT NOTE: the new Gen_Data variable Class Mean GPA is calculated with na.rm = TRUE, and therefore it is the mean gpa assigned of those students who did not withdraw or take incompletes that did not get resolved.
 # ##Initial Conditions
@@ -257,7 +257,7 @@ Gen_Data <- Gen_Data %>%
 #   Gen_Data$Delta[i] <- Gen_Data$"GPA Assigned"[i] - class.mean.gpa
 # }
 # 
-# ```
+```
 
 ```{r Initialize Student.Term, cache = TRUE}
 ##Here we convert Total.Term into numeric, and create the Student.Term variable which describes a student's term progression through OCC
@@ -2050,32 +2050,56 @@ Where $W_E$ is the expected withdraw rate and $W_O$ is a faculty's observed with
 $$\Delta W = W_E - W_O$$
 The expected withdraw rate in experiment one is the constant rate `r Overall.Withdraw.Rate`, calculated as the total number of withdraws in the data set divided by the total number of observations. That is, it is the mean withdraw rate between $2010$ and $2017$ in OCC's math and chemistry departments. In experiment two, $W_E$ is set to the mean withdraw rate for students in the germane course. As such, a positive value of $\Delta W$ corresponds to a professor having a lower withdraw rate than the mean, and a negative value corresponds to a higher withdraw rate than the mean.
 
-```{r DeltaW Plots}
+```{r Experiment One DeltaW Plots}
 ##Experiment One Graphs
 ##Histogram of DeltaW over all faculty for experiment one
 Overall.DeltaW.Data %>%
-  ggplot(aes(x = Overall.DeltaW)) +
-  geom_histogram(binwidth = 0.05) + 
-  labs(x = "DeltaW", y = "Count", title = "Histogram of Differences between Expected and Observed Faculty Withdraw Rate")
-
-##Normal probability plot of DeltaW over all faculty for experiment one
-Overall.DeltaW.Data %>%
-  pull(Overall.DeltaW) %>%
-    qqnorm(main = "Normal Probability Plot of DeltaW Over All Faculty for Experiment One")
+  mutate(Hist.Colors = if_else(Observed.Withdraw.Prop > Overall.Withdraw.Rate, "green", "red")) %>%
+    ggplot(aes(x = Overall.DeltaW, fill = Hist.Colors)) +
+    geom_histogram(binwidth = 0.05) + 
+    theme(legend.position = "none") +
+    labs(x = "\u0394W", y = "Count", title = "Histogram of ALL Differences between Expected and Observed\nFaculty Withdraw Rate for Experiment One")
 
 ##Histogram of DeltaW over significant faculty for experiment one
 Overall.DeltaW.Data %>%
   filter(Significant == TRUE) %>%
-    ggplot(aes(x = Overall.DeltaW)) +
-    geom_histogram(binwidth = 0.05) + 
-    labs(x = "DeltaW", y = "Count", title = "Histogram of Differences Between Expected and Observed Faculty Withdraw Rate")
+    mutate(Hist.Colors = if_else(Observed.Withdraw.Prop > Overall.Withdraw.Rate, "green", "red")) %>%
+      ggplot(aes(x = Overall.DeltaW, fill = Hist.Colors)) +
+      geom_histogram(binwidth = 0.05) + 
+      theme(legend.position = "none") + 
+      labs(x = "\u0394W", y = "Count", title = "Histogram of Significant Differences Between Expected and Observed Faculty\nWithdraw Rate for Experiment One")
+
+##Normal probability plot of DeltaW over all faculty for experiment one
+Overall.DeltaW.Data %>%
+  pull(Overall.DeltaW) %>%
+    qqnorm(main = "Normal Probability Plot of \u0394W Over All Faculty for Experiment One")
 
 ##Normal probability plot of DeltaW over significant faculty for experiment one
 Overall.DeltaW.Data %>%
   filter(Significant == TRUE) %>%
     pull(Overall.DeltaW) %>%
-      qqnorm(main = "Normal Probability Plot of DeltaW Over Significant for Experiment One")
+      qqnorm(main = "Normal Probability Plot of \u0394W Over Significant for Experiment One")
 
+##Number of Faculty represented in above histogram compared to total
+Gen_Data10 %>%
+  filter(Withdraw == TRUE) %>%
+    group_by(`Faculty Random ID`) %>%
+      summarise(Num.Students = n()) %>%
+        mutate(Sufficient.Sample.Size = if_else(Num.Students >= 8, TRUE, FALSE)) %>%
+          ungroup() %>%
+            group_by(Sufficient.Sample.Size) %>%
+              count()
+
+##Histogram of sample sizes - greater than or equal to eight - for experiment one.
+Overall.DeltaW.Data %>%
+  ggplot(aes(x = Num.Students)) +
+  geom_histogram(bins = 15) +
+  geom_boxplot(color = "red", fill = "green", width = 2, lwd = 1.5) +
+  scale_x_continuous(limits = c(0,150), breaks = seq(from = 0, to = 150, by = 25)) +
+  labs(x = "Number of Students", y = "Count", title = "Histogram and Boxplot of Sample Sizes for Experiment One.")
+```
+
+```{r Experiment Two DeltaW Plots}
 ##Experiment Two graphs
 ##Histogram of course withdraw rates. There seems to be a slight left skew, but this is likely due to variance as there only being 21 remaining courses. Citation https://stackoverflow.com/questions/35090883/remove-all-of-x-axis-labels-in-ggplot for prettying up the x axis.
 Course.Withdraw.Rates %>%
@@ -2087,85 +2111,208 @@ Course.Withdraw.Rates %>%
 
 ##Histogram of DeltaW over all faculty for experiment two  
 Course.DeltaW.Data %>%
-  ggplot(aes(x = Course.DeltaW)) +
-  geom_histogram(binwidth = 0.05) + 
-  labs(x = "DeltaW", y = "Count", title = "Histogram of Differences between Expected and Observed Faculty Withdraw Rate")
-
-##Normal Probability Plot for experiment two
+  mutate(Hist.Colors = if_else(Observed.Withdraw.Rate > Course.Withdraw.Rate, "green", "red")) %>%
+    ggplot(aes(x = Course.DeltaW, fill = Hist.Colors)) +
+    geom_histogram(binwidth = 0.05) + 
+    theme(legend.position = "none") %>%
+    labs(x = "\u0394W", y = "Count", title = "Histogram of Differences between Expected and Observed Faculty Withdraw Rate")
+    
+##Histogram of DeltaW over signifiacnt faculty for experiment two  
+Course.DeltaW.Data %>%
+  filter(Significant == TRUE) %>%
+    mutate(Hist.Colors = if_else(Observed.Withdraw.Rate > Course.Withdraw.Rate, "green", "red")) %>%
+      ggplot(aes(x = Course.DeltaW, fill = Hist.Colors)) +
+      geom_histogram(binwidth = 0.05) + 
+      theme(legend.position = "none") +
+      labs(x = "\u0394W", y = "Count", title = "Histogram of Differences between Expected and Observed Faculty Withdraw Rate")
+    
+##Normal Probability Plot for all faculty in experiment two
 Course.DeltaW.Data %>%
   pull(Course.DeltaW) %>%
-    qqnorm(main = "Normal Probability Plot of DeltaW for Experiment Two")
+    qqnorm(main = "Normal Probability Plot of ALL \u0394W's for Experiment Two")
 
-##Scatterplot of DeltaW by course
+##Normal Probability Plot for significant faculty in experiment two
+Course.DeltaW.Data %>%
+  filter(Significant == TRUE) %>%
+    pull(Course.DeltaW) %>%
+      qqnorm(main = "Normal Probability Plot of \u0394W's for Experiment Two")
+
+##Scatterplot of ALL DeltaW by course
 Course.DeltaW.Data %>%
   left_join(Course.Heights, by = "Course Code") %>%
-    ggplot(aes(x = Course.DeltaW, color = `Course Code`, y = Height)) +
-    geom_point(position = position_jitter(height = 0.01))
-```
+    ggplot(aes(x = Course.DeltaW, color = `Course Code`, y = Height, size = Num.Students)) +
+    geom_point(position = position_jitter(height = 0.009)) +
+    theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+    labs(x = "\u0394W", color = "Course Code", y = "Course Code", size = "Number of Students", title = "Scatterplot of ALL \u0394W's by Course Code")
 
+##Scatterplot of Significant DeltaW by course
+Course.DeltaW.Data %>%
+  filter(Significant == TRUE) %>%
+  left_join(Course.Heights, by = "Course Code") %>%
+    ggplot(aes(x = Course.DeltaW, color = `Course Code`, y = Height, size = Num.Students)) +
+    geom_point(position = position_jitter(height = 0.009)) +
+    theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+    labs(x = "\u0394W", color = "Course Code", y = "Course Code", size = "Number of Students", title = "Scatterplot of Significant \u0394W's by Course Code")
 
-```{r}
-# Create models and plots of withdraws based on a couple different inputs.
-Course.Code.withdraws.model <- lmer(n_withdraws ~ total_students + (1|`Course Code`), data = Withdraws.Data)
-summary(Course.Code.withdraws.model)
+##Number of Faculty-Course combinations represented in significant histogram compared to total
+Gen_Data10 %>%
+  filter(Withdraw == TRUE) %>%
+    group_by(`Faculty Random ID`, `Course Code`) %>%
+      summarise(Num.Students = n()) %>%
+        mutate(Sufficient.Sample.Size = if_else(Num.Students >= 8, TRUE, FALSE)) %>%
+          ungroup() %>%
+            group_by(Sufficient.Sample.Size) %>%
+              count()
 
-
-
-##Visualization of effect of `Course Code` on n_withdraws using 10^3 bootstrap resamples
-plotREsim(REsim(withdraws.model, n.sims = 10^3))
-
-##plot(withdraws.model)
-
-
-##Do I need the confint? Is that even useful?
-withdraw.conf <- confint(withdraws.model, oldNames = FALSE, level = 0.95)
-
-
-Plot.Data1 <- Withdraws.Data %>%
-                group_by(`Faculty Random ID`) %>%
-                  summarise(total_withdraws = sum(n_withdraws), total_students = sum(total_students)) %>%
-                    arrange(`Faculty Random ID`)
-##I'll go ahead and assign total withdraw points to profs right now before proceeding with graphing
-
-
-
-Plot.Data1 %>%
-  ggplot(aes(x = total_withdraws, y = total_students)) +
-  geom_point(aes(color = factor(`Faculty Random ID`))) + 
-  geom_smooth(color = "purple") +
-  geom_smooth(method = "lm", color = "red") +
-  theme(legend.position = "none") +
-  labs(x = "Total withdraws", y = "Total students", title = "Total withdraws vs. total students, ")  
-  
- ## geom_smooth(method = "lm", color = "red") +
-
-##The standard errors of geom_smooth() and geom_smooth(method = "lm) overlap at almost all points, so it seems reasonable to assume that total withdraws vs total students can be validly represented by a linear model. I will do that presently.
-
+##Histogram of sample sizes - greater than or equal to eight - for experiment one.
+Course.DeltaW.Data %>%
+  ggplot(aes(x = Num.Students)) +
+  geom_histogram(bins = 17) +
+  geom_boxplot(color = "red", fill = "green", width = 20, lwd = 1.5) +
+  scale_x_continuous(limits = c(0,150), breaks = seq(from = 0, to = 150, by = 25)) +
+  labs(x = "Number of Students", y = "Count", title = "Histogram and Boxplot of Sample Sizes for Experiment Two.")
 
 ```
 
-```{r}
-##total withdraws prop, number of students per prof
-Points.Tracker <- arrange(Points.Tracker, Professors)
-for(i in 1:length(Points.Tracker$Professors)){
-  Points.Tracker$Total.Withdraw.Prop[i] <- Plot.Data1$total_withdraws[i]/Plot.Data1$total_students[i]
-  Points.Tracker$Total.Students[i] <- Plot.Data1$total_students[i]
+```{r DeltaW Results}
+##Experiment One
+##Initialize Experiment One Results Frame
+Overall.Points3 <- Overall.DeltaW.Data %>%
+                    filter(Significant == TRUE) %>%
+                      dplyr::select(`Faculty Random ID`, Overall.DeltaW, Num.Students) %>%
+                        mutate(Overall.Withdraw.Impact = Overall.DeltaW * Num.Students, Overall.DeltaW.Rank = -1, Overall.Impact.Rank = -1) %>%
+                          rename(DeltaW = Overall.DeltaW)
+
+##Create single use ranker function for faculty that had significantly different withdraw rates from the mean
+Rank.Overall.Stats2 <- function(data){
+  Temp.Data <- data %>%
+                arrange(desc(Overall.Withdraw.Impact))
+  n.sig.profs <- length(Temp.Data$`Faculty Random ID`)
+  for(i in 1:n.sig.profs){
+    Temp.Data$Overall.Impact.Rank[i] <- i
+  }
+  Temp.Data <- Temp.Data %>%
+                arrange(desc(DeltaW))
+  for(i in 1:n.sig.profs){
+    Temp.Data$Overall.DeltaW.Rank[i] <- i
+  }
+  return(Temp.Data)
 }
+##Apply ranker function onto Overall.Points3
+Overall.Points4 <- Overall.Points3 %>%
+                    Rank.Overall.Stats2()
+##Print Experiment One Results
+head(Overall.Points4)
+
+##Experiment Two
+##Initialize Experiment Two Results Frame
+Course.Points3 <-  Course.DeltaW.Data %>%
+                    filter(Significant == TRUE) %>%
+                      dplyr::select(`Faculty Random ID`, `Course Code`, Course.DeltaW, Num.Students) %>%
+                        mutate(Course.Withdraw.Impact = Course.DeltaW * Num.Students, Course.DeltaW.Rank = -1, Course.Impact.Rank = -1) %>%
+                          rename(DeltaW = Course.DeltaW)
+
+##Create a ranker function that accounts for course means
+Rank.Course.Stats2 <- function(data){
+  Temp.Data <- data %>%
+                arrange(`Course Code`, desc(Course.Withdraw.Impact))
+  
+##Helper function that determines which courses are the desired course. This could also be accomplished with a filtration.
+  get.course.indecies <- function(course){
+    return(which(Temp.Data$`Course Code` == course))
+  }
+  ##Rank faculty by Total impact by course
+  for(i in 1:length(Reported.Courses)){
+    course.indecies <- get.course.indecies(Reported.Courses[i])
+    cntr <- 1
+      for(k in course.indecies){
+        Temp.Data$Course.Impact.Rank[k] <- cntr 
+        cntr <- cntr + 1
+      }
+  }
+  ##Rank faculty by DeltaW against other faculty that taught the same course
+  Temp.Data <- Temp.Data %>%
+                  arrange(`Course Code`, desc(DeltaW))
+  for(i in 1:length(Reported.Courses)){
+    course.indecies <- get.course.indecies(Reported.Courses[i])
+    cntr <- 1
+      for(k in course.indecies){
+        Temp.Data$Course.DeltaW.Rank[k] <- cntr 
+        cntr <- cntr + 1
+      }
+  }
+  
+  return(Temp.Data)
+}
+
+##Apply function onto Course.Points1
+Course.Points4 <- Course.Points3 %>%
+                    Rank.Course.Stats2()
+
+##Print the results
+head(Course.Points4)
+
 ```
 
 
-5) What is the mean number of different courses a prof teaches? What is the mean number of majors a prof teaches? Other interesting statistics?
+```{r DeltaW and DeltaC Comparison Plots}
+##Experiment One Plots
+##Mean DeltaC Vs DeltaW for all faculty with a mean DeltaC, colored by Significance levels
+Double.Profs %>%
+  mutate(SigC = if_else(T.Test.Sig == TRUE & Bootstrap.Sig == TRUE, TRUE, FALSE)) %>%
+    dplyr::select(First.Prof, Mean.DeltaC, SigC) %>%
+        full_join(Overall.DeltaW.Data, by = c("First.Prof" = "Faculty Random ID")) %>%
+          rename(SigW = Significant) %>%
+            dplyr::select(First.Prof, Mean.DeltaC, Overall.DeltaW, SigC, SigW) %>%
+              mutate(Significance = factor(if_else(SigC == TRUE & SigW == TRUE, "Both \u0394C and \u0394W", if_else(SigC == FALSE & SigW == TRUE, "Only \u0394W", if_else(SigC == TRUE & SigW == FALSE, "Only \u0394C", if_else(SigC == FALSE & SigW == FALSE, "Neither \u0394C nor \u0394W", as.character(NA))))))) %>%
+                filter(!is.na(Significance)) %>%
+                  ggplot(aes(x = Mean.DeltaC, y = Overall.DeltaW)) +
+                  geom_point(aes(color = Significance)) + 
+                  geom_smooth() + 
+                  labs(x = "Mean \u0394C (GPA Points)", y = "\u0394W", color = "Significance", title = "Mean \u0394C Vs. \u0394W for all faculty in Experiment One")
 
-How do individual professors vary in their ability teach various courses?
+##Mean DeltaC Vs. DeltaW for only those faculty with a significant mean DeltaC and DeltaW.
+Double.Profs %>%
+  mutate(SigC = if_else(T.Test.Sig == TRUE & Bootstrap.Sig == TRUE, TRUE, FALSE)) %>%
+    dplyr::select(First.Prof, Mean.DeltaC, SigC) %>%
+        full_join(Overall.DeltaW.Data, by = c("First.Prof" = "Faculty Random ID")) %>%
+          rename(SigW = Significant) %>%
+            dplyr::select(First.Prof, Mean.DeltaC, Overall.DeltaW, SigC, SigW) %>%
+              mutate(Significance = factor(if_else(SigC == TRUE & SigW == TRUE, "Both \u0394C and \u0394W", if_else(SigC == FALSE & SigW == TRUE, "Only \u0394W", if_else(SigC == TRUE & SigW == FALSE, "Only \u0394C", if_else(SigC == FALSE & SigW == FALSE, "Neither \u0394C nor \u0394W", as.character(NA))))))) %>%
+                filter(Significance == "Both \u0394C and \u0394W") %>%
+                  ggplot(aes(x = Mean.DeltaC, y = Overall.DeltaW)) +
+                  geom_point(aes(color = Significance)) + 
+                  geom_smooth() + 
+                  labs(x = "Mean \u0394C (GPA Points)", y = "\u0394W", color = "Significance", title = "Mean \u0394C Vs. \u0394W for Faculty with Significant Effects\nin Experiment One")
 
-```{r}
-Gen_Data <- Gen_Data %>%
-              group_by(`Course Code`) %>%
-                summarise(Course.Mean.GPA = mean(`GPA Assigned`, na.rm = TRUE)) %>%
-                  right_join(Gen_Data, by = "Course Code")                    
+##Experiment Two Plots
+##Mean DeltaC Vs. DeltaW for all faculty with a mean DeltaC in experiment two
+Double.Courses %>%
+  mutate(SigC = if_else(T.Sig == TRUE & Bootstrap.Sig == TRUE, TRUE, FALSE)) %>%
+    dplyr::select(First.Prof, First.Course, Mean.DeltaC, SigC) %>%
+      full_join(Course.DeltaW.Data, by = c("First.Prof" = "Faculty Random ID", "First.Course" = "Course Code")) %>%
+        rename(SigW = Significant) %>%
+          dplyr::select(First.Prof, First.Course, Mean.DeltaC, Course.DeltaW, SigC, SigW) %>%
+            mutate(Significance = factor(if_else(SigC == TRUE & SigW == TRUE, "Both \u0394C and \u0394W", if_else(SigC == FALSE & SigW == TRUE, "Only \u0394W", if_else(SigC == TRUE & SigW == FALSE, "Only \u0394C", if_else(SigC == FALSE & SigW == FALSE, "Neither \u0394C nor \u0394W", as.character(NA))))))) %>%
+              ggplot(aes(x = Mean.DeltaC, y = Course.DeltaW)) +
+                  geom_point(aes(color = Significance)) + 
+                  geom_smooth() + 
+                  labs(x = "Mean \u0394C (GPA Points)", y = "\u0394W", color = "Significance", title = "Mean \u0394C Vs. \u0394W for all faculty in Experiment Two")
+
+##Mean DeltaC Vs. DeltaW for faculty with a significant mean DeltaC and DeltaW.
+Double.Courses %>%
+  mutate(SigC = if_else(T.Sig == TRUE & Bootstrap.Sig == TRUE, TRUE, FALSE)) %>%
+    dplyr::select(First.Prof, First.Course, Mean.DeltaC, SigC) %>%
+      full_join(Course.DeltaW.Data, by = c("First.Prof" = "Faculty Random ID", "First.Course" = "Course Code")) %>%
+        rename(SigW = Significant) %>%
+          dplyr::select(First.Prof, First.Course, Mean.DeltaC, Course.DeltaW, SigC, SigW) %>%
+            mutate(Significance = factor(if_else(SigC == TRUE & SigW == TRUE, "Both \u0394C and \u0394W", if_else(SigC == FALSE & SigW == TRUE, "Only \u0394W", if_else(SigC == TRUE & SigW == FALSE, "Only \u0394C", if_else(SigC == FALSE & SigW == FALSE, "Neither \u0394C nor \u0394W", as.character(NA))))))) %>%
+              filter(Significance == "Both \u0394C and \u0394W") %>%
+                ggplot(aes(x = Mean.DeltaC, y = Course.DeltaW)) +
+                  geom_point(aes(color = Significance)) + 
+                  geom_smooth() + 
+                  labs(x = "Mean \u0394C (GPA Points)", y = "\u0394W", color = "Significance", title = "Mean \u0394C Vs. \u0394W for Faculty with Significant Effects\nin Experiment Two")
 ```
-
-
 
 
 
