@@ -1,14 +1,18 @@
 ---
-title: "SIP_Report.Rmd"
+title: "Statistical Data Analysis of Math and Chemistry Community College Students"
 author: "Ethan Tucker"
 date: "4/7/2021"
+geometry: margin=1.5in
+header-includes:
+   - \usepackage{setspace}
+   - \doublespacing
 output:
   pdf_document: default
   html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, cache = TRUE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE, message = FALSE, tidy.opts=list(width.cutoff=77), tidy=TRUE)
 options(digits = 3)
 ```
 
@@ -121,29 +125,26 @@ GRAPHS
 0. Table of Contents
 
 Outline
-I.	Introduction
+\section{Introduction}
         
-  a.	Tutoring, interest in effects that teachers have on their students 
-        
-        
-I started working as a math tutor for a local company called Thompson Tutoring back in the fall of 2019. At first it was just a way to pay rent and keep myself fed, but I came to enjoy it and care about the success of my students. I have about five students that have stuck with me since the beginning, each of whom I see once a week for an hour. Oftentimes I find myself wondering how much of an effect I really have on their mathematics education. As a tutor I am generally employed by a family in two settings:
+|  I started working as a math tutor for a local company called Thompson Tutoring back in the fall of 2019. At first it was just a way to pay rent and keep myself fed, but I came to enjoy it and care about the success of my students. I have about five students that have stuck with me since the beginning, each of whom I see once a week for an hour. Oftentimes I find myself wondering how much of an effect I really have on their mathematics education. As a tutor I am generally employed by a family in two settings:
 
 1. A student that is struggling in their current math course. In this scenario my role is to be the remedial instructor, trying to fill in the gaps in my student's knowledge while simultaneously preparing them for the next test. 
 2. A wealthy family looking to get their students ahead in mathematics.
         
-  It is very difficult to measure the effect I have had on my students for a variety of reasons, primary among them small sample size. For my SIP I still wanted to combine my newfound addiction to data analysis with education, so Dr. Nordmoe sent me the link to a datset that Professor Andrew Eckstrom of Oakland Community College (hereafter OCC) had posted to a messageboard. The source data contain `r nrow(Gen_Data)` observations in `r ncol(Gen_Data)` variables - "Student Random ID", "Course Code", "Grade", "Faculty Random ID", and "Semester". Each row corresponds to one course taken by one student in one semester between the fall of $2010$ and the winter of $2017$ in the mathematics and chemistry departments of Oakland Community College. "Student Random ID" and "Faculty Random ID" are as expected randomly generated integers than track a given student or faculty member through the file. In total, the file tracks $66164$ students and $268$ faculty. My SIP (in half) is a statistical analysis on new variables I create from Dr. Eckstrom's dataset.
+|  It is very difficult to measure the effect I have had on my students for a variety of reasons, primary among them small sample size. For my SIP I still wanted to combine my newfound addiction to data analysis with education, so Dr. Nordmoe sent me the link to a datset that Professor Andrew Eckstrom of Oakland Community College (hereafter OCC) had posted to a messageboard. The source data contain `r nrow(Gen_Data)` observations in `r ncol(Gen_Data)` variables - "Student Random ID", "Course Code", "Grade", "Faculty Random ID", and "Semester". Each row corresponds to one course taken by one student in one semester between the fall of $2010$ and the winter of $2017$ in the mathematics and chemistry departments of Oakland Community College. "Student Random ID" and "Faculty Random ID" are as expected randomly generated integers than track a given student or faculty member through the file. In total, the file tracks $66164$ students and $268$ faculty. My SIP (in half) is a statistical analysis on new variables I create from Dr. Eckstrom's dataset.
 
-  To explain the goal of my project, we will need to briefly diverge into a personal tangent. I came into Kalamazoo College thinking I would follow the pre-med track and thus need to major in chemistry or biology. Four and a half years later, I am graduating with two majors, among them neither chemistry nor biology. I only took one course each in those department because in one course I found the professor unenthusiastic, and in the other borderline hostile. In the math and physics departments I found faculty that were both more personable and frankly better at teaching their subject. My majors in math and physics developed as I continued to take courses with these faculty. The central question I pose in my SIP is this: how does the first faculty member a student encounters in a department influence a student's outcome? 
+|  To explain the goal of my project, we will need to briefly diverge into a personal tangent. I came into Kalamazoo College thinking I would follow the pre-med track and thus need to major in chemistry or biology. Four and a half years later, I am graduating with two majors, among them neither chemistry nor biology. I only took one course each in those department because in one course I found the professor unenthusiastic, and in the other borderline hostile. In the math and physics departments I found faculty that were both more personable and frankly better at teaching their subject. My majors in math and physics developed as I continued to take courses with these faculty. The central question I pose in my SIP is this: how does the first faculty member a student encounters in a department influence a student's outcome? 
         
-  The data tracks students through time, so in conjunction with grading policies and course credits obtainable through OCC's website we can track each student's cumulative GPA through their stay in the math and chemistry departments. We will build linear mixed-effects models stratified to avoid some confounding variables to determine an expected final cumulative GPA for each student that passes a few conditions, then determine the difference between observed and expected final cumulative GPA. I call this statistic $\Delta C$, short for difference in cumulative GPA. Where $C_O$ is a student's observed final cumulative GPA and $C_E$ is the final cumulative GPA predicted by the linear mixed-effects model:
+|  The data tracks students through time, so in conjunction with grading policies and course credits obtainable through OCC's website we can track each student's cumulative GPA through their stay in the math and chemistry departments. We will build linear mixed-effects models stratified to avoid some confounding variables to determine an expected final cumulative GPA for each student that passes a few conditions, then determine the difference between observed and expected final cumulative GPA. I call this statistic $\Delta C$, short for difference in cumulative GPA. Where $C_O$ is a student's observed final cumulative GPA and $C_E$ is the final cumulative GPA predicted by the linear mixed-effects model:
   
 \begin{equation}
 \Delta C = C_{O} - C_{E}
 \end{equation}
 
-We will then take the mean $\Delta C$ among all students that started with a certain faculty, which can be thought of as the average benefit to final cumulative GPA a student that started with the professor had with respect to the mean student. Finally, after running significance tests we will create faculty rankings based on their (1) the overall mean $\Delta C$, and (2) mean $\Delta C$ per course they taught. I promise there will be pretty pictures along the way.
+|     We will then take the mean $\Delta C$ among all students that started with a certain faculty, which can be thought of as the average benefit to final cumulative GPA a student that started with the professor had with respect to the mean student. Finally, after running significance tests we will create faculty rankings based on their (1) the overall mean $\Delta C$, and (2) mean $\Delta C$ per course they taught. I promise there will be pretty pictures along the way.
         
-        One of the conditions required to create the $\Delta C$ statistic is that students take multiple terms in the math and/or chemistry departments. This happens to be a pretty large requirement, especially for a community college such as OCC. I have pulled public data from DataUSA regarding OCC's enrollment statistics for all years available, which ended up being the years $2012$ through $2019$. The following tables and graph summarise this enrollment data.
+|     One of the conditions required to create the $\Delta C$ statistic is that students take multiple terms in the math and/or chemistry departments. This happens to be a pretty large requirement, especially for a community college such as OCC. I have pulled public data from DataUSA regarding OCC's enrollment statistics for all years available, which ended up being the years $2012$ through $2019$. The following tables and graph summarise this enrollment data.
         
 ```{r Load OCC Enrollment, include = FALSE}
 ##Load in OCC_Enrollment from 2012 to 2017. I am missing years 2010 - 2012. Data from https://datausa.io/profile/university/oakland-community-college
@@ -162,7 +163,7 @@ Mean.OCC_Enrollment <- OCC_Enrollment %>%
                         mutate(Total = `Full Time` + `Part Time`) %>%
                           summarise(`Mean Full Time` = mean(`Full Time`), `Mean Part Time` = mean(`Part Time`), `Mean Total` = mean(Total))
 
-kable(OCC_Enrollment_Table, caption = "OCC Mean Enrollment Statistics", padding = 3)
+kable(Mean.OCC_Enrollment, caption = "OCC Mean Enrollment Statistics", padding = 3)
 
 ##Legend creation method from https://community.rstudio.com/t/adding-manual-legend-to-ggplot2/41651
 colors <- c("Full Time" = "blue", "Part Time" = "red", "Total" = "green")
@@ -181,39 +182,39 @@ OCC_Enrollment_Plot <- OCC_Enrollment %>%
 OCC_Enrollment_Plot
 ```
     
-  Both full and part time enrollment monotonically declining over the reported years. Unfortunately, professor Eckstrom's dataset begins in the year 2010, so there are two relevant years we do not have data regarding enrollment. Regardless, between $2012$ and $2019$ on average only `r Mean.OCC_Enrollment[[1]]/Mean.OCC_Enrollment[[3]]*100`$\%$ of students were enrolled full time. According to the National Student Clearinghouse, community college dropout rate is a function of time enrolled - therefore part time students are less likely to take multiple courses in the same department due to a lower course load per term. (https://www.studentclearinghouse.org/nscblog/research-center-snapshot-report-showcases-yearly-success-and-progress-rates-for-fall-2012-freshman-class/) As we will see, requiring students to have two *graded* terms drastically reduces the sample size, but still allows for many faculty to be evaluated by the $\Delta C$ metric. 
+|     Both full and part time enrollment monotonically declining over the reported years. Unfortunately, professor Eckstrom's dataset begins in the year 2010, so there are two relevant years we do not have data regarding enrollment. Regardless, between $2012$ and $2019$ on average only `r Mean.OCC_Enrollment[[1]]/Mean.OCC_Enrollment[[3]]*100`$\%$ of students were enrolled full time. According to the National Student Clearinghouse, community college dropout rate is a function of time enrolled - therefore part time students are less likely to take multiple courses in the same department due to a lower course load per term. (https://www.studentclearinghouse.org/nscblog/research-center-snapshot-report-showcases-yearly-success-and-progress-rates-for-fall-2012-freshman-class/) As we will see, requiring students to have two *graded* terms drastically reduces the sample size, but still allows for many faculty to be evaluated by the $\Delta C$ metric. 
   
-  Another difficulty in light of a second filtration condition - students must not withdraw from the first course they take in the math or chemistry departments. It would be possible to start the models at the first graded term, but if a student withdraws from a course then takes it again, their grade may be artificially inflated and thus not serve as an honest intercept. As a result, the expectation on $\Delta C$ becomes negative rather than zero. Requiring students to receive a standard letter grade ensures that the linear mixed effects models have a consistent starting point, and that individual teachers are evaluated fairly. What if a certain faculty member had a high withdraw rate due to their course being hard, but prepared their students well for future courses and thus also had a high mean $\Delta C$? Simply put, is there a correlation between a faculty's mean $\Delta C$ and their withdraw rate? $\Delta C$ is blind to any effect outside the realm of cumulative GPA, so we must introduce a new statistic to capture variance in withdraw rates. Fortunately, the calculation of withdraw rate for individual faculty does not require filtration so the sample sizes will be much larger and thus the results much more accurate. As with the $\Delta C$ rankings, we will construct rankings using the difference between the overall withdraw rate and a faculty's observed rate for: (1) the overall case, and (2) by course taught. To be clear, where $W_O$ is a faculty's mean withdraw rate and $W_E$ is the germane expected rate, this statistic will be calculated as:
+|     Another difficulty in light of a second filtration condition - students must not withdraw from the first course they take in the math or chemistry departments. It would be possible to start the models at the first graded term, but if a student withdraws from a course then takes it again, their grade may be artificially inflated and thus not serve as an honest intercept. As a result, the expectation on $\Delta C$ becomes negative rather than zero. Requiring students to receive a standard letter grade ensures that the linear mixed effects models have a consistent starting point, and that individual teachers are evaluated fairly. What if a certain faculty member had a high withdraw rate due to their course being hard, but prepared their students well for future courses and thus also had a high mean $\Delta C$? Simply put, is there a correlation between a faculty's mean $\Delta C$ and their withdraw rate? $\Delta C$ is blind to any effect outside the realm of cumulative GPA, so we must introduce a new statistic to capture variance in withdraw rates. Fortunately, the calculation of withdraw rate for individual faculty does not require filtration so the sample sizes will be much larger and thus the results much more accurate. As with the $\Delta C$ rankings, we will construct rankings using the difference between the overall withdraw rate and a faculty's observed rate for: (1) the overall case, and (2) by course taught. To be clear, where $W_O$ is a faculty's mean withdraw rate and $W_E$ is the germane expected rate, this statistic will be calculated as:
 
 \begin{equation}
 \Delta W = W_E - W_O
 \end{equation}
 
-  Note that we have reversed the direction of difference with respect to $\Delta C$. We have chosen orientations such that positive $\Delta$ values correspond to "good" effects for ease of human interpretation. Additionally, note that while an observation on $\Delta C$ corresponds to one student, an observation on $\Delta W$ is specific to a faculty member. To reiterate, we will average over the $\Delta C$ values among those students that started with a professor to obtain a value unique to that faculty.
+|     Note that we have reversed the direction of difference with respect to $\Delta C$. We have chosen orientations such that positive $\Delta$ values correspond to "good" effects for ease of human interpretation. Additionally, note that while an observation on $\Delta C$ corresponds to one student, an observation on $\Delta W$ is specific to a faculty member. To reiterate, we will average over the $\Delta C$ values among those students that started with a professor to obtain a value unique to that faculty.
         
         b.	The Importance of Data-Driven decision making
         
-  Dr. Tobochnik has drilled into my mind that any conclusions we make about the world around us need to be supported by data. Theory is nice, but even if the math is pretty and complete there is no guarantee the assumptions we made to create the model were correct. I will therefore be conservative in speculation and only make conjecture regarding trends demonstrably present in the data. This is in accordance to the dogma of facts-based decision making. In the context of corporate decision making, David Fradin says "The reasons why facts drive better decisions include – the ability of the computer to find non-obvious answers, ability to crunch large datasets very fast, can take into account hundreds of market variables and ability to adopt a methodical repeatable process for analysis." (“Organizing and Managing Insanely Great Products” by David Fradin with RN Prasad) Reproducibility and objectivity are key to any good data analysis, and are necessary when seeking optimal answers to any scientific problems. (https://plato.stanford.edu/entries/scientific-reproducibility/) 
+|     My years of instruction in physics courses has drilled into my mind that any conclusions we make about the world around us need to be supported by data. Theory is nice, but even if the math is pretty and complete there is no guarantee the assumptions we made to create the model were correct. I will therefore be conservative in speculation and only make conjecture regarding trends demonstrably present in the data. This is in accordance to the dogma of facts-based decision making. In the context of corporate decision making, David Fradin says "The reasons why facts drive better decisions include – the ability of the computer to find non-obvious answers, ability to crunch large datasets very fast, can take into account hundreds of market variables and ability to adopt a methodical repeatable process for analysis." (“Organizing and Managing Insanely Great Products” by David Fradin with RN Prasad) Reproducibility and objectivity are key to any good data analysis, and are necessary when seeking optimal answers to any scientific problems. (https://plato.stanford.edu/entries/scientific-reproducibility/) 
   
-  Any empirically derived model will have error. Statistical methods such as hypothesis testing employ significance tests to determine whether a measured effect is "real". Such tests remove the human element by determining the likelihood a measured result could be generated by random chance under the assumption that the effect is "fake". (Laura M. Chihara and Tim C. Hesterberg, Mathematical Statistics with Resampling and R).
+|     Any empirically derived model will have error. Statistical methods such as hypothesis testing employ significance tests to determine whether a measured effect is "real". Such tests remove the human element by determining the likelihood a measured result could be generated by random chance under the assumption that the effect is "fake". (Laura M. Chihara and Tim C. Hesterberg, Mathematical Statistics with Resampling and R).
   
-  Even if the data collected are accurate and complete, confounding variables may still be present in any models created based on choice of groups and variables. According to Glenn Hymel, "If an extraneous variable is not appropriately controlled, it may be unequally present in the comparison groups. As a result, the variable becomes a confounding variable." (Research Essentials for Massage in the Healthcare Setting, Glenn M. Hymel, in Clinical Massage in the Healthcare Setting, 2008) 
+|     Even if the data collected are accurate and complete, confounding variables may still be present in any models created based on choice of groups and variables. According to Glenn Hymel, "If an extraneous variable is not appropriately controlled, it may be unequally present in the comparison groups. As a result, the variable becomes a confounding variable." (Research Essentials for Massage in the Healthcare Setting, Glenn M. Hymel, in Clinical Massage in the Healthcare Setting, 2008) 
         
                 i.	Importance of Data Science
-  As of 4/6/2021, Glassdoor ranks Data Scientist as the second best job in America, with a median starting salary of $\$113,736$. (https://www.glassdoor.com/List/Best-Jobs-in-America-LST_KQ0,20.htm) Data Scientists use techniques from mathematics, statistics, and computer science to create and use tools for the purpose of collecting data and analysing potentially hidden trends stored within. (Grolemund and Wickham, 2017) The world around us is being deluged with a treasure trove of data, waiting to be analysed. In machine learning, programmers feed trial data to their AI, which then creates a model. This model is then used to predict the distribution of future data. According to 
+|     As of 4/6/2021, Glassdoor ranks Data Scientist as the second best job in America, with a median starting salary of $\$113,736$. (https://www.glassdoor.com/List/Best-Jobs-in-America-LST_KQ0,20.htm) Data Scientists use techniques from mathematics, statistics, and computer science to create and use tools for the purpose of collecting data and analysing potentially hidden trends stored within. (Grolemund and Wickham, 2017) The world around us is being deluged with a treasure trove of data, waiting to be analysed. In machine learning, programmers feed trial data to their AI, which then creates a model. This model is then used to predict the distribution of future data. According to 
                         
         c.	R For Data Science (Textbook)
         
-  When I began this project, I had no idea what I was doing. For the first month or so I was using some retrospectively atrocious C++ inspired hard-coding methods, one remnant of which I have included commented out in the code that follows this paper. When I showed Dr. Nordmoe one copious script I had created to determine the total number of students/faculty in the data, he told me to install the tidyverse and call the unique() function. In approximately twenty seconds the process I had spent several hours on had been recreated. Moreover, the runtime was spectacularly improved. I was then told to read chapter five of \textit{R For Data Science} by Hadley Wickham and Garrett Grolemund. Chapter five is a guide to the R package dplyr, one of the many packages from the tidyverse I used in the construction of this project. As it happens, I didn't need to reinvent the wheel.  A lot of smart people have built a lot of nice functions to make R a phenomenal work environment for data analysis. \textit{R For Data Science} was immensely helpful to my project, and was my primary guide to working with tidyverse functions beyone Dr. Nordmoe's data science course. The full book can be found online for free at https://r4ds.had.co.nz/. I would like to relay the author's wishes for support of the Kakapo parrot, a critically endangered New Zealand native, at https://www.doc.govt.nz/kakapo-donate.
+|     When I began this project, I had no idea what I was doing. For the first month or so I was using some retrospectively atrocious C++ inspired hard-coding methods, one remnant of which I have included commented out in the code that follows this paper. When I showed Dr. Nordmoe one copious script I had created to determine the total number of students/faculty in the data, he told me to install the tidyverse and call the unique() function. In approximately twenty seconds the process I had spent several hours on had been recreated. Moreover, the runtime was spectacularly improved. I was then told to read chapter five of \textit{R For Data Science} by Hadley Wickham and Garrett Grolemund. Chapter five is a guide to the R package dplyr, one of the many packages from the tidyverse I used in the construction of this project. As it happens, I didn't need to reinvent the wheel.  A lot of smart people have built a lot of nice functions to make R a phenomenal work environment for data analysis. \textit{R For Data Science} was immensely helpful to my project, and was my primary guide to working with tidyverse functions beyone Dr. Nordmoe's data science course. The full book can be found online for free at https://r4ds.had.co.nz/. I would like to relay the author's wishes for support of the Kakapo parrot, a critically endangered New Zealand native, at https://www.doc.govt.nz/kakapo-donate.
         
         d.	Data Science Course
         
-  In order to help learn skills for this project, I enrolled in MAT-295 (Introduction to Data Science) at K. The course used the same free textbook that I read for this project, and so is an excellent offering for all students regardless of means. MAT-295 covered tidying and presenting data, text manipulation by means of regular expressions, manipulation of categorical variables, basic date/time conversion methods, creation of simple linear models, and a brief introduction to programming in R among other subjects. Course material does not include any mathematical theory such as probability or mathematical statistics, though the math department offers courses in those subjects in the Winter/Spring each year.  Introduction to Data Science does not require probability or math stats for enrollment, but statistics in particular is a powerful weapon in data analysis that we will be making heavy use of in this paper. MAT-295 was enormously helpful in giving me practice manipulating and presenting data using the tidyverse approach, which comprises at least half of the following project.
+|     In order to help learn skills for this project, I enrolled in MAT-295 (Introduction to Data Science) at K. The course used the same free textbook that I read for this project, and so is an excellent offering for all students regardless of means. MAT-295 covered tidying and presenting data, text manipulation by means of regular expressions, manipulation of categorical variables, basic date/time conversion methods, creation of simple linear models, and a brief introduction to programming in R among other subjects. Course material does not include any mathematical theory such as probability or mathematical statistics, though the math department offers courses in those subjects in the Winter/Spring each year.  Introduction to Data Science does not require probability or math stats for enrollment, but statistics in particular is a powerful weapon in data analysis that we will be making heavy use of in this paper. MAT-295 was enormously helpful in giving me practice manipulating and presenting data using the tidyverse approach, which comprises at least half of the following project.
         
         
-        e.	Statistical Background
+\subsection{Statistcal Background}  
         
- Probability theory is the backbone of any statistical method. In particular, the central limit theorem is an amazing piece of technology that guarantees when sufficiently many nicely behaved i.i.d. random variables are added, their sum will have a Gaussian distribution. (https://sphweb.bumc.bu.edu/otlt/mph-modules/bs/bs704_probability/BS704_Probability12.html) Where the i.i.d. random variables $X_i$ with population mean $\mu$ and standard deviation $\sigma$:
+|     Probability theory is the backbone of any statistical method. In particular, the central limit theorem is an amazing piece of technology that guarantees when sufficiently many nicely behaved i.i.d. random variables are added, their sum will have a Gaussian distribution. (https://sphweb.bumc.bu.edu/otlt/mph-modules/bs/bs704_probability/BS704_Probability12.html) Where the i.i.d. random variables $X_i$ with population mean $\mu$ and standard deviation $\sigma$:
 
 \begin{equation}
 \lim_{k \to \infty} \sum_{i=1}^k X_i ~  N(k\mu, \frac{\sigma^2}{k})
@@ -222,7 +223,7 @@ OCC_Enrollment_Plot
         
 (CITE PROBABILITY BOOK)        
         
- Clearly a perfectly Normal distribution would require the sum of infinitely many random variables. In reality it is quite tedious to attempt to collect an infinite number of values to add together, so it is common practice to set a lower bound of observations before data is considered approximately Normal. This bound is often considered to be between $30$ and $40$ depending on the author, but this value can decrease arbitrarily if the random variables themselves have Normal distribution. (https://www.investopedia.com/terms/c/central_limit_theorem.asp#:~:text=Sample%20sizes%20equal%20to%20or,characteristics%20of%20a%20population%20accurately., https://guides.fscj.edu/Statistics/centrallimit) Unfortunately, final cumulative GPA is inherently discrete, and withdraw rate is binomial. As such we must use an approximation to the central limit theorem. In my analysis, I use the more conservative minimum of 40 cases per stratum. Where the random variables $X_1$ through $X_n$ are i.i.d. each with sample mean $\bar{x}$ and standard error $s = \frac{\sigma_x}{\sqrt{n}}$,
+|     Clearly a perfectly normal distribution would require the sum of infinitely many random variables. In reality it is quite tedious to attempt to collect an infinite number of values to add together, so it is common practice to set a lower bound of observations before data is considered approximately normal. This bound is often considered to be between $30$ and $40$ depending on the author, but this value can decrease arbitrarily if the random variables themselves have normal distribution. (https://www.investopedia.com/terms/c/central_limit_theorem.asp#:~:text=Sample%20sizes%20equal%20to%20or,characteristics%20of%20a%20population%20accurately., https://guides.fscj.edu/Statistics/centrallimit) Unfortunately, final cumulative GPA is inherently discrete, and withdraw rate is binomial. As such we must use an approximation to the central limit theorem. In my analysis, I use the more conservative minimum of 40 cases per stratum. Where the random variables $X_1$ through $X_n$ are i.i.d. each with sample mean $\bar{x}$ and standard error $s = \frac{\sigma_x}{\sqrt{n}}$,
 
 \begin{equation}
 X = \sum_{i=1}^n X_i \sim N(n\bar{x}, s^2)
@@ -230,29 +231,30 @@ X = \sum_{i=1}^n X_i \sim N(n\bar{x}, s^2)
 \end{equation}
 (CITE MATHSTATS BOOK)
 
-  Like the Gaussian distribution, Student's t distribution is heavily used in significance testing. For a sample of $N$ i.i.d. random variables with sample mean $\bar{x}$, a-priori population mean $\mu$, and sample standard deviation $\sigma_x$, the t statistic is defined to be:
+|  Like the Gaussian distribution, Student's t distribution is heavily used in significance testing. For a sample of $N$ i.i.d. random variables with sample mean $\bar{x}$, a-priori population mean $\mu$, and sample standard deviation $\sigma_x$, the t statistic is defined to be:
 
 \begin{equation}
 t = \frac{\bar{x} - \mu}{\sigma_x / \sqrt{N}}
 \label{T  Statistic}
 \end{equation}
   
-The t distribution is designed to enable the analysis of small sample size, in accordance to a few conditions. According to CITE STATISTICS TEXTBOOK, these are:
+  
+|     The t distribution is designed to enable the analysis of small sample size, in accordance to a few conditions. According to CITE STATISTICS TEXTBOOK, these are:
   
 1. Data must be collected from random variables that come from a continuous scale. This assumption is relaxed as the number of possible values increases. As I will show later, both $\Delta C$ and $\Delta W$ have sufficient possible values per case to pass this condition.  
 2. Data must be collected by way of a simple random sample. From what I can tell, Professor Eckstrom's file contains a census, and so is immune to this requirement.
-3. Random variables must resemble the Normal random variable under combination. This assumption protects against pathological cases such as the Cauchy distribution that has undefined variance. The possible range for $\Delta C$ is given by the set $(-4,4)$ in units GPA points, and the possible range for $\Delta W$ is given by $(-1,1)$. The empirical mean $\Delta C$ distribution will ultimately have range $()$, as $\Delta W$ will have empirical range $()$ **[FILL THIS IN]**
-4. The sample must have a reasonable sample size. The central t-statistic is undefined for $N = 1$, and gradually converges to the standard normal z-statistic as $N$ increases. The smaller the original sample size, the higher the requisite t-value for significance. The only requirement on sample size is that there are enough data points to calculate the sample standard deviation. For safety, in my analysis I will mandate a minimum sample size of 8 students for calculation of both $\Delta C$ and $\Delta W$.
+3. Random variables must resemble the normal random variable under combination. This assumption protects against pathological cases such as the Cauchy distribution that has undefined variance. The possible range for $\Delta C$ is given by the set $(-4,4)$ in units GPA points, and the possible range for $\Delta W$ is given by $(-1,1)$. The empirical mean $\Delta C$ distribution will ultimately have range $()$, as $\Delta W$ will have empirical range $()$ **[FILL THIS IN]**
+4. The sample must have a reasonable sample size. The central t-statistic is undefined for $N = 1$, and gradually converges to the standard normal z-statistic as $N$ increases. The smaller the original sample size, the higher the requisite t-value for significance. The only requirement on sample size is that there are enough data points to calculate the sample standard deviation. For safety, in my analysis I will require a minimum sample size of 8 students for calculation of both $\Delta C$ and $\Delta W$. The reason for the number eight will be discussed after introducing the bootstrap.
 
-  We will use the t distribution to perform significance tests at the $\alpha = 0.05$ level, where $\alpha$ is the probability of rejecting the null hypothesis when it is true. (CITE STATISTICS TEXTBOOK) $\alpha$ is also known as the type I error. (CITE STATISTICS TEXTBOOK) For any significance test, we first define the null and alternate hypotheses. Faculty effects on future cumulative GPA can be either positive, zero, or negative, as can their effect on withdraw rate. There is no information outside the data that lead us to believe an individual faculty member will have a positive or negative $\Delta W$ or mean $\Delta C$, so we will use a two sided hypothesis. Where $\theta$ is the true value of a statistic (i.e. the $\Delta W$ or mean $\Delta C$ which would be calculated after an infinite number of students for one faculty):
+|     We will use the t distribution to perform significance tests at the $\alpha = 0.05$ level, where $\alpha$ is the probability of rejecting the null hypothesis when it is true. (CITE STATISTICS TEXTBOOK) $\alpha$ is also known as the type I error. (CITE STATISTICS TEXTBOOK) For any significance test, we first define the null and alternate hypotheses. Faculty effects on future cumulative GPA can be either positive, zero, or negative, as can their effect on withdraw rate. There is no information outside the data that lead us to believe an individual faculty member will have a positive or negative $\Delta W$ or mean $\Delta C$, so we will use a two sided hypothesis. Where $\theta$ is the true value of a statistic (i.e. the $\Delta W$ or mean $\Delta C$ which would be calculated after an infinite number of students for one faculty):
 
-\begin{align}
+\begin{align*}
 H_0: \theta = 0 \\
 H_A: \theta \neq 0
 \label{Hypotheses}
-\end{align}
+\end{align*}
 
-  Just as it would be impossible to collect infinite variables to ensure perfect Normality, we cannot mathematically prove from a sample which provides an estimate $\hat{\theta}$ that the null hypothesis is false. However, we can create a range of values where $\theta$ is expected to lie based on the observation of $\hat{\theta}$. This concept is called a confidence interval. In my analysis, I will construct such confidence intervals using two techniques from mathematical statistics:
+|     Just as it would be impossible to collect infinite variables to ensure perfect normality, we cannot mathematically prove from a sample which provides an estimate $\hat{\theta}$ that the null hypothesis is false. However, we can create a range of values where $\theta$ is expected to lie based on the observation of $\hat{\theta}$. This concept is called a confidence interval. In my analysis, I will construct such confidence intervals using two techniques from mathematical statistics:
 
 1. The one sample t-test. As the name suggests, the one sample t-test utilizes the t distribution. Where $\alpha$ is the probability of type I error and $t_{\alpha/2, N-1}$ is the t statistic's $\frac{\alpha}{2}$ quantile for N degrees of freedom, the derivation of the $100(1 - \alpha)\%$ confidence interval follows: ##CITATION http://www.ams.sunysb.edu/~zhu/ams571/Lecture11_571.pdf
 \begin{align*}
@@ -265,39 +267,83 @@ P(\bar{x} - t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}} \leq \mu \leq \bar{x} + 
 \label{T Confidence Interval}
 \end{equation}
 
+Using this $95\%$ confidence interval, our hypotheses on $\theta$ using the t-statistic become:
+
+\begin{align}
+H_0: \theta \in [\bar{x} - t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}}, \bar{x} + t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}}]
+H_A: \theta \notin [\bar{x} - t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}}, \bar{x} + t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}}]
+\label{T Hypotheses}
+\end{align}
+
 2. The bootstrap. The bootstrap principle is a powerful tool that can allow fo significance testing with fewer assumptions than the one sample t-test. The general process for the bootstrapping of a population parameter $\theta$ using a given sample containing an estimate $\hat{\theta}$ follows:
 
-1) Create an empty vector $V_{boot}$ with length equal to a large number $n_{sim}$
-2) Create a sample with replacement $S_{boot}$ from the original sample whose length is equal to the length of the original sample. In this example this length is N.
-3) Store the observed mean of $\hat{\theta}$ from (2) into $V_{boot}$
-4) Repeat (2) and (3) $n_{sim}-1$ times.
+  a. Create an empty vector $V_{boot}$ with length equal to a large number $n_{sim}$
+  b. Create a sample with replacement $S_{boot}$ from the original sample whose length is equal to the length of the original sample. In this example this length is N.
+  c. Store the observed mean of $\hat{\theta}$ from (2) into $V_{boot}$
+  d. Repeat (a) through (c) $n_{sim}-1$ times.
 
-The resulting vector $V_{boot}$ contains the bootstrap sampling distribution, which is an estimate for the sampling distribution. Due to $\ref{Small N CLT}$ As such, we can use the bootstrap distribution to create a confidence interval for $\theta$. R's built-in quantile() function is used to create $95\%$ confidence intervals for $\hat{\theta}$ from this bootstrap sampling distribution. The $100(1-\alpha)\%$ bootstrap CI is given by the set $[\textbf{quantile}(V_{boot}, .025),\quad \textbf{quantile}(V_{boot}, .975)]$. 
+|     The resulting vector $V_{boot}$ contains the bootstrap sampling distribution, which is an estimate for the sampling distribution. Due to $\ref{Small N CLT}$ As such, we can use the bootstrap distribution to create a confidence interval for $\theta$. R's built-in quantile() function is used to create $95\%$ confidence intervals for $\hat{\theta}$ from this bootstrap sampling distribution. The $100(1-\alpha)\%$ bootstrap CI is given by the set:
+\begin{align}
+$100(1-\alpha)\%$CI = $[\textbf{quantile}(V_{boot}, \frac{\alpha}{2}),\quad \textbf{quantile}(V_{boot}, 1- \frac{\alpha}{2})]$. 
+\label{Bootstrap CI}
+\end{align}
 
-1. COURSERA
+The corresponding hypotheses on $\theta$ are given by:
 
-  As previously stated, when I first began this project I had never taken a programming course. A large chunk of the project boiled down to creation and manipulation of new variables through the tidyverse method, but there was still many pieces of knowledge I lacked to make the analysis run. Coursera offers many excellent online courses on a wide variety of subjects, among them computer science and data science. To learn the programming skills I required to analyse Professor Eckstrom's data, I enrolled in and completed the first two modules of the *Data Science: Foundations Using R Specialization* offered by Johns Hopkins University on the Coursera platform: (1) The Data Scientist's Toolbox, and (2) R Programming. My certificates for these courses along with the grade I recieved are available in the appendix. I dedicate the following section as a summary of my learning from these courses. 
-        
-        f.	Coursera
-        In this project my goal was to create a method of modeling the effects teachers have on their students. To do this, I needed to 
-        g.	COVID Difficulties
-II.	Base R
-        a.	Atomic Data Types
-CITATION FOR ENTIRE SECTION IS R Programming for Data Science by Roger D. Peng [version 9/3/2020]    
+\begin{align}
+H_0: \theta \in [\textbf{quantile}(V_{boot}, \frac{\alpha}{2}),\quad \textbf{quantile}(V_{boot}, 1-\frac{\alpha}{2})]
+H_A: \theta \notin [\textbf{quantile}(V_{boot}, \frac{\alpha}{2}),\quad \textbf{quantile}(V_{boot}, 1-\frac{\alpha}{2})]
+\label{Bootstrap Hypotheses}
+\end{align}
 
+
+|     In my analysis, the $\Delta C$ statistic is calculable for all students that take only one course in the first term, do not withdraw from that course, and receive at least one more grade. It is possible to group students by the course code of their first course, then immediately create a bootstrap sampling distribution for $\Delta C$ using only those students. This is pointless; recall we define each stratified linear models such that the mean $\Delta C$ over all students that take the same first course code is precisely zero. Furthermore, the average $\Delta C$ for a course code is not what we wish to test. Our goal in creating the $\Delta C$ statistic is to determine if individual faculty have a statistically significant effect on their student's final cumulative GPA. We will seperate this investigation into two experiments. Experiment one will be to test for significance the mean $\Delta C$ among all students that passed filtration and started with a given instructor. Experiment two will restrict the students the $\Delta C$'s for averaging to only those that started in the same course code with the same professor. In summary, we wish to construct a $95\%$ range for the population (read: "true") mean $\Delta C$ among students that started with a professor, both overall and by individual course code. Faculty in OCC's math and chemistry departments vary in the number of students taught, which effects the coding methods necessary for establishment of bootstrap confidence intervals. Specifically, we must on a case-by-case basis adjust the number of observations per bootstrap sample to mirror the number observed. To reiterate, in experiment one the number of observations per bootstrap sample will be equal to the total number of students that started with the faculty. In experiment two we set the number of observations per bootstrap sample equal to the number of students that started with the faculty *in a particular course code*. There are two ways to accomplish this:
+
+1. In experiment one, we can create a bootstrap sampling distribution by drawing samples *from the overall list of* $\Delta C$*'s* for all students. In experiment two the $\Delta C$'s available for sampling are restricted to those of students that started in the desired course code. If the number of simulations and the number of values are each sufficiently large, one can use R's quantile() method to determine the $95\%$ CI as outlined above. The observed mean for $\Delta C$ is then checked against the confidence interval. If the observed mean is within the confidence interval we fail to reject the null hypothesis that the faculty did not have a significantly different effect on a student's final cumulative GPA than the mean difference. If the observed mean is outside the boundary, we have sufficiently shown at the $\alpha = 0.05$ level that the faculty's mean effect was different than the overall mean effect. Moreover, for such significantly different faculty we have shown at the $\alpha = 0.025$ level that the mean effect was either positive or negative depending on the polarity of the observed mean. This method amounts to determining the probability of randomly generating a bootstrap sample with a mean at least as extreme as the observed mean.
+
+2. To prevent needing to simulate the sampling distribution from the total sample for each sample size possessed by a faculty member, we can simply use the $\Delta C$'s attained by those students that passed filtration and started with the faculty member as the population from which bootstrap samples are created (in a particular course in the case of experiment two). The confidence interval generated by sampling from the $\Delta C$'s attained by a faculty's students is range for the true mean $\Delta C$ of that instructor. Therefore, if the stratum's mean $\Delta C$ is within the generated CI, the faculty's effect cannot be shown to be different than the mean. We then fail to reject the null hypothesis. On the other hand if the $95\%$ confidence interval does not include the overall mean, then we reject the null hypothesis in favor of the alternate. Again, for faculty with significantly different effects we show at the $\alpha = 0.025$ level that said effect is either positive or negative, depending on the polarity of the observed mean. In my analysis I chose to use this method to slightly save on processing time, but to my knowledge both are equally valid. 
+
+|     For a faculty's $\Delta W$ the bootstrapping process and experiments follow exactly as for their mean $\Delta C$. As a final note, the bootstrap confidence interval may not accurately represent the sampling distribution if there are not enough unique observations. This is a particular issue with a fundamentally discrete statistic like difference between observed and expected final cumulative GPA. On the topic of a minimum original sample size for using the bootstrap method, the author of two books on the bootstrap Dr. Michael R Chernick states that:  (https://stats.stackexchange.com/questions/33300/determining-sample-size-necessary-for-bootstrap-method-proposed-method)
+ 
+ > Now if the sample size is very small---say 4---the bootstrap may not work just because the set of possible bootstrap samples is not rich enough. In my book or Peter Hall's book this issue of too small a sample size is discussed. But this number of distinct bootstrap samples gets large very quickly. So this is not an issue even for sample sizes as small as 8.
+ 
+|     From this guideline I chose to discard all faculty effects that were measured from fewer than eight students. I also chose to use eight students as minimum for the t-tests to create a closer approximation to normality.
+
+\section{R Programming}
+
+|     As previously stated, when I first began this project I had never taken a programming course. A large chunk of the project boiled down to creation and manipulation of new variables through the tidyverse method, but there was still many pieces of knowledge I lacked to make the analysis run. Coursera offers many excellent online courses on a wide variety of subjects, among them computer science and data science. To learn the programming skills I required to analyse Professor Eckstrom's data, I enrolled in and completed the first two modules of the *Data Science: Foundations Using R Specialization* offered by Johns Hopkins University on the Coursera platform: (1) The Data Scientist's Toolbox, and (2) R Programming. My certificates and grades I received are available in the appendix along with synopses and work product from the two courses. This section is a summary of my learning from these courses and my previous exposure to R, intended as a introduction to all necessary concepts used in my program. For readers new to the R language, I recommend keeping the R Documentation open for reference when learning the syntax and usage of new functions.
+
+CITATION FOR ENTIRE SECTION IS R Programming for Data Science by Roger D. Peng [version 9/3/2020]            
+       
 \subsection{The Atomic Data Types}
-  In the R language, there are five atomic data types or class invariants. 
+
+|     In the R language, there are five atomic data types, also called class invariants: 
+
 1. Numeric data, often also referred to as double-precision data, are real numbers. They can have up to fifteen significant digits, but generally are limited by observation to many fewer. In RMarkdown it is common practice to include the option "digits = k", which restricts the printing of doubles to k decimal points. Numeric data have the additional option of having the value NAN (for not a number), which most often corresponds to undefined in mathematical language. For instance, $\log(-1)$ yields the output `r log(-1)`. 
-2. Integer data can only be real integers, and are useful in programming aspects such as indexing and preventing rounding errors. 
+
+2. Integer data can only be real integers, and are useful in programming aspects such as indexing and preventing rounding errors. Integer math is a common focus of number theory.
+
 3. Character data, or strings, are the broadest class. Any set of alphanumeric+ characters can be represented in a *string* as a character object. Packages such as stringr are available to manipulate character variables with plentiful functions equipped for regular expressions.  
+
 4. One of if not the most important data type for programming in R is the logical, or Boolean. A logical datum either has the value `r TRUE` or `r FALSE`. When two logicals $b_1$ and $b_2$ are compared over equality - i.e. $b_1 = b_2$ - R will output `r TRUE` if both data have the same value. We will momentarily investigate the behavior of logical data. As will be apparent when discussing subsetting, the ability to programmatically compare large quantities of logical data allows for fast and convenient indexing, sorting, and filtering.
+
 5.The final class in the R language is complex, an element of which has the form $a + bi$, where $a$ and $b$ are numeric data. I personally never used complex data beyond the single Coursera quiz that asked for the identification of a complex datum among a list of options.
 
-  One last important note - data can be missing in any class. A missing value is denoted with NA (for not available). The NA can therefore be represented in each class, and converted using the as.xxx() family of functions. R treats NA values as if they did have a value, but that the value is not known. For instance - the mean of the numeric vector c(.5, 2, NA) is `r mean(c(.5, 2, NA))` with class `r class(mean(c(.5, 2, NA)))`, because R cannot determine the third element's effect on the average but assumes it was a number due to how vectors are defined.
-  
+|     One last important note - data can be missing in any class. A missing value is denoted with NA (for not available). The NA can therefore be represented in each class, and converted using the as.xxx() family of functions. R treats NA values as if they did have a value, but that the value is not known. For instance - the mean of the numeric vector c(.5, 2, NA) is `r mean(c(.5, 2, NA))` with class `r class(mean(c(.5, 2, NA)))`, because R cannot determine the third element's effect on the average but assumes it was a number due to how vectors are defined.
+
+\subsection{Assignment}  
+
+|     The cornerstone of any function-oriented programming project is the ability to save a created object to memory. A user can accomplish this by using one of R's assignment methods. There are five different assignment operators: (R programming textbook, https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/assignOps)
+
+1. The equals operator "=" which cannot be used within a function call,
+
+2. The left assignment operator "<-" and the right assignment operator "->" which *can* be used within a function call, and
+
+3. The left and right super-assignment operators "<<-" and "->>", which store the created object to the parent frame. Super-assignment is most commonly found in functions where a useful object is created, such as in the process of caching to prevent the duplication of effort.
 
 \subsection{Vectors}
-  On that note, let's discuss one of the primary weapons of the R language - vectors. R can store any sequence of data from a single class as a vector and do operations on it. Such operations are performed element-wise unless else specified. The vector's class will be the same as that of its constituent data. There are several ways to create a vector including the concatenation operator c(), the sequence generator seq(), the replicate function rep(), the colon operaton :,  and extracting a column out of a dataframe either by using pull() or by subsetting.  Individual elements can have names, for instance:
+
+|     On that note, let's discuss one of the primary weapons of the R language - vectors. R can store any sequence of data from a single class as a vector and do operations on it. Such operations are performed element-wise unless else specified. The vector's class will be the same as that of its constituent data. There are several ways to create a vector including the concatenation operator c(), the sequence generator seq(), the replicate function rep(), the colon operaton :,  and extracting a column out of a dataframe (a rectangular matrix with column names) either by using pull() or by subsetting.  Individual elements can have names, for instance:
   
 ```{r Demo Named Vector, echo = TRUE}
 vector.names <- c("Jimmy", "Sammy", "Katrina")
@@ -307,7 +353,7 @@ names(my.vector) <- vector.names
 my.vector
 ```
 
-  Vectors can sometimes be changed from one class to another through a process called coercion. The family of functions as.class() performs this conversion. Below is some sample output demonstrating the coercion capabilities of different classes using three demo vectors: num for numeric, chr for character, and log for logical:
+|     Vectors can sometimes be changed from one class to another through a process called coercion. The family of functions as.class() performs this conversion. Below is some sample output demonstrating the coercion capabilities of different classes using three demo vectors: num for numeric, chr for character, and log for logical:
 
 ```{r demo vectors, echo = TRUE}
 ##Define demo vectors. num is a numeric vector, chr is a character vector, and log is a logical vector.
@@ -328,12 +374,14 @@ as.numeric(log)
 ##Coercion of logical vector to character
 as.character(log)
 ```
-When coercing a numeric object into the character class, each element becomes represented as a string and loses its ability to partake in arithmetic operations. Conversion from double to logical is possible, but one must be careful - only zeroes get mapped to `r FALSE`, while all other numbers get mapped to `r TRUE` unlike in some other languages. Character vectors are the least coercible. While each unicode character is stored in memory as a very large integer, R doesn't want to return these for user safety. As a result, coercion of a vector from the character class to the numeric class will result in a missing value unless R thinks the string already represents a number. Strangely, `r TRUE` / `r FALSE` values stored in a character vector will be mapped to missing values in this coercion, even though they can be coerced into numerics. Calling as.logical() will similarly fail to notice $0$ as `r FALSE`.  If a vector's class is not clear, the class() method is an excellent tool, and can also be used programmatically to obtain the class(es) of an object. In my project I used the as.class() functions rather rarely, but they serve to elucidate the inner workings of the classes themselves. 
+
+|     When coercing a numeric object into the character class, each element becomes represented as a string and loses its ability to partake in arithmetic operations. Conversion from double to logical is possible, but one must be careful - only zeroes get mapped to `r FALSE`, while all other numbers get mapped to `r TRUE` unlike in some other languages. Character vectors are the least coercible. While each unicode character is stored in memory as a very large integer, R doesn't want to return these for user safety. As a result, coercion of a vector from the character class to the numeric class will result in a missing value unless R thinks the string already represents a number. Strangely, `r TRUE` / `r FALSE` values stored in a character vector will be mapped to missing values in this coercion, even though they can be coerced into numerics. Calling as.logical() will similarly fail to notice $0$ as `r FALSE`.  If a vector's class is not clear, the class() method is an excellent tool, and can also be used programmatically to obtain the class(es) of an object. In my project I used the as.class() functions rather rarely, but they serve to elucidate the inner workings of the classes themselves. 
 
 
 
 \subsection{Logic}
-  Before moving on to subsetting vectors and lists, we first take a foray into R's evaluation of logical statements. The most straightforward way to do this is to look at some examples.
+
+|     Before moving on to subsetting vectors and lists, we first take a foray into R's evaluation of logical statements. The most straightforward way to do this is to look at some examples.
 
 ```{r Logical Practice 1, echo = TRUE}
 ##Practice with logical data
@@ -342,9 +390,10 @@ TRUE != TRUE
 FALSE < TRUE
 FALSE > TRUE
 ```
-The double equals is a binary operator that outputs `r TRUE` i.f.f. both sides of the operator have the same evaluation. The less than and greater than operators work in a similarly intuitive manner. $!$ is the negation operator, which inverts the meaning of the logical operator it is paired with. Additionally a logical datum itself can be negated, such that !`r TRUE` evaluates to `r !TRUE`. Note that the expression `r FALSE` $<$ `r TRUE` evaluates to `r TRUE` and `r FALSE` $>$ `r TRUE` evaluates to `r FALSE` because R considers `r FALSE` to be the number $0$ and `r TRUE` to be the number $1$. This feels less than intuitive because as seen above any nonzero number coerces to `r TRUE` under the method as.logical(). Just as $0 < 1$ gets a `r TRUE`, when character data are compared over the binary operators, R considers the lexicographic ordering. This is worth exploring, but not relevant to my project. More pertinent is the evaluation of vector comparisons. Let's do another example.
 
-```{r Logical Practice 2, echo = TRUE, warning == FALSE}
+|     The double equals is a binary operator that outputs `r TRUE` i.f.f. both sides of the operator have the same evaluation. The less than and greater than operators work in a similarly intuitive manner. $!$ is the negation operator, which inverts the meaning of the logical operator it is paired with. Additionally a logical datum itself can be negated, such that !`r TRUE` evaluates to `r !TRUE`. Note that the expression `r FALSE` $<$ `r TRUE` evaluates to `r TRUE` and `r FALSE` $>$ `r TRUE` evaluates to `r FALSE` because R considers `r FALSE` to be the number $0$ and `r TRUE` to be the number $1$. This feels less than intuitive because as seen above any nonzero number coerces to `r TRUE` under the method as.logical(). Just as $0 < 1$ gets a `r TRUE`, when character data are compared over the binary operators, R considers the lexicographic ordering. This is worth exploring, but not relevant to my project. More pertinent is the evaluation of vector comparisons. Let's do another example.
+
+```{r Logical Practice 2, echo = TRUE, warning = FALSE}
 ##Define some vectors to compare with different lengths.
 ##Vector a contains the sequence 1, 2.
 a <- c(1, 2)
@@ -355,88 +404,283 @@ b <- c(1:4,0)
 a == b
 ##Compare a and b over a formula
 a + 2 == b
+##Use the which() function
+which(b >= 3)
 ```
 
-  R evaluates vector comparisons element-wise and outputs a vector with length equal to the longest input vector. If the compared vectors are not the same length, R will repeatedly replicates the shorter vector end-to-end until the lengths are equal. In the above example, R changed the expression $\{1,2\} == \{1,2,3,4,0\}$ into $\{1,2,1,2,1\} == \{1,2,3,4,0\}$. The shorter length of $2$ does not evenly divide the longer length $5$ so R throws a warning, but continued with evaluation regardless. The output of any logical comparison is a logical vector, the previous comparisons were simply a special case where the input vector lengths were each one. $a == b$ returns a five element output vector, because the longer of the two input vectors had five elements.
+|     R evaluates vector comparisons element-wise and outputs a vector with length equal to the longest input vector. If the compared vectors are not the same length, R repeatedly replicates the shorter vector end-to-end until the lengths are equal. In the above example, R changed the expression $\{1,2\} == \{1,2,3,4,0\}$ into $\{1,2,1,2,1\} == \{1,2,3,4,0\}$ before evaluating. The shorter length of $2$ does not evenly divide the longer length $5$ so R throws a warning, but continues with evaluation regardless. The output of any logical comparison is a logical vector; the previous comparisons were simply a special case where the input vector lengths were each one. $a == b$ returns a five element output vector, because the longer of the two input vectors had five elements.
   
-  The final hitch to logical evaluation in R are conditional expressions. R is equipped with three basic binary conditions: the and statement "&", the or statement "|", and the xor function xor(). A more complicated binary operator I use for the data analysis is the in operator "%in%", which checks whether the left object is within a range of values specified by the right object. These conditions work just as they do in set theory. Or has low priority in R's evaluation queue while and has high priority so that conditions evaluate in accordance to the generally desired order of operations. Just like in mathematics parenthetical statements are evaluated before their exterior for additional control over the evaluation queue. R allows for the user to define their own logical operators, a privilege I used one time to create a negated version of the "%in%" operator called "%notin%".
+|     The final complexity to logical evaluation in R are conditional expressions. R is equipped with three basic binary conditions: the and statement "&", the or statement "|", and the xor function xor(). A more complicated binary operator I use for the data analysis is the in operator "%in%", which checks whether the left object is within a range of values specified by the right object. These conditions work just as they do in set theory. Or has low priority in R's evaluation queue while and has high priority so that conditions evaluate in accordance to the generally desired order of operations. Just like in mathematics parenthetical statements are evaluated before their exterior for additional control over the evaluation queue.   The which() function is the odd-code-out in this example, because it does not return a logical vector. Instead it takes a logical vector as *input* and returns the indecies of the `r TRUE` elements. This is particularly useful in subsetting.  One final note, R allows for the user to define their own logical operators, a privilege I used only one time in conjunction with the Negate() function to create a negated version of the "%in%" operator called "%notin%".  
 
 \subsection{Subsetting}
 
-  CRAN outlines three operators for subsetting sequences in R: (https://cran.r-project.org/doc/manuals/R-lang.html#Indexing)
-1. The single bracket operator $X[i]$, where $X$ is some array and $i$ is a set of indecies. Single bracket subsetting is generally used with vectors to extract the $i^{th}$ elements of X. When used on a list, the single bracket will return the $i^{th}$ elements as a list. The user can supply indecies either as an integer vector or a logical vector. To see how this works, examine the sample output below.
+|     CRAN outlines three operators for subsetting sequences in R: (https://cran.r-project.org/doc/manuals/R-lang.html#Indexing)
 
-```{r}
+1. The single bracket operator $X[i]$, where $X$ is some array and $i$ is a set of indecies. Single bracket subsetting is generally used with vectors to extract the $i^{th}$ elements of X. When used on a list, the single bracket will return the $i^{th}$ elements as a list. The user can supply indecies either as an integer vector or a logical vector. To see how this works, inspect the sample output below.
 
+```{r Single Bracket Practice, echo = TRUE}
+##We will be using my.vector for subsetting practice. Here I will print it out once again as a reminder
+my.vector
+
+##Define some integer indecies to subset
+int.index <- c(2,3,4)
+
+##Define some logical indecies to subset
+lgl.index1 <- c(TRUE, FALSE)
+
+##More practical application of logical indexing
+lgl.index2 <- names(my.vector) == "Jimmy" | names(my.vector) == "Katrina"
+
+##Define some desired names for subsetting
+names.index <- c("Jimmy", "Sam")
+
+##Use the single bracket operator to subset using integer indecies
+my.vector[int.index]
+
+##Use the single bracket operator to subset using logical indecies
+my.vector[lgl.index1]
+
+##Practical example of subsetting with logic. This returns the same output as previous example, but has a more legible index.
+my.vector[lgl.index2]
+
+##Use the single bracket operator to subset by name
+my.vector[names.index]
 ```
-
-2. 
-3. 
-.  Here elements are extracted from the demo vector used earlier.
+|     R uses $1$-based array indexing, so when fed integer indecies it will attempt to extract elements from the object based on the position considering the index $1$ to be first position.  When we told R to take $4^{th}$ element of my.vector it determined that there *should* be a $4^{th}$ element, but that there was insufficient data to determine its value. R returns `r NA` for the fourth index of my.vector. If R instead is given a logical vector to use as indecies, it decides it needs to do a logical comparison. R will first (if necessary) replicate the indecies until the length of the index vector has at least the same length as the object to be subset; my.vector has three elements but lgl.index only has two, so R will turn $c(T, F)$ into $c(T, F, T, F)$. The elements corresponding to `r TRUE` indecies are returned. The true power of this concept arises from the combination of R's robust logical framework and element-wise operations, as can be seen in the second logical example output.
   
-  Lists are another common form of array that can be thought of as a hierarchical pyramid that can hold any type of object, including other lists. Just like vectors, list elements can have names. Lists are excellent organizational tools because they are not beholden to the stipulation that each element have the same class invariant; a two element list may for example contain one function and one dataframe. Because lists may contain a variety of information, a couple good ways to obtain a sense of the contents are the str() and  glimpse() commands. I am personally partial towards glimpse due to its good behavior with other dplyr verbs. 
+|     The single bracket operator can also be used to subset by name. When the single bracket is fed a character vector, R will look for an element whose name is a literal match. One of the later methods allows for partial matching, but not the single bracket. If there is no element with a name matching a supplied argument R will return an `r NA` of the appropriate class as stand-in. Note that R does not name the `r NA` value with the assumed name from the index.
+  
+2. The double bracket operator $X[[i]]$. Just as the single bracket variant is generally used on vectors, the double bracket is most often used on lists. Before discussing the double bracket method, first we must first ask what is an R list? Lists are another common form of array that can be thought of as a hierarchical pyramid that can hold any type of object, including other lists. Just like vectors, list elements can have names. Lists are excellent organizational tools because they are not beholden to the stipulation that each element have the same class invariant; a two element list may for example contain one function and one dataframe. Because lists may contain a variety of information, a couple good ways to obtain a sense of the contents are the str() and  glimpse() commands. I am personally partial towards glimpse due to its good behavior with other dplyr verbs. 
 
+|     The double bracket drops all formatting on elements - for a list this includes removal of the top level list specification as well as any names associated to the level. In the sample output below, my.list contains two branches. The first branch is another list of two elements, while the second is a numeric vector of length $1$. By applying [[1]] once, R extracts the branch title Element_One. The second application of [[1]] extracts the contents of the first object stored in Element_One, which happens to be a function that returns the mean of an input. By supplying a numeric vector to this subset R will output the mean of the numeric vector. In my project I use lists to store multiple stratified mixed-effects models, and subsetting those lists allows tidy storage of slopes and t-values.
+  
 ```{r List Example, echo = TRUE}
 ##Create dummy functions for list
 test.mean <- function(x){mean(x)}
 test.median <- function(x){median(x)}
 ##Create list with multiple layers
-my.list <- list(list(test.mean, list(test.median)), list(test.median), 100)
+my.list <- list(list(test.mean, test.median), 100)
+##Name some elements of my.list
+names(my.list) <- c("Element_One", "Element_Two")
+names(my.list[[1]]) <- c("Mean", "Median")
 ##Print the list
 my.list
+##The subset my.list[[1]][[1]] returns a function that takes the mean of an input vector.
+my.list[[1]][[1]](c(1,2,3))
 ```
-The double bracket operator is at its best when working with lists
+
+3. The dollar sign operator $X\$i$ is the most straightforward subsetting operator. `$` is most often used to extract variables (columns) from a dataframe by name. It can do the same for any non-atomic array, so we will do an example with the object my.list. 
+
+```{r}
+my.list$Element_One
+
+my.list$Element_One$Median(c(1,2,3))
+```
+
+|     Like the double bracket operator, the dollar sign drops formatting on the extracted object. As such, named functions stored within lists can be immediately called, and atomic data can be immediately operated on. While I never perform a double dollar sign extraction in my program, I do perform extractions from lists using a combination of subsetting methods.
+  
+\subsection{Control Structures}
+
+|     Complicated functions can be built by chaining and/or nesting conditional execution statements. In R, conditional execution arises from the a standard if-else statement. The most widely used control structures available in R are the if-else chain, the for while and repeat loops, and the reserved words break and next.  According to the R documentation for these constructs, "They function in much the same way as control statements in any Algol-like language." (https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/Control) For loops run over a predetermined set of indecies supplied to the loop, and are therefore a fundamentally finite process. In my project for loops are most widely implemented for program stability. For loops are also easiest to troubleshoot, because R records the loop index in a dummy variable. While loops are more dangerous because a set condition is checked before each cycle and there is no guarantee that such a condition will ever flag. That is not to say these are not useful - the ability to iterate an arbitrary number of times is very powerful. The last type of loop is the repeat loop, which loops continuously until an internal break is called. As with the while loop, a user must be cautious to avoid an infinite loop. The advantage of a repeat loop is manual control over when the break condition gets evaluated. To highlight the differences between while and repeat, let's look at an example:
+
+```{r Demo While Loop, echo = TRUE}
+x1 <- 0
+while(x1 < 0){
+  x1 <- x1 + 1
+}
+x1
+```
+|     While loops check the evaluation condition at the beginning of the loop. Because zero is not less than zero, the loop immediately flags and therefore the value of $x$ remains zero.
+
+```{r Demo Repeat Loops 1, echo = TRUE}
+x2 <- 0
+repeat{
+  if(x2 >= 0){
+    break
+  }
+  x2 <- x2 + 1
+}
+x2
+```
+|     Repeat loops require their user to place the break condition manually. By placing the condition at the beginning of the loop, we have recreated a while loop. Note that the condition used is inverted with respect to the while loop for usage of the if() construct.
+
+```{r Demo Repeat Loop 1, echo = TRUE}
+x3 <- 0
+repeat{
+  x3 <- x3 + 1
+  if(x3 >= 0){
+    break
+  }
+}
+x3
+```
+
+|     Even though the condition used in this loop is identical to the previous loops, the output is different. Placing the loop break at the end of a loop causes R to run one iteration before quitting. Often this difference can be overcome by a change of condition to a while loop, which is often preferable for legibility. Changing the condition $x < 0$ to $x < 1$ in the while loop makes it equivalent to the second repeat loop. One final note - the next statement ends the current iteration and advances to the next. One application lies in the handling of missing values. In the following example, the is.na() function returns `r TRUE` if the supplied argument is a missing value and `r FALSE` otherwise. The seq_along() method creates a set of integer indecies from $1$ to the length of the supplied vector. We now seek to build a loop that counts how many `r TRUE` statements exist in a row while ignoring missing values:
+
+```{r Example loop, echo = TRUE}
+##Create vector to iterate over
+x4 <- c(TRUE, TRUE, NA, FALSE, TRUE)
+cntr <- 0
+for(i in seq_along(x4)){ ## seq_along(x4) generates the vector 1:5
+  if(is.na(x4[i])){ ##If the ith element of x4 is missing, skip the iteration
+    next
+  }
+  if(x4[i] == TRUE){ ##If the ith element of x4 is TRUE increment the counter by one
+    cntr <- cntr + 1
+  }
+  else{ ##By the process of elimination the current element must be FALSE, so we end the loop.
+    break
+  }
+}
+
+cntr
+```
+
+\subsection{Functions}
+In his 2008 book *Software for Data Analysis: Programming with R*, John Chambers said:
+ > Nearly everything that happens in R results from a function call. Therefore, basic programming centers on creating and refining functions.
+(Chambers, John M. (2008). Software for data analysis programming with R. Berlin: Springer. ISBN 978-0-387-75935-7.)
+
+|     It often happens that a programmer wishes to change a couple parameters before reusing some existing code. Functions accomplishes this task efficiently. Such objects can take inputs, no inputs, or have a pre-set but changeable parameter. These arguments are called the "formals" of the function. (https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/formals, https://www.rdocumentation.org/packages/Rllvm/versions/0.7-0/topics/Function). The "body" consists of the code executed upon a function call using the supplied formal arguments. Functions must exist either in the current working directory or a higher directory in order to be called under R's scoping rules.
+
+|     Let's say we had 500 logical vectors of length five and wished to find the mean number of first `r TRUE`'s before the first `r FALSE` over all such vectors. The code in the above example loop serves this purpose quite well, but copy/pasting the entire block would be neither tidy nor runtime efficient. We will store the chunk as a function, then apply it across all vectors to find the mean.
+
+```{r Example Function, echo = TRUE}
+##We need to create 500 logical vectors of length 5. The rbinom() function is excellent for this task as it simulates binomial random variables. Documentation can be found at https://stat.ethz.ch/R-manual/R-patched/library/stats/html/Binomial.html . We will create these logical vectors one-by-one, and use a loop to iterate 500 times.
+
+results <- rep(0, 500) ##Create a vector to store the number of TRUE's before the first FALSE for each vector of length 5.
+
+##We define the function Trues.Before.False to count the number of TRUE's before FALSE in the supplied vector, while skipping any elements that are missing. In our randomly generated vectors no data will be missing, but real data might so it is a solid safety measure.
+Trues.Before.False <- function(vector){
+cntr <- 0
+for(i in seq_along(vector)){ ## seq_along(vector) creates indecies to iterate over with length equal to the length of the vector
+  if(is.na(vector[i])){ ##If the ith element of the vector is missing, skip the iteration
+    next
+  }
+  if(vector[i] == TRUE){ ##If the ith element of the vector is TRUE increment the counter by one 
+    cntr <- cntr + 1
+  }
+  else{ ##By the process of elimination the current element must be FALSE, so we end the loop.
+    break
+  }
+}
+return(cntr)
+}
+
+##Apply Trues.Before.False manually across 500 randomly generated vectors of length 5.
+for(j in seq_along(results)){ ## We need to be careful to use a new index j because Trues.Before.False uses the index i. This doesn't actually affect the functionality of the program, but is good practice for legibility.
+  current.vector <- as.logical(rbinom(n = 5, size = 1, prob = 0.8)) ##Create a logical vector of length 5 with TRUE probability 0.8.
+  results[j] <- Trues.Before.False(current.vector) ##Store the number of TRUE's before the first FALSE to the jth element of results.
+}
+
+mean(results) #Output the mean number of TRUE's before the first FALSE.
+```
+
+|     Instead of Trues.Before.False onto each vector individually, we have the option to use one of R's built in apply functions. These take an input object, an input function, and sometimes additional specifications to achieve the same result in a more efficient manner. Apply functions can make the code mode legible as well, which helps for reproducibility. The method lapply() takes a list and a function as input then returns a list wherein one item is the output of one function application. vapply specifically takes a list or a vector as input, and allows the user to specify what type of object should be returned using the argument FUN.ARGS. sapply() automatically determines what output is best, preferentially choosing vectors and matrices if possible. In my analysis I will use sapply() a couple times, but more often use manual application for conciseness. As an example, we will use sapply() to recreate the mean calculation. We will also put the entire command within another function environment for ease of duplication with a modifiable simulation number set to a default of five hundred.
+
+```{r sapply Example, echo = TRUE}
+##We need to supply sapply with a list of logical vectors with length 5. We will use the same for() loop as before to accomplish this.
+
+Make.Trues.Before.False.Mean <- function(n.sims = 500){
+
+five.numbers <- rep(as.numeric(NA), 5) ##Create a dummy variable to ensure list class is numeric. We initialize this vector using the coercion method as.numeric() on missing values as a safety measure to ensure the initialization does not affect the outcome.
+sapply.list <- rep(list(five.numbers), n.sims) ##Create a list with n branches to store individual simulations. The individual branches contain one numeric vector of length five. For this output we set n.sims = 500
+for(j in seq_along(sapply.list)){ ## We need to be careful to use a new index j because Trues.Before.False uses the index i. This doesn't actually affect the functionality of the program, but is good practice for legibility.
+  sapply.list[[j]] <- as.logical(rbinom(n = 5, size = 1, prob = 0.8)) ##Create a logical vector of length 5 with TRUE probability 0.8 and save it to the jth branch of sapply.list. 
+}
+
+return(mean(sapply(sapply.list, Trues.Before.False))) ##Use sapply to determine the number of TRUE's before the first FALSE for each simulation, then return the mean of all n.sims simulations.
+}
+
+Make.Trues.Before.False.Mean()
+```
+
+|     Even though the procedure is identical, the output is different. This is because the five hundred vectors of length five get resimulated, and the number of `r TRUE`'s before the first `r FALSE` among those five numbers has some variance in accordance with the standard deviation of the sampling distribution. Recall that this is the standard error $se = \frac{\sigma_x}{\sqrt{N}}$. The deviation between instances of Make.Trues.Before.False.Mean() will then decrease monotonically as the number of simulations increases ($N \in \mathbb{N}$). Two histograms using Make.Trues.Before.False.Mean() with different number of simulations are presented below for visualization of this idea.
+
+```{r Make Hist.Data1, include=FALSE}
+
+Hist.Data1 <- data.frame(Sample.Means = rep(as.numeric(NA), 10^4)) ##Initialize a data frame with variable Sample.Means. I chose 10^4 samples to get a good approximation of the sampling distribution for n.sims = 60. 
+
+for(k in seq_along(Hist.Data1$Sample.Means)){
+  Hist.Data1$Sample.Means[k] <- Make.Trues.Before.False.Mean(60)
+}  
+```
+
+```{r, fig.cap = "Sampling Distribution of Make.Trues.Before.False.Mean for Sixty Vectors of Length Five, with 95% Confidence Interval."}
+Hist.Data1 %>%
+  ggplot(aes(x = Sample.Means)) +
+  geom_histogram() +
+  scale_x_continuous(limits = c(1.5, 3.75), breaks = seq(from = 1.5, to = 3.75, by = 0.25)) +
+  geom_vline(xintercept = c(quantile(Hist.Data1$Sample.Means, 0.025), quantile(Hist.Data1$Sample.Means, 0.975)), color = "blue") +
+  labs(x = "Sample Mean", y = "Count", title = "Sampling Distribution of Make.Trues.Before.False.Mean(60) with 95%\nConfidence Interval")
+```
+
+```{r Make Hist.Data2, include=FALSE}
+
+Hist.Data2 <- data.frame(Sample.Means = rep(as.numeric(NA), 10^4)) ##Initialize a data frame with variable Sample.Means. I chose 10^4 samples to get a good approximation of the sampling distribution for n.sims = 1000. 
+
+for(k in seq_along(Hist.Data2$Sample.Means)){
+  Hist.Data2$Sample.Means[k] <- Make.Trues.Before.False.Mean(1000)
+}  
+```
+
+```{r, fig.cap = "Sampling Distribution of Make.Trues.Before.False.Mean for One Thousand Vectors of Length Five, with 95% Confidence Interval."}
+Hist.Data2 %>%
+  ggplot(aes(x = Sample.Means)) +
+  geom_histogram() +
+  scale_x_continuous(limits = c(1.5, 3.75), breaks = seq(from = 1.5, to = 3.75, by = 0.25)) +
+  geom_vline(xintercept = c(quantile(Hist.Data2$Sample.Means, 0.025), quantile(Hist.Data2$Sample.Means, 0.975)), color = "blue") +
+  labs(x = "Sample Mean", y = "Count", title = "Sampling Distribution of Make.Trues.Before.False.Mean(1000) with 95%\nConfidence Interval")
+```
 
 
-        b.	Lists
-        
- The special double bracket operator [[ ]] extracts 
-        
-        c.	Arrays
-                i.	Named Lists
-                ii.	Matrices
-                iii.	Data Frames
-        d.	Restricted phrases
-        e.	Directory Management
-                i.	getwd()
-                ii.	setwd()
-                iii.	conjunction with ReadR and loops
-III.	R Programming
-        a.	Vectors
-                i.	Coercion
-                ii.	rep()
-        b.	Logic
-                i.	Simple evaluation 
-                ii.	Vectors evaluate logic element-wise
-        c.	Subsetting
-                i.	$
-                ii.	[ ] – returns as same data type
-                        1.	[k]
-                        2.	[a, b]
-                        3.	[ ,b]
-                        4.	[a, ]
-                iii.	[[k]] – returns as vector with class equal to the class of its components
-        d.	Simulation
-                i.	
-        e.	Control Structures
-                i.	Syntax
-                ii.	If-else
-                iii.	Loops
-                        1.	For
-                        2.	While
-                        3.	In-loop commands
-                                a.	Repeat
-                                b.	Next
-                                c.	Break
-                iv.	
-                v.	Common applications with vectors
-        f.	Writing Functions
-        g.	Apply Functions
-                i.	lapply
-                ii.	sapply – one dimensional data
-                iii.	others not used
-        h.	
-        i.	The Scoping Rules – why R is great
+\subsection{Scoping Rules}
+|     The function Trues.Before.False() is not defined locally within Make.Trues.Before.False.Mean(). R's scoping rules allow for a function call to access not only the local environment but also any higher environment such as a package all the way up to the global environment. That is, a user can assign a value to an object in a function call that will not influence the representation of a preexisting object with the same name. When R encounters a reference to an object, it begins by looking among those locally defined before proceeding upwards. As a consequence, the following R code returns $100$ instead of $10$:
+
+```{r Scoping Example, echo = TRUE}
+cntr <- 0 ## Create a counter
+for(i in 1:10){ ##Define the index i to run over the vector 1:10
+  for(i in 1:10){ ##Define ANOTHER index ALSO CALLED i that runs over another vector 1:10. R's scoping rules check the local value i's local value before incrementing at the beginning of the for() loop.  
+    cntr <- cntr + 1
+  }
+}
+cntr ##Output
+```
+
+In RMarkdown objects that are created in code chunks are saved to the global environment. We can therefore call functions that are not locally defined, which is immensely useful in functional programming.
+
+\subsection{Simulation}
+
+|     The modus operandi of simulation in R is to model how multiple random samples interact over a large number of iterations. R can generate random values from a slew of of common probability distributions including the normal, Poisson, uniform, gamma, and as has already been demonstrated the binomial. Random values can either serve many purposes, such as serving as an a-priori probability distribution from which to create a model, or as a theoretical sample against which to check an empirical distribution. A user can also calculate the PDF, CDF, and quantiles of these various distributions after supplying the necessary formal arguments. I will use the t distribution's quantile function qt() when creating confidence intervals, and the normal probability plotter qqnorm() when checking my empirical quantiles for normality. For probability plotting of other distributions see the R documentation for the function qqPlot() in EnvStats.
+
+|     R uses the psuedo-random number generator (PNRG) algorithm called "The Mersenne Twister" created by Drs. Matsumoto and Nishimura in 1998. (https://cran.r-project.org/web/views/Distributions.html)  (https://dl.acm.org/doi/10.1145/272991.272995) The Mersenne Twister begins generating numbers from a given starting point. Furthermore, the sequence of numbers generated is entirely deterministic. Actions taken in an R script advances the "seed" of the Twister by one. By controlling the initial seed of the Mersenne Twister, the random numbers generated in any set of commands can be exactly recreated. The set.seed() method lets the user specify which seed R should use next, and therefore is an excellent tool for reproducibility of experiments. In my analysis I set the initial seed to $1000$, and then let the Mersenne Twister twist.
+
+|     As the name suggests, R's sample() function allows its user to create random samples from a supplied atomic vector. The four main arguments of sample() that must be considered are the initial population, the sample size, the replacement condition, and whether certain elements should have weighted probabilities of being drawn. Once parameters are selected, we are ready to simulate.  In the data analysis we will use simulation in two contexts - the first is the creation of bootstrap sampling distributions, and the second is to model the approximate number of possible unique values of cumulative GPA as a function of graded term (under some assumptions). I leave these as examples of the functionality of sample(). There are two bootstrapper functions in the analysis - one for testing the significance level of a faculty's mean $\Delta C$ and one for $\Delta W$ - and one cumulative GPA simulator. By name they are make.cum.bootstrap.means(), make.withdraw.bootstrap.props(), and Possible.Cum.GPAs().
+
+\section{The Tidyverse Arsenal}
+
+|     While the R Programming tools I learned from Coursera, probability, and mathematical statistics are sufficient for the creation of the necessary functions to do analyse Professor Eckstrom's dataset, many smart people (Hadley Wickham and Yihui Xie primary among them) have built specialized tools in R for the tidying, manipulation, and presentation of data. The tidyverse is a collection of R packages including ggplot2, dplyr, readr, tibble, and forcats among others. Dr. Nordmoe's data science course MAT-295 is an introduction to the tidyverse approach of data analysis in R, so I will only give a brief summary of the methods I call. I highly recommend reading the following sections in conjunction with the linked tidyverse cheatsheet, as these guides contain information about the syntax and usage of methods found in one package.
+
+\subsection{Piping} (https://www.rdocumentation.org/packages/magrittr/versions/2.0.1)
+|     Having said that, there is unfortunately no cheatsheet for the tidyverse package magritrr. In liue I will try my best to clearly indicate the pipe operators syntax and usage. Complicated functions become very illegible very quickly. For example, the proper base R syntax for the composition of a function A $f_A(x,A_1,\ldots)$ with a function B $f_B(x,B_1,\ldots)$ called on an object x is $f_A(f_B(B(x,B_1,\ldots)), A_1,\ldots)$. When composing even as few as four or five functions it quickly becomes difficult to discern which formals are being supplied to which functions. When the tidyverse is loaded using the library() function, the pipe operator `%>%` is exported from the R package magritrr. Using the pipe changes the function composition into a function ordering; $x \quad \%>\%  \quad f_A(A_1, \ldots) \quad \%>\% \quad f_B(B_1,\ldots)$ clearly indicates that the object $x$ is first operated on by the function $f_A$ with formal arguments $\{A_1, \ldots\}$ before being sent into $f_B$ with formals $\{B_1,\ldots\}$.  Many tidyverse methods are built for usage with the pipe operator, allowing for legible data manipulations and transforming R from a functional language into a  an object-oriented language.
+
+\subsection{dplyr} (https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf)
+|    The tidyverse package dplyr provides many streamlined, composable functions for the manipulation of data sets. The filter() function removes all rows of a data set that do not obey a supplied logical condition. Similarly the slice() method can be used to choose rows by index. mutate() and transmute() create new columns or alter existing ones, and rename() is a streamlined wrapper for mutate() that changes only changes the variable name. Conversely, the select() method can either remove variables entirely or just reorder columns. A user can use the arrange() function to reorder the rows of a data set from highest to lowest or vice versa based on a supplied set of variables. Summarise creates a new data frame with columns generated procedurally from its formal arguments. Each of these methods is referred to as a dplyr verb, and works in conjunction with the group_by() function.
+
+|     In my data analysis I used group_by() and its reciprocal ungroup() cumulatively more than any other single dplyr verb. The group_by() method converts a dataframe into a grouped dataframe. By itself this does nothing, but when combined with the other dplyr verbs a user gains enormous analytical power. Using Professor Eckstrom's dataset which I have named Gen_Data as an example;
+```{r group_by example, echo = TRUE}
+
+
+```
+
+|     The xxx_join() family of functions allow for the combination of two 
+
+\subsection{ggplot2}
+
+\subsection{readr}
+
+\subsection{forcats}
+
 IV.	The Tidyverse arsenal
         a.	The Packages
                 i.	Dplyr
@@ -467,12 +711,258 @@ IV.	The Tidyverse arsenal
                                 i.	linear model
                 7.	geom_vline, geom_hline
                 8.	geom_segment
-                                iii.	ForCats
+        iii.	ForCats
                 1.	factor()
                 2.	fct_reorder(x,y)
         c.	Tibble
                 1.	tibble()
         d.	Piping
+
+
+\section{}
+
+```{r Gen_Data Semester Numbering, include = FALSE}
+##Fix Gen_Data semester listing. We want them listed numerically from 1 to N.
+
+Number.Semesters <- function(x) {
+  x <- x %>% arrange(Semester)
+  
+  individual.cases <- x %>% pull(Semester)
+  
+  individual.cases[1]
+  
+    for(y in seq_along(along.with = individual.cases)){
+      if(individual.cases[y] == "2010/FA"){
+        individual.cases[y] <- 1}
+      else if(individual.cases[y] == "2011/WI"){
+        individual.cases[y] <- 2}
+      else if(individual.cases[y] == "2011/SU"){
+        individual.cases[y] <- 3}
+      else if(individual.cases[y] == "2011/FA"){
+        individual.cases[y] <- 4}
+      else if(individual.cases[y] == "2012/WI"){
+        individual.cases[y] <- 5}
+      else if(individual.cases[y] == "2012/SU"){
+        individual.cases[y] <- 6}
+      else if(individual.cases[y] == "2012/FA"){
+        individual.cases[y] <- 7}
+      else if(individual.cases[y] == "2013/WI"){
+        individual.cases[y] <- 8}
+      else if(individual.cases[y] == "2013/SU"){
+        individual.cases[y] <- 9}
+      else if(individual.cases[y] == "2013/FA"){
+        individual.cases[y] <- 10}
+      else if(individual.cases[y] == "2014/WI"){
+        individual.cases[y] <- 11}
+      else if(individual.cases[y] == "2014/SU"){
+        individual.cases[y] <- 12}
+      else if(individual.cases[y] == "2014/FA"){
+        individual.cases[y] <- 13}
+      else if(individual.cases[y] == "2015/WI"){
+        individual.cases[y] <- 14}
+      else if(individual.cases[y] == "2015/SU"){
+        individual.cases[y] <- 15}
+      else if(individual.cases[y] == "2015/FA"){
+        individual.cases[y] <- 16}
+      else if(individual.cases[y] == "2016/WI"){
+        individual.cases[y] <- 17}
+      else if(individual.cases[y] == "2016/SU"){
+        individual.cases[y] <- 18}
+      else if(individual.cases[y] == "2016/FA"){
+        individual.cases[y] <- 19}
+      else if(individual.cases[y] == "2017/WI"){
+        individual.cases[y] <- 20}
+      else{stop("There was an invalid Semester name passed to Number.Semesters")}
+      }
+    x <- mutate(x, Total.Term = individual.cases)
+    x
+  }
+  
+Gen_Data <- Number.Semesters(Gen_Data)
+```
+
+
+```{r N.Profs and N.Students, include = FALSE}
+##Total number of professors
+Profs.List <- unique(Gen_Data$`Faculty Random ID`)
+(n.p <- length(Profs.List))
+##Total number of students
+Students.List <- unique(Gen_Data$`Student Random ID`)
+(n.s <- length(Students.List))
+##Total quantity of course entries
+n <- length(Gen_Data$`Course Code`)
+```
+
+```{r Gen_Data.Grade.Converter, include = FALSE} 
+##This chunk creates the GPA colunmn in Gen_Data
+###Following grade converter obtained and adapted from stack overflow user A5C1D2H2I1M1N2O1R2T1 on the page https://stackoverflow.com/questions/22746508/r-simplifying-code-to-convert-letter-grades-to-numeric-grades on 8/19/2020
+
+convert_grades <- function(x) {
+    if (x == "WS") {
+        x <- 0
+    } else if (x == "WF"){
+      x <- 0
+    } else if (x == "W"){
+      x <- NA
+    } else if (x == "WP"){
+      x <- NA
+    } else if (x == "A") {
+        x <- 4
+    } else if (x == "A-") {
+        x <- 3.7
+    } else if (x == "B+") {
+        x <- 3.3
+    } else if (x == "B") {
+        x <- 3
+    } else if (x == "B-") {
+        x <- 2.7
+    } else if (x == "C+") {
+        x <- 2.3
+    } else if (x == "C") {
+        x <- 2
+    } else if (x == "C-") {
+        x <- 1.7
+    } else if (x == "D+") {
+        x <- 1.3
+    } else if (x == "D") {
+        x <- 1
+    } else if (x == "D-") {
+        x <- 0.7
+    } else if (x == "F") {
+        x <- 0
+    } else {
+        x <- NA
+    }
+  x <- as.double(x)
+    return(x)
+}
+
+
+## Fix broken data points
+for(i in 1:n){
+  if(Gen_Data$Grade[i] == "@D"){
+    Gen_Data$Grade[i] <- "D"
+  }
+  if(Gen_Data$Grade[i] == "@F"){
+    Gen_Data$Grade[i] <- "F"
+  }
+}
+
+##Apply Grade Converter
+Ass.GPA <- Gen_Data$Grade
+Ass.GPA[] <- sapply(Ass.GPA, convert_grades)
+Gen_Data <- mutate(Gen_Data, "GPA Assigned" = as.numeric(Ass.GPA))
+```
+
+
+```{r Initialize Department, include = FALSE}
+## Initialize Department in Gen_Data
+Gen_Data <- Gen_Data %>%
+                mutate(Department = str_sub(`Course Code`, 1, 3))
+```
+
+\section{Linear Mixed-Effects Modeling}
+
+|     Calculation of the $\Delta C$ statistic amounts to determining the difference between a students observed and expected final cumulative GPA based on a couple parameters. 
+
+
+
+IV.	The Tidyverse arsenal
+        a.	The Packages
+                i.	Dplyr
+                1.	filter()
+                2.	mutate()
+                3.	group_by()
+                4.	select
+                5.	arrange
+                6.	join commands
+                        a.	left_join()
+                        b.	right_join()
+                        c.	semi_join()
+                7.	summarise()
+        b.	GGPlot2
+                1.	Aesthetics
+                        a.	X, Y
+                        b.	Color, Fill
+                        c.	
+                2.	geom_point
+                3.	geom_histogram
+                4.	geom_bar
+                5.	geom_boxplot
+                6.	geom_smooth
+                        a.	method = LOESS
+                                i.	locally estimated scatterplot smoothing 
+                                ii.	https://www.epa.gov/sites/production/files/2016-07/documents/loess-lowess.pdf
+                        b.	method = LM
+                                i.	linear model
+                7.	geom_vline, geom_hline
+                8.	geom_segment
+        iii.	ForCats
+                1.	factor()
+                2.	fct_reorder(x,y)
+        c.	Tibble
+                1.	tibble()
+        d.	Piping
+
+VI.	Statistical Background
+        c.	Linear Mixed Effects Modeling
+                i.	https://www.youtube.com/watch/VhMWPkTbXoY 
+                ii.	https://m-clark.github.io/mixed-models-with-R/ 
+                iii.	https://www.datacamp.com/courses/hierarchical-and-mixed-effects-models 
+                iv.	https://www.rensvandeschoot.com/tutorials/lme4/ 
+                v.	Difference between lm and lmer()
+                        1.	Standard Linear Regression formula
+                                a.	Calculation of slope
+                                b.	Calculation of mean intercept
+                                c.	Residual Variance
+                        2.	Fixed Effects Vs. Mixed Effects
+                        3.	lme4 syntax
+                vi.	Terminology
+        d
+VII.	Case Study
+        a.	Introduction to Data Set
+        b.	Question – how does the first professor a student has in a department influence their future scholastic performance? Future Cumulative GPA is optimal tracking method, but requires filtration conditions.
+                i.	Filtration Conditions:
+                        1.	Students must take exactly one course in their first term
+                        2.	Students must not withdraw from their first course
+                        3.	Students must receive at least two grades to create a cumulative GPA progression, which necessarily filters out all students that only take a single course in the math or chemistry departments
+                                i.	We must therefore separately analyze withdraw rates 
+        c.	Plan of Attack for DeltaC Rankings
+                i.	Determine variables that affect final cumulative GPA
+                        1.	Student Variance
+                        2.	Initial Starting Course
+                        3.	Number of Terms in OCC’s Math and Chemistry departments
+                        4.	Faculty effects
+                                a.	Initial faculty
+                                b.	Following faculty effects should “mean out” over sufficient samples. That is, the variance imposed by difference in future faculty should have a normal distribution centered about the mean of initial faculty
+                                c.	It is possible to assign each faculty “points” for only the change in cumulative GPA that comes after, but the weights are unintuitive due to future courses having less effect on change in cumulative GPA as opposed to the extant value (beyond the second course).
+                ii.	Create stratified models for cumulative GPA slope accounting for said confounding variables
+                        1.	Adjust for starting course
+                                a.	Justify with graphs
+                        2.	Adjust for max.terms
+                                a.	Justify with graphs
+                        3.	Require sufficient observations in a stratum for approximate normality of data, I choose N >= 40. That is, each valid combination of max.terms and starting course will have at least 40 students for t-test validity.
+                iii.	Apply models onto individual students, starting mean slope at observation of initial cumulative GPA. Expected final cumulative GPA is then calculated as Initial GPA + slope * max.terms. 
+                        1.	This is a mixed model – Fixed effect is Student.Term, random effect is initial gpa of a student. 
+                                a.	Expected final cum GPA is calculated as f(max(Student.Term))
+                        2.	Talk about differences between lmer and manual – compare results. 
+                                a.	lmer automatically captures residual error when given Student Random ID as a random effect, but does I was unable to make the model converge when adjusting for max.terms as acting on slope. My bet is this was automatically captured as part of the student-to-student random deviation. Unfortunately, lmer cannot do data analysis for me so I still need to compare its results with a manual tabulation to check validity.
+                                b.	The issue with doing a manual model is that as a human I cannot imagine all the confounding variables that influence final cumulative GPA. We are measuring first professor effect, so we don’t want to stratify based on that. The big two that I could think of were the number of terms that a student enrolled in OCC’s math and chemistry departments. A third I considered was the overall term students were enrolled in – if a student was enrolled during a term where the average teaching quality for a course was markedly lower/higher than other terms, their final cumulative GPA may decrease/increase. For most courses there are not enough faculty that teach them to adjust for this deviation in a meaningful way – if there are three faculty, two “good” and one “poor”, then when we go to measure the mean effect 
+                iv.	Create statistic called DeltaC = Observed Final Cumulative GPA – Expected Final Cumulative GPA.
+                v.	Determine mean DeltaC of those students that passed filtration and started with a specific professor
+                        1.	Experiment One: Professors are assumed to have one overall level of impact on student’s final cumulative GPA. Sum all DeltaC values of all students that passed filtration and started with that faculty, then divide by the number of students.   This may be unfair if they are made to teach a course they are unfamiliar with instructing, so we also do Experiment Two.
+                        2.	Experiment Two: A Professor’s Mean DeltaC is calculated over each course code they taught using only those students that started in the appropriate course code. Do example with a professor – print out all DeltaC’s for a prof with at least 3.
+                vi.	Test Significance of results using t-test and bootstrap for double confidence. We could validly get away with just the t-test because we ensured that data came from strata with at least 40 observations (thus approximately normal), but as this is my SIP I want to use all the firepower I can. Additionally, some assumptions of the one sample t-test are not rigorously fulfilled by DeltaC, so usage of the bootstrap can correct for the errors imposed by the t-test.
+                vii.	
+        d.	Basic New Variables (through Gen_Data 9)
+        e.	Plan of Attack for DeltaW
+        
+      ERROR ANALYSIS
+1. Who teaches OCC courses?  https://oaklandcc.edu/faculty/default.aspx
+  49 Math Faculty
+  12 Chemistry Faculty
+  Are some faculty being recyled for anonymity, or does OCC not report former facult?
+
 V.	Coursera Work
         a.	Overview 
                 i.	Videos
@@ -743,82 +1233,4 @@ V.	Coursera Work
                         c.	Graded by Quiz
         v.	Chapter Quizzes
                 1.	One quiz per week, so eight overall. Number of questions range from 5 to 20. Generally concerned with the material covered in the last week, but there were perhaps 3-4 instances of a bug where questions would be pulled from future weeks. Quizzes allowed to be retaken, which helped correct for this bug.
-VI.	Statistical Background
-        a.	One Sample T-Test
-                i.	Minimum sample size
-                ii.	Assumptions
-                iii.	Statistic Derivation
-                iv.	Confidence Interval
-                v.	Hypothesis Testing
-                        a. Experiment One
-                        b. Experiment Two
-        b.	The Bootstrap Principle
-                i.	Minimum Sample Size
-                ii.	Assumptions
-                iii.	What is a sampling distribution?
-                iv.	Confidence Interval
-                v.	Hypothesis Testing
-                        a. Experiment One
-                        b. Experiment Two
-        c.	Linear Mixed Effects Modeling
-                i.	https://www.youtube.com/watch/VhMWPkTbXoY 
-                ii.	https://m-clark.github.io/mixed-models-with-R/ 
-                iii.	https://www.datacamp.com/courses/hierarchical-and-mixed-effects-models 
-                iv.	https://www.rensvandeschoot.com/tutorials/lme4/ 
-                v.	Difference between lm and lmer()
-                        1.	Standard Linear Regression formula
-                                a.	Calculation of slope
-                                b.	Calculation of mean intercept
-                                c.	Residual Variance
-                        2.	Fixed Effects Vs. Mixed Effects
-                        3.	lme4 syntax
-                vi.	Terminology
-        d.	Normal approximation
-                i.	Central Limit Theorem
-                ii.	Minimum sample size ~ 30-40
-                iii.	
-VII.	Case Study
-        a.	Introduction to Data Set
-        b.	Question – how does the first professor a student has in a department influence their future scholastic performance? Future Cumulative GPA is optimal tracking method, but requires filtration conditions.
-                i.	Filtration Conditions:
-                        1.	Students must take exactly one course in their first term
-                        2.	Students must not withdraw from their first course
-                        3.	Students must receive at least two grades to create a cumulative GPA progression, which necessarily filters out all students that only take a single course in the math or chemistry departments
-                                i.	We must therefore separately analyze withdraw rates 
-        c.	Plan of Attack for DeltaC Rankings
-                i.	Determine variables that affect final cumulative GPA
-                        1.	Student Variance
-                        2.	Initial Starting Course
-                        3.	Number of Terms in OCC’s Math and Chemistry departments
-                        4.	Faculty effects
-                                a.	Initial faculty
-                                b.	Following faculty effects should “mean out” over sufficient samples. That is, the variance imposed by difference in future faculty should have a Normal distribution centered about the mean of initial faculty
-                                c.	It is possible to assign each faculty “points” for only the change in cumulative GPA that comes after, but the weights are unintuitive due to future courses having less effect on change in cumulative GPA as opposed to the extant value (beyond the second course).
-                ii.	Create stratified models for cumulative GPA slope accounting for said confounding variables
-                        1.	Adjust for starting course
-                                a.	Justify with graphs
-                        2.	Adjust for max.terms
-                                a.	Justify with graphs
-                        3.	Require sufficient observations in a stratum for approximate Normality of data, I choose N >= 40. That is, each valid combination of max.terms and starting course will have at least 40 students for t-test validity.
-                iii.	Apply models onto individual students, starting mean slope at observation of initial cumulative GPA. Expected final cumulative GPA is then calculated as Initial GPA + slope * max.terms. 
-                        1.	This is a mixed model – Fixed effect is Student.Term, random effect is initial gpa of a student. 
-                                a.	Expected final cum GPA is calculated as f(max(Student.Term))
-                        2.	Talk about differences between lmer and manual – compare results. 
-                                a.	lmer automatically captures residual error when given Student Random ID as a random effect, but does I was unable to make the model converge when adjusting for max.terms as acting on slope. My bet is this was automatically captured as part of the student-to-student random deviation. Unfortunately, lmer cannot do data analysis for me so I still need to compare its results with a manual tabulation to check validity.
-                                b.	The issue with doing a manual model is that as a human I cannot imagine all the confounding variables that influence final cumulative GPA. We are measuring first professor effect, so we don’t want to stratify based on that. The big two that I could think of were the number of terms that a student enrolled in OCC’s math and chemistry departments. A third I considered was the overall term students were enrolled in – if a student was enrolled during a term where the average teaching quality for a course was markedly lower/higher than other terms, their final cumulative GPA may decrease/increase. For most courses there are not enough faculty that teach them to adjust for this deviation in a meaningful way – if there are three faculty, two “good” and one “poor”, then when we go to measure the mean effect 
-                iv.	Create statistic called DeltaC = Observed Final Cumulative GPA – Expected Final Cumulative GPA.
-                v.	Determine mean DeltaC of those students that passed filtration and started with a specific professor
-                        1.	Experiment One: Professors are assumed to have one overall level of impact on student’s final cumulative GPA. Sum all DeltaC values of all students that passed filtration and started with that faculty, then divide by the number of students.   This may be unfair if they are made to teach a course they are unfamiliar with instructing, so we also do Experiment Two.
-                        2.	Experiment Two: A Professor’s Mean DeltaC is calculated over each course code they taught using only those students that started in the appropriate course code. Do example with a professor – print out all DeltaC’s for a prof with at least 3.
-                vi.	Test Significance of results using t-test and bootstrap for double confidence. We could validly get away with just the t-test because we ensured that data came from strata with at least 40 observations (thus approximately Normal), but as this is my SIP I want to use all the firepower I can. Additionally, some assumptions of the one sample t-test are not rigorously fulfilled by DeltaC, so usage of the bootstrap can correct for the errors imposed by the t-test.
-                vii.	
-        d.	Basic New Variables (through Gen_Data 9)
-        e.	Plan of Attack for DeltaW
-        
-      ERROR ANALYSIS
-1. Who teaches OCC courses?  https://oaklandcc.edu/faculty/default.aspx
-  49 Math Faculty
-  12 Chemistry Faculty
-  Are some faculty being recyled for anonymity, or does OCC not report former facult?
-
-
+                
