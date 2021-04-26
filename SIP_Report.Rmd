@@ -17,7 +17,7 @@ fontsize: 12pt
         \vspace*{1cm}
             
         \Huge
-        \textbf{What Effects do Professors Have?}
+        \textbf{Professor Effects on \\ Student Trajectories}
             
         \vspace{0.5cm}
         \LARGE
@@ -44,8 +44,9 @@ fontsize: 12pt
 \mbox{}
 
 \newpage
-\setcounter{page}{2}
+
 \pagenumbering{roman}
+\setcounter{page}{2}
 
 \tableofcontents
 
@@ -59,7 +60,7 @@ fontsize: 12pt
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE, tidy.opts=list(width.cutoff=77), tidy=TRUE, fig.pos = "!T",  fig.height = 4, fig.width = 8)
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE, tidy.opts=list(width.cutoff=77), tidy=TRUE, fig.pos = "!T",  fig.height = 4, fig.width = 8, width.cutoff = 60)
 options(digits = 3)
 ```
 
@@ -76,13 +77,13 @@ Gen_Data <- Gen_Data %>%
                   filter(`Student Random ID` != 649419)
 ```
 
-\section{Attribution}
+\section{Preface and Attributions}
 
-This project would not have been possible without many of the wonderful people in my life. I would like to thank my parents for encouraging me to be curious and supporting me both physically and emotionally throughout these last five years. My mother, who is currently sitting across from me playing a game on her phone at 5:45 AM while I finish this paper. My father, who read through seventy pages of improvised statistical jargon to look for grammatical errors. I would like to give a massive thanks to my SIP advisor Dr. Nordmoe for both inspiring a love of statistics and for being incredibly patient and understanding during this process. Thank you's to the Math and Physics departments of K College for helping me discover my love of numbers. I would like to thank my employer Thompson Tutoring for allowing me to discover a love of teaching and pedagogy.  I give a special thank you to my advisor Robin Rank who called me every Monday to check in on me through thick and thin, and stuck with me for five entire years. 
+This project would not have been possible without many of the wonderful people in my life. I would like to thank my parents for encouraging me to be curious and supporting me both physically and emotionally throughout these last five years. My mother, who is currently sitting across from me playing a game on her phone at 5:45 AM while I finish this paper. My father, who read through seventy pages of improvised statistical jargon to look for grammatical errors. I would like to give a massive thanks to my SIP advisor Dr. Nordmoe for both inspiring a love of statistics and for being incredibly patient and understanding during this process. Dr. Nordmoe stands out as a prime example of an educator that changes trajectories.  Thank-yous to the Math and Physics departments of K College for helping me discover my love of numbers. I would like to thank my employer Thompson Tutoring for allowing me to discover a love of teaching and pedagogy.  I give a special thank you to my advisor Robin Rank who called me every Monday to check in on me through thick and thin, and stuck with me for five entire years. 
 
 \section{Abstract}
 
-Parameters quantifying the quality of instruction can be difficult to come across. One commonly used measure comes from course evaluations, which are largely subjective reviews that pertain to personality in conjunction with quality of teaching. Being optional surveys, course evaluations may not tell a full story. According to institutional research at Marquette University $83\%$ of students offered in-class time to complete course evaluations did so, and only $59\%$ not offered class time completed surveys. (1) Another common metric comes from online faculty review boards like https://www.ratemyprofessors.com/. According to a 2008 and 2009 study, these reviews are highly correlated with official institutional reviews. (2,3) As such, they may be unreliable for the same reasons.  Student outcome data can serve as a good indicator of faculty effects. In this paper we construct two statistics from a large such dataset from the Math and Chemistry departments of Oakland Community College.
+Parameters quantifying the quality of instruction can be difficult to come across. One commonly used measure comes from course evaluations, which are largely subjective reviews that pertain to personality in conjunction with quality of teaching. Being optional surveys, course evaluations may not tell a full story. According to institutional research at Marquette University $83\%$ of students offered in-class time to complete course evaluations did so, and only $59\%$ not offered class time completed surveys. (1) Another common metric comes from online faculty review boards like https://www.ratemyprofessors.com/. According to a 2008 and 2009 study, these reviews are highly correlated with official institutional reviews. (2,3) As such, they may be unreliable for the same reasons.  Student outcome data can serve as a good indicator of faculty effects. In this paper we construct two statistics from a large such dataset from the Math and Chemistry departments of Oakland Community College. We will observe the effects that faculty have on their students' final cumulative GPAs, and analyse the distribution of withdraw rates between professors.
 
 
 
@@ -100,7 +101,7 @@ It is very difficult to measure the effect I have had on my students for a varie
 
 To explain the goal of my project, we will need to briefly diverge into a personal tangent. I came into Kalamazoo College thinking I would follow the pre-med track and thus need to major in chemistry or biology. Four and a half years later, I am graduating with two majors, among them neither chemistry nor biology. I only took one course each in those department because I did not click with either professor. In the math and physics departments I found faculty that were both more personable and frankly better at teaching their subject. My majors in math and physics developed as I continued to take courses with these faculty. The central question I pose in my SIP is this: how does the first faculty member a student encounters in a department influence a student's outcome? 
         
-Professor Eckstrom's data tracks students through time. In conjunction with grading policies and course credits obtainable through OCC's website we can track each student's cumulative GPA through their stay in the math and chemistry departments. We will build linear mixed-effects models stratified to avoid some confounding variables to determine an expected final cumulative GPA for each student that passes a few conditions, then determine the difference between observed and expected final cumulative GPA. I call this statistic $\Delta C$, short for difference in cumulative GPA. Where $C_O$ is a student's observed final cumulative GPA and $C_E$ is the final cumulative GPA predicted by the linear mixed-effects model:
+Professor Eckstrom's data tracks students through time. In conjunction with grading policies and course credits obtainable through OCC's website we can track each student's cumulative GPA through their stay in the Math and Chemistry departments. We will build linear mixed-effects models stratified to avoid some confounding variables to determine an expected final cumulative GPA for each student that passes a few conditions, then determine the difference between observed and expected final cumulative GPA. I call this statistic $\Delta C$, short for difference in cumulative GPA. Where $C_O$ is a student's observed final cumulative GPA and $C_E$ is the final cumulative GPA predicted by the linear mixed-effects model:
   
 \begin{equation}
 \Delta C = C_{O} - C_{E}
@@ -148,7 +149,7 @@ OCC_Enrollment_Plot <- OCC_Enrollment %>%
 OCC_Enrollment_Plot
 ```
     
-Both full and part time enrollment monotonically declining over the reported years. Unfortunately, professor Eckstrom's dataset begins in the year 2010, so there are two relevant years we do not have data regarding enrollment. Regardless, between $2012$ and $2019$ on average only `r Mean.OCC_Enrollment[[1]]/Mean.OCC_Enrollment[[3]]*100`$\%$ of students were enrolled full time. (4) According to the National Student Clearinghouse, community college dropout rate is a function of time enrolled - therefore part time students are less likely to take multiple courses in the same department due to a lower course load per term. (5) As we will see, requiring students to have two *graded* terms drastically reduces the sample size, but still allows for many faculty to be evaluated by the $\Delta C$ metric. 
+Both full and part time enrollment monotonically declines over the reported years. Unfortunately, professor Eckstrom's dataset begins in the year 2010, so there are two relevant years we do not have data regarding enrollment. Regardless, between $2012$ and $2019$ on average only `r Mean.OCC_Enrollment[[1]]/Mean.OCC_Enrollment[[3]]*100`$\%$ of students were enrolled full time. (4) According to the National Student Clearinghouse, community college dropout rate is a function of time enrolled - therefore part time students are less likely to take multiple courses in the same department due to a lower course load per term. (5) As we will see, requiring students to have two *graded* terms drastically reduces the sample size, but still allows for many faculty to be evaluated by the $\Delta C$ metric. 
   
 Another difficulty arises in light of a second filtration condition - students must not withdraw from the first course they take in the math or chemistry departments. It would be possible to start the models at the first graded term, but if a student withdraws from a course then takes it again, their grade may be artificially inflated and thus not serve as an honest intercept. As a result, the expectation on $\Delta C$ becomes negative rather than zero. Requiring students to receive a standard letter grade ensures that the linear mixed effects models have a consistent starting point, and that individual teachers are evaluated fairly. What if a certain faculty member had a high withdraw rate due to their course being hard, but prepared their students well for future courses and thus also had a high mean $\Delta C$? Simply put, is there a correlation between a faculty's mean $\Delta C$ and their withdraw rate? $\Delta C$ is blind to any effect outside the realm of cumulative GPA, so we must introduce a new statistic to capture variance in withdraw rates. Fortunately, the calculation of withdraw rate for individual faculty does not require filtration so the sample sizes will be much larger and thus the results much more accurate. As with the $\Delta C$ rankings, we will construct rankings using the difference between the overall withdraw rate and a faculty's observed rate for 1 the overall case, and by course taught. To be clear, where $W_O$ is a faculty's mean withdraw rate and $W_E$ is the appropriate expected rate, this statistic will be calculated as:
 
@@ -236,7 +237,7 @@ H_A: \theta \notin [\bar{x} - t_{\alpha/2, N-1} \frac{\sigma_x}{\sqrt{N}}, \bar{
 \label{T Hypotheses}
 \end{align}
 
-The bootstrap principle is a powerful tool that can allow fo significance testing with fewer assumptions than the one sample t-test. The general process for the bootstrapping of a population parameter $\theta$ using a given sample containing an estimate $\hat{\theta}$ follows: (10)
+The bootstrap principle is a powerful tool that can allow for significance testing with fewer assumptions than the one sample t-test. The general process for the bootstrapping of a population parameter $\theta$ using a given sample containing an estimate $\hat{\theta}$ follows: (10)
 
 1. Create an empty vector $V_{boot}$ with length equal to a large number $n_{sim}$.
 
@@ -261,11 +262,11 @@ H_A: \theta \notin [\text{quantile}(V_{boot}, \frac{\alpha}{2}),\quad \text{quan
 \end{align}
 
 
-In my analysis, the $\Delta C$ statistic is calculable for all students that take only one course in the first term, do not withdraw from that course, and receive at least one more grade. It is possible to group students by the course code of their first course, then immediately create a bootstrap sampling distribution for $\Delta C$ using only those students. This is pointless; recall we define each stratified linear models such that the mean $\Delta C$ over all students that take the same first course code is precisely zero. Furthermore, the average $\Delta C$ for a course code is not what we wish to test. Our goal in creating the $\Delta C$ statistic is to determine if individual faculty have a statistically significant effect on their student's final cumulative GPA. We will seperate this investigation into two experiments. Experiment one will be to test for significance the mean $\Delta C$ among all students that passed filtration and started with a given instructor. Experiment two will restrict the students the $\Delta C$'s for averaging to only those that started in the same course code with the same professor. In summary, we wish to construct a $95\%$ range for the population (read: "true") mean $\Delta C$ among students that started with a professor, both overall and by individual course code. Faculty in OCC's math and chemistry departments vary in the number of students taught, which effects the coding methods necessary for establishment of bootstrap confidence intervals. Specifically, we must on a case-by-case basis adjust the number of observations per bootstrap sample to mirror the number observed. To reiterate, in experiment one the number of observations per bootstrap sample will be equal to the total number of students that started with the faculty. In experiment two we set the number of observations per bootstrap sample equal to the number of students that started with the faculty *in a particular course code*. There are two ways to accomplish this: (10)
+In my analysis, the $\Delta C$ statistic is calculable for all students that take only one course in the first term, do not withdraw from that course, and receive at least one more grade. It is possible to group students by the course code of their first course, then immediately create a bootstrap sampling distribution for $\Delta C$ using only those students. This is pointless; recall we define each stratified linear models such that the mean $\Delta C$ over all students that take the same first course code is precisely zero. Furthermore, the average $\Delta C$ for a course code is not what we wish to test. Our goal in creating the $\Delta C$ statistic is to determine if individual faculty have a statistically significant effect on their student's final cumulative GPA. We will seperate this investigation into two experiments. Experiment one will be to test for significance the mean $\Delta C$ among all students that passed filtration and started with a given instructor. Experiment two will restrict the students the $\Delta C$'s for averaging to only those that started in the same course code with the same professor. In summary, we wish to construct a $95\%$ range for the population (read: "true") mean $\Delta C$ among students that started with a professor, both overall and by individual course code. Faculty in OCC's Math and Chemistry departments vary in the number of students taught, which effects the coding methods necessary for establishment of bootstrap confidence intervals. Specifically, we must on a case-by-case basis adjust the number of observations per bootstrap sample to mirror the number observed. To reiterate, in experiment one the number of observations per bootstrap sample will be equal to the total number of students that started with the faculty. In experiment two we set the number of observations per bootstrap sample equal to the number of students that started with the faculty *in a particular course code*. There are two ways to accomplish this: (10)
 
 1. In experiment one, we can create a bootstrap sampling distribution by drawing samples *from the overall list of* $\Delta C$*'s* for all students. In experiment two the $\Delta C$'s available for sampling are restricted to those of students that started in the desired course code. If the number of simulations and the number of values are each sufficiently large, one can use R's quantile() method to determine the $95\%$ CI as outlined above. The observed mean for $\Delta C$ is then checked against the confidence interval. If the observed mean is within the confidence interval we fail to reject the null hypothesis that the faculty did not have a significantly different effect on a student's final cumulative GPA than the mean difference. If the observed mean is outside the boundary, we have sufficiently shown at the $\alpha = 0.05$ level that the faculty's mean effect was different than the overall mean effect. Moreover, for such significantly different faculty we have shown at the $\alpha = 0.025$ level that the mean effect was either positive or negative depending on the polarity of the observed mean. This method amounts to determining the probability of randomly generating a bootstrap sample with a mean at least as extreme as the observed mean.
 
-2. To prevent needing to simulate the sampling distribution from the total sample for each sample size possessed by a faculty member, we can simply use the $\Delta C$'s attained by those students that passed filtration and started with the faculty member as the population from which bootstrap samples are created (in a particular course in the case of experiment two). The confidence interval generated by sampling from the $\Delta C$'s attained by a faculty's students is range for the true mean $\Delta C$ of that instructor. Therefore, if the stratum's mean $\Delta C$ is within the generated CI, the faculty's effect cannot be shown to be different than the mean. We then fail to reject the null hypothesis. On the other hand if the $95\%$ confidence interval does not include the overall mean, then we reject the null hypothesis in favor of the alternate. Again, for faculty with significantly different effects we show at the $\alpha = 0.025$ level that said effect is either positive or negative, depending on the polarity of the observed mean. This method has the added benefit of permitting individual faculty to originate from different population mean $\Delta C$ distributions than other faculty, say, if chemistry instructors are fundamentally different from math instructors. In my analysis I chose to use this method to slightly save on processing time, but to my knowledge both are equally valid. 
+2. To prevent needing to simulate the sampling distribution from the total sample for each sample size possessed by a faculty member, we can simply use the $\Delta C$'s attained by those students that passed filtration and started with the faculty member as the population from which bootstrap samples are created (in a particular course in the case of experiment two). The confidence interval generated by sampling from the $\Delta C$s attained by a faculty's students range for the true mean $\Delta C$ of that instructor. Therefore, if the stratum's mean $\Delta C$ is within the generated CI, the faculty's effect cannot be shown to be different than the mean. We then fail to reject the null hypothesis. On the other hand if the $95\%$ confidence interval does not include the overall mean, then we reject the null hypothesis in favor of the alternate. Again, for faculty with significantly different effects we show at the $\alpha = 0.025$ level that said effect is either positive or negative, depending on the polarity of the observed mean. This method has the added benefit of permitting individual faculty to originate from different population mean $\Delta C$ distributions than other faculty, say, if chemistry instructors are fundamentally different from math instructors. In my analysis I chose to use this method to slightly save on processing time, but to my knowledge both are equally valid. 
 
 For a faculty's $\Delta W$ the bootstrapping process and experiments follow exactly as for their mean $\Delta C$. As a final note, the bootstrap confidence interval may not accurately represent the sampling distribution if there are not enough unique observations. This is a particular issue with a fundamentally discrete statistic like difference between observed and expected final cumulative GPA. On the topic of a minimum original sample size for using the bootstrap method, the author of two books on the bootstrap Dr. Michael R Chernick states that:  (13)
  
@@ -278,11 +279,12 @@ From this guideline I chose to discard all faculty effects that were measured fr
 \section{Case Study}
 
 \subsection{Initial Manipulations}
-Without further adieu, let's do some data analysis. I forego including my program itself in this section in favor of linking the GitHub repository in the appendix. The repository contains all necessary data, images, and a copy of the code that creates this report. To familiarize ourselves with the basic dataset posted by Professor Eckstrom we will take a glimpse of Gen_Data:
+Without further adieu, let's do some data analysis. I forego including my program itself in this section in favor of linking the GitHub repository in the appendix. The repository contains all necessary data, images, and a copy of the code that creates this report. To familiarize ourselves with the basic dataset posted by Professor Eckstrom we will take a glance at the first six observations:
 
 ```{r First Glimpse of Gen_Data, echo = FALSE}
 Gen_Data %>%
-  glimpse
+  head() %>%
+    kable(padding = 3)
 ```
 
 ```{r Gen_Data Semester Numbering, include = FALSE}
@@ -418,22 +420,22 @@ Ass.GPA[] <- sapply(Ass.GPA, convert_grades)
 Gen_Data <- mutate(Gen_Data, "GPA Assigned" = as.numeric(Ass.GPA))
 ```
 
-One observation pertains to one course taken in one semester by one student taught by one faculty. The letter grade recieved for this course is recorded in the variable Grade. Our eventual goal is to create a statistic based on cumulative GPA and graded term, so a good place to start the data wrangling process is converting letter grades to the standard four point GPA scale. The function used for creating GPA scores is called convert_grades(), and was adapted from stackoverflow user A5C1D2H2I1M1N2O1R2T1. (14)  We also create integer representations of the semesters under the variable name Total.Term, where Total.Term takes a minimum at $1$ in the fall semester of 2010 and a maximum at $20$ in the winter semester of 2017. The function which accomplishes this task is Number.Semesters(). 
+One observation pertains to one course taken in one semester by one student taught by one faculty. The letter grade recieved for this course is recorded in the variable Grade. Our eventual goal is to create a statistic based on cumulative GPA and graded term, so a good place to start the data wrangling process is converting letter grades to the standard four point GPA scale. The function used for creating GPA scores is called convert_grades(), and was adapted from stackoverflow user (sic) A5C1D2H2I1M1N2O1R2T1. (14)  We also create integer representations of the semesters under the variable name Total.Term, where Total.Term takes a minimum at $1$ in the fall semester of 2010 and a maximum at $20$ in the winter semester of 2017. The function which accomplishes this task is Number.Semesters(). 
 
-There are some missing values in the variable "GPA Assigned" which correspond to withdraws grades. Students may withdraw from courses for any number of reasons, and so no inference can be properly made about the GPA they would have received. Withdraws will be discarded in the analysis of faculty's mean $\Delta C$'s, but will be integral to the investigation into a faculty's individual $\Delta W$. To analyze trends in cumulative GPA, there must be a cumulative GPA variable. Cumulative GPA is a recursive calculation that depends on the number of credits granted by a course and the previous value of cumulative GPA.  A table of course credits can be found in the appendix. Before we can create cumulative GPA we must first create another variable that will be used in its calculation.
+There are some missing values in the variable "GPA Assigned" which correspond to withdraw grades. Students may withdraw from courses for any number of reasons, and so no inference can be properly made about the GPA they would have received. Withdraws will be discarded in the analysis of faculty's mean $\Delta C$'s, but will be integral to the investigation into a faculty's individual $\Delta W$. To analyze trends in cumulative GPA, there must be a cumulative GPA variable. Cumulative GPA is a recursive calculation that depends on the number of credits granted by a course and the previous value of cumulative GPA.  A table of course credits can be found in the appendix. Before we can create cumulative GPA we must first create another variable that will be used in its calculation.
 
-Although the Total.Term variable provides a numerical representation of the semester variable, Total.Term does not give information as to which semesters an individual student was enrolled in OCC's math and chemistry departments. In order to create a linear model for cumulative GPA progression as a function of term enrolled, it is easiest to standardize the time scale for each student. The function I created called student.terms() maps any new unique term to the first available natural number given a set of indecies in Gen_Data that define a student.  A helper function student.index() identifies the rows in Gen_Data possessed by a student. For example: the student with random id number $50$ took four courses in the math and chemistry departments in the total term set $\{2,4,8,10\}$. Student number 50 is the third student from the top when arranging by students, so student.index(3) returns the indecies in Gen_Data possessed by the desired student. Passing the output of student.index(3) to student.terms() returns the vector $\{1,2,3,4\}$. The Student.Term variable is initialized in Gen_Data by looping this process over all students. The max.terms variable simply records the largest number in the set of student terms, and will be useful later.
+Although the Total.Term variable provides a numerical representation of the semester variable, Total.Term does not give information as to which semesters an individual student was enrolled in OCC's Math and Chemistry departments. In order to create a linear model for cumulative GPA progression as a function of term enrolled, it is easiest to standardize the time scale for each student. The function I created called student.terms() maps any new unique term to the first available natural number given a set of indices in Gen_Data that define a student.  A helper function student.index() identifies the rows in Gen_Data possessed by a student. For example: the student with random id number $50$ took four courses in the Math and Chemistry departments in the total term set $\{2,4,8,10\}$. Student number 50 is the third student from the top when arranging by students, so student.index(3) returns the indices in Gen_Data possessed by the desired student. Passing the output of student.index(3) to student.terms() returns the vector $\{1,2,3,4\}$. The Student.Term variable is initialized in Gen_Data by looping this process over all students. The max.terms variable simply records the largest number in the set of student terms, and will be useful later.
 
-Cumulative GPA is calculated by tallying up taking the ratio of the sum of the products of course credits and GPA received with the sum of the course credits. Where C is cumulative GPA, R is course credits, A is the GPA assigned for the course, and the indecies $i \in [1,N]$ refer to all the graded terms that contribute to cumulative GPA:
+Cumulative GPA is calculated by taking the ratio of the sum of the products of course credits and GPA received with the sum of the course credits. Where C is cumulative GPA, R is course credits, A is the GPA assigned for the course, and the indices $i \in [1,N]$ refer to all the graded terms that contribute to cumulative GPA:
 
 \begin{equation}
 C = \frac{\sum_{i=1}^{N} R_i*A_i}{\sum_{i=1}^{N} R_i}
 \label{Cum.GPA Calculation}
 \end{equation}
 
-Although unnecessary, to observations that resulted in withdraws I assign the previous recorded cumulative GPA if extant. This is just for bookkeeping, and does not affect any statistical analysis or graphic produced. If a student has withdraws from a course without having a previous graded course in the math and chemistry departments, the observation of cumulative GPA retains its missing value.
+Although unnecessary, to observations that resulted in withdraws I assign the previous recorded cumulative GPA if extant. This is just for bookkeeping, and does not affect any statistical analysis or graphic produced. If a student has withdraws from a course without having a previous graded course in the Math and Chemistry departments, the observation of cumulative GPA retains its missing value.
 
-```{r Initialize Student.Term, cache = TRUE, include = FALSE}
+```{r Create student term indexing function, cache = TRUE, include = FALSE}
 ##Here we convert Total.Term into numeric, and create the Student.Term variable which describes a student's term progression through OCC
 
 ##Initialize Student.Term into Gen_Data. The arrange step is critical for proper student indexing.
@@ -441,14 +443,14 @@ Gen_Data <- Gen_Data %>%
               mutate(Total.Term = as.integer(Total.Term)) %>%
                 arrange(`Student Random ID`, Total.Term)
 
-##Function that determines which indecies within Gen_Data a given student possesses
+##Function that determines which indices within Gen_Data a given student possesses
 student.index <- function(cntr){
   student.id <- unique(Gen_Data$`Student Random ID`)[cntr]
-  student.indecies <- which(Gen_Data$`Student Random ID` == student.id)
-  return(student.indecies)
+  student.indices <- which(Gen_Data$`Student Random ID` == student.id)
+  return(student.indices)
 }
     
-##Function that numbers a student's terms in OCC's math and chemistry departments using positive integers. 
+##Function that numbers a student's terms in OCC's Math and Chemistry departments using positive integers. 
 student.terms <- function(index){
   total.terms <- Gen_Data$Total.Term[index]
   student.terms <- rep(0, length(total.terms))
@@ -469,7 +471,9 @@ student.terms <- function(index){
   }
   return(student.terms)
 }
+```
 
+```{r Apply student.terms()}
 
 ##Use functions to assign student terms. This algorithm is very slow - I couldn't think of a better way to do it. It works and only has to compile once, so it's good enough. sapply did not want to work so I use a manual application instead.
 n.s <- length(unique(Gen_Data$`Student Random ID`))
@@ -495,9 +499,6 @@ N.Courses.By.Term <- Gen_Data3 %>%
                             rename(Num.Courses = n) %>%
                               group_by(Department, Num.Courses) %>%
                                 count()
-
-kable(N.Courses.By.Term, caption = "Frequency table of the number of different course codes taken in one term by department", padding = 3)
-##This dataset can be used to show that students are much more likely to take n math courses simultaneously than n chemistry courses. Additionally, it tells us we need to make a robust points tracking algorithm. Student 28108 passed two math courses AND a chemistry course simultaneously (during student.term 3), which tells us that a student can take multiple courses per semester in the same department.
 ```
 
 ```{r Initialize Class Size, include = FALSE}
@@ -598,7 +599,7 @@ Gen_Data7 <- Temp_Data
 
 
 ```{r No muli-department faculty, include = FALSE}
-## This chunk shows that there are no faculty that teach in both the math and chemistry departments.
+## This chunk shows that there are no faculty that teach in both the Math and Chemistry departments.
 counter <- Gen_Data7 %>%
               group_by(`Faculty Random ID`, Department) %>%
                 count() 
@@ -608,7 +609,7 @@ length(counter$`Faculty Random ID`) - length(unique(Gen_Data7$`Faculty Random ID
 
 \subsection{Building Delta C}
 
-Ideally our measure of faculty effect on final cumulative GPA would not require the faculty to be the first encountered in a department, because some professors may only teach upper level courses and therefore have many fewer students start with them. This decrease in sample size increases standard error and thus makes significance difficult to prove. Unfortunately, not all faculty can contribute equally to final cumulative GPA. For a student that takes four courses in the math and chemistry departments the first encountered faculty might be said to have a four term effect whereas the last faculty only contributes to the final term. It is unfair to give a "good" last faculty a negative score because of the contributions of previous "bad" faculty. We therefore restrict our inquiry to the first faculty encountered. Tables $6$ and $7$ describe how the overall sample size is affected by each filtration condition. 
+Ideally our measure of faculty effect on final cumulative GPA would not require the faculty to be the first encountered in a department, because some professors may only teach upper level courses and therefore have many fewer students start with them. This decrease in sample size increases standard error and thus makes significance difficult to prove. Unfortunately, not all faculty can contribute equally to final cumulative GPA. For a student that takes four courses in the Math and Chemistry departments the first encountered faculty might be said to have a four term effect whereas the last faculty only contributes to the final term. It is unfair to give a "good" last faculty a negative score because of the contributions of previous "bad" faculty. We therefore restrict our inquiry to the first faculty encountered. Tables $3$ and $4$ describe how the overall sample size is affected by each filtration condition. 
 
 ```{r Not First Withdraw Justification, warning=FALSE}
 ##Create plot to illustrate the inability to use all students for Q1. We must then do a filtration!
@@ -633,7 +634,7 @@ First.Term.Withdraw.Props <- Plot.Data1 %>%
                                         ungroup() %>%
                                           summarise(First.Term.Withdraw = First.Term.Withdraw, prop = n / sum(n))
 
-kable(First.Term.Withdraw.Props, caption = "Proportion of students in OCC's math and chemistry departments that withdrew from their first course.", padding = 3)
+kable(First.Term.Withdraw.Props, caption = "Proportion of students in OCC's Math and Chemistry departments that withdrew from their first course.", padding = 3)
 
 At.Least.Two.Grades.Props <- Plot.Data1 %>% 
                               slice(1) %>%
@@ -644,10 +645,10 @@ At.Least.Two.Grades.Props <- Plot.Data1 %>%
                                         ungroup() %>%
                                           summarise(At.Least.Two.Grades = At.Least.Two.Grades, prop = n / sum(n))
 
-kable(At.Least.Two.Grades.Props, caption = "Proportion of students in OCC's math and chemistry departments that recieved grades for at least two courses", padding = 3)
+kable(At.Least.Two.Grades.Props, caption = "Proportion of students in OCC's Math and Chemistry departments that recieved grades for at least two courses", padding = 3)
 ```
 
-Before we proceed, let's examine some potential source of error. The data we have are only for the courses that students took in the math and chemistry departments during their stay at OCC. We cannot with any degree of certainty claim that those first recorded terms in the dataset are indeed the first terms at Oakland Community College. Student $X$ could have taken an English course in a term before appearing in Professor Eckstrom's data. We have implicitly filtered for: (1) students who did not for some reason attend a standard four year college, and (2) students that wished to take math and/or chemistry courses in community college. We have moreover restricted our departmental information to only chemistry and mathematics courses, which removes our ability to discern the possibility that the math or chemistry departments are outliers in terms of cumulative GPA progression and withdraw rate. I will now indulge in conjecture, so take this next section with a grain of salt.  Students pursuing degrees in other departments may be less likely to complete numerous courses in the math and chemistry departments. Students only filling prerequisites such as quantitative reasoning or calculus one would be less likely to pass the filtration condition of taking at least two graded terms. The error is therefore mitigated because problematic observations are more likely to get picked off. Such an effect is not falsifiable without a larger dataset containing more departments for comparison, and is therefore an important follow-up question. 
+Before we proceed, let's examine some potential source of error. The data we have are only for the courses that students took in the Math and Chemistry departments during their stay at OCC. We cannot with any degree of certainty claim that those first recorded terms in the dataset are indeed the first terms at Oakland Community College. Student $X$ could have taken an English course in a term before appearing in Professor Eckstrom's data. We have implicitly filtered for: (1) students who did not for some reason attend a standard four year college, and (2) students that wished to take math and/or chemistry courses in community college. We have moreover restricted our departmental information to only chemistry and mathematics courses, which removes our ability to discern the possibility that the math or chemistry departments are outliers in terms of cumulative GPA progression and withdraw rate. I will now indulge in conjecture, so take this next section with a grain of salt.  Students pursuing degrees in other departments may be less likely to complete numerous courses in the Math and Chemistry departments. Students only filling prerequisites such as quantitative reasoning or calculus one would be less likely to pass the filtration condition of taking at least two graded terms. The error is therefore mitigated because problematic observations are more likely to get picked off. Such an effect is not falsifiable without a larger dataset containing more departments for comparison, and is therefore an important follow-up question. 
 
 ```{r Execute DeltaC Filtration Conditions, include=FALSE}
 ##Initialize number of courses per term,  filter for those students that took only one course in their first term and took at least two graded terms in the math or chemistry departments. That is, math first term then chemistry second term is totally legal.
@@ -717,14 +718,14 @@ After filtering for students that (1) took only one course in their first term w
 Temp_Data2 <- Filtered.Data1 %>%
                 filter(Withdraw == FALSE)
 
-##Function that determines which indecies within Temp_Data2 a given student possesses
+##Function that determines which indices within Temp_Data2 a given student possesses
 student.index2 <- function(cntr){
   student.id <- unique(Temp_Data2$`Student Random ID`)[cntr]
-  student.indecies <- which(Temp_Data2$`Student Random ID` == student.id)
-  return(student.indecies)
+  student.indices <- which(Temp_Data2$`Student Random ID` == student.id)
+  return(student.indices)
 }
     
-##Function that numbers a student's graded terms in OCC's math and chemistry departments using positive integers. 
+##Function that numbers a student's graded terms in OCC's Math and Chemistry departments using positive integers. 
 graded.terms <- function(index){
   total.terms <- Temp_Data2$Total.Term[index]
   graded.terms <- rep(0, length(total.terms))
@@ -762,7 +763,7 @@ for(i in 1:n.s){
 As of 4/2021, the package lme4 was an up-to-date mixed modeling package available through CRAN. (15) The lme4 function lmer() allows the user to generate a linear model with a combination of fixed and random effects. A linear mixed-effects model represents a dependent variable - in our case the cumulative GPA of a student - as a linear function of some inputs. The benefit of using such a model is that instead of just using a fixed effect as predictor, such as the student's term number, we can manually specify certain variables to lme4 that either effect the intercept or the slope of our linear model. (15, 16)  Each student enters the dataset with various levels of previous exposure to mathematics and chemistry, and encounter different challenges during their first term; there are myriad factors which influence a student's first observation of GPA. Mixed-effects models allow an analyst to adjust for these factors. (15, 16)  We will build two linear mixed-effects models - one using lmer() and one from scratch. After comparing the models, we will choose the better for usage in the data analysis.
 
 \subsubsection{Confounding Variables}
-One influence on future cumulative GPA achievement is the course in which students begin their tenure at OCC's math/chemistry departments. For instance - there may be a difference in both the final cumulative GPA and the slope for cumulative GPA in the mean student that begins their community college math courses in Preparation for Algebra (MAT - 1050) and a student that began in Calculus II (Mat - 1740). Figure 5 is a series of boxplots that show the distribution of final cumulative GPA for students that begin in each allowed first course. It is clear from this plot that the best linear model for a student that starts in a particular course would be specific to their peers. If we were to lump the students that started in CHE-1510 with the students that started in MAT-1050, the chemistry students would tend to finish with cumulative GPAs above the mean just as the math students would be erroneously assigned negative scores. 
+One influence on future cumulative GPA achievement is the course in which students begin their tenure at OCC's math/chemistry departments. For instance - there may be a difference in both the final cumulative GPA and the slope for cumulative GPA in the mean student that begins their community college math courses in Preparation for Algebra (MAT - 1050) and a student that began in Calculus II (Mat - 1740). Figure $1$ is a series of boxplots that show the distribution of final cumulative GPA for students that begin in each allowed first course. It is clear from this plot that the best linear model for a student that starts in a particular course would be specific to their peers. If we were to lump the students that started in CHE-1510 with the students that started in MAT-1050, the chemistry students would tend to finish with cumulative GPAs above the mean just as the math students would be erroneously assigned negative scores. 
 
 ```{r Strata Justification, fig.cap = "Boxplots of Final Cumulative GPA for all Students that  Passed Filtration Conditions, Colored by First Course"}
 ##Create overall visualization of final cumulative GPA by first course
@@ -834,21 +835,21 @@ for(i in 1:length(Term.Means$max.terms)){
 }
 ```
 
-Students take courses in the math and chemistry departments for different number of terms. Oakland Community College only grants Associate's degrees in math and chemistry - the highest math course is Linear Algebra, and the highest chemistry course is Organic Chemistry II. While it may be a false equivalency to compare students that enroll in community college to those that enroll in standard four year schools, the highest courses offered at OCC should be completed at the latest by the end of a four-year student's second year assuming the student is majoring in that field. By this rough heuristic I estimate that a student beginning in Calculus 1 should complete OCC's math regime in about four terms at one course per term. A student might not take a math course every term, and community college students that are seeking mathematics degrees may require additional training before calculus. 
+Students take courses in the Math and Chemistry departments for different number of terms. Oakland Community College only grants Associate's degrees in Math and Chemistry - the highest math course is Linear Algebra, and the highest chemistry course is Organic Chemistry II. While it may be a false equivalency to compare students that enroll in community college to those that enroll in standard four year schools, the highest courses offered at OCC should be completed at the latest by the end of a four-year student's second year assuming the student is majoring in that field. By this rough heuristic I estimate that a student beginning in Calculus 1 should complete OCC's math regime in about four terms at one course per term. A student might not take a math course every term, and community college students that are seeking mathematics degrees may require additional training before calculus. 
 
 ```{r Plot Max.Terms Mean Cumulative GPA, fig.cap = "Mean Final Cumulative GPA Vs. Number of Terms in the Math and Chemistry Departments, with 95% Confidence Interval"}
 p
 ```
 
-As can be seen in figure six, the mean final cumulative GPA for those students that take between three and seven courses are essentially identical. Students that complete their stay in OCC's math and chemistry departments within this five course spread have the empirically highest mean cumulative GPA's by the time they finish. Past each extreme of this range mean final cumulative GPA begins to fall. There are two orientations, to each of which I will assign a speculative reason for the lower cumulative observed GPA. Please note the following hypotheses are merely my guesses at the mechanisms, and there are likely additional factors that I have not thought of that affect mean final cumulative GPA by max term.
+As can be seen in figure $2$, the mean final cumulative GPA for those students that take between three and seven courses are essentially identical. Students that complete their stay in OCC's Math and Chemistry departments within this five course spread have the empirically highest mean cumulative GPA's by the time they finish. Past each extreme of this range mean final cumulative GPA begins to fall. There are two orientations, to each of which I will assign a speculative reason for the lower cumulative observed GPA. Please note the following hypotheses are merely my guesses at the mechanisms, and there are likely additional factors that I have not thought of that affect mean final cumulative GPA by max term.
 
-1. $\textbf{Less than three terms:}$ A student that takes less than three terms in the math and chemistry departments may be testing out community college itself, or perhaps trialing the courses offered in the respective departments. Such students may not be as committed to their learning as those pursuing an associate's degree in math or chemistry. By choosing the students that only take one two terms of math and chemistry, we have retroactively largely filtered out those students that ARE pursuing such a degree, thus lowering the mean final cumulative GPA. An alternate explanation is that if a student does poorly in their first one or two courses in a department, they become less likely to continue study in that field. There would then be a higher concentration of lower grades in the first few terms, as we observe. 
+1. $\textbf{Less than three terms:}$ A student that takes less than three terms in the Math and Chemistry departments may be testing out community college itself, or perhaps trialing the courses offered in the respective departments. Such students may not be as committed to their learning as those pursuing an associate's degree in math or chemistry. By choosing the students that only take one or two terms of Math and Chemistry, we have retroactively largely filtered out those students that ARE pursuing such a degree, thus lowering the mean final cumulative GPA. An alternate explanation is that if a student does poorly in their first one or two courses in a department, they become less likely to continue study in that field. There would then be a higher concentration of lower grades in the first few terms, as we observe. 
 
 2. $\textbf{Greater than seven terms:}$ Students that are hellbent on obtaining a degree in math or chemistry will take courses in those departments until they either finish the degree or change their conviction. If a student fails multiple courses within the department, they will necessarily need to take additional terms to retake the classes. They will then have both a higher number of terms taken, and a lower cumulative GPA. 
 
-The mean final cumulative GPA for all terms lie within the set (`r min(Term.Means$Term.Mean.Cum.GPA)`, `r max(Term.Means$Term.Mean.Cum.GPA)`) GPA points. The minimum occurs in those students that only take one term in the math and chemistry departments, and the maximum occurs at five terms. The range is only about $0.3$ GPA points, so the effect that the total terms taken is rather small, approximately the difference between a C average and a C+ average.
+The mean final cumulative GPA for all terms lie within the set (`r min(Term.Means$Term.Mean.Cum.GPA)`, `r max(Term.Means$Term.Mean.Cum.GPA)`) GPA points. The minimum occurs in those students that only take one term in the Math and Chemistry departments, and the maximum occurs at five terms. The range is only about $0.3$ GPA points, so the effect that the total terms taken is rather small, approximately the difference between a C average and a C+ average.
 
-As the number of terms increases, the number of students that were enrolled in the math and chemistry department for that number of terms decreases exponentially and moreover monotonically. I was forced to filter for terms that had at least thirty students finish within them, thus losing a small amount of data (on the order of $50$ students). The confidence intervals for the later terms become increasingly wide, to the point where the negative trend observed in terms $8$ through $10$ is barely significant at the $\alpha = 0.05$ level. Another interesting statistic is the mean change in cumulative GPA per term, which we will look at presently.
+As the number of terms increases, the number of students that were enrolled in the Math and Chemistry department for that number of terms decreases exponentially and moreover monotonically. I was forced to filter for terms that had at least thirty students finish within them, thus losing a small amount of data (on the order of $50$ students). The confidence intervals for the later terms become increasingly wide, to the point where the negative trend observed in terms $8$ through $10$ is barely significant at the $\alpha = 0.05$ level. Another interesting statistic is the mean change in cumulative GPA per term, which we will look at presently.
 
 ```{r Initialize Max.Term Slopes}
 ## The following amounts to the first derivative of the previous graph. 
@@ -924,16 +925,16 @@ p +
   geom_hline(yintercept = 0, color = "green")
 ```
 
-Figure seven compares the mean change in a student's GPA against the number of terms that they took courses in the math and chemistry departments. This statistic is measured as the difference between final cumulative GPA and the first recorded observation of GPA, divided by the number of graded terms.  As in figure six, ten is the highest term number for which there is sufficient data for inference. I did not have any guesses regarding whether certain terms would yield positive or negative effects, so we have used a two-sided confidence interval. These will be compared about the expected effect of zero. If we let the variable measured on the vertical axis be $s$ for slope, the hypotheses we will test for significance for each term are: (10)
+Figure $3$ compares the mean change in a student's GPA against the number of terms that they took courses in the Math and Chemistry departments. This statistic is measured as the difference between final cumulative GPA and the first recorded observation of GPA, divided by the number of graded terms.  As in figure $3$, ten is the highest term number for which there is sufficient data for inference. I did not have any guesses regarding whether certain terms would yield positive or negative effects, so we have used a two-sided confidence interval. These will be compared about the expected effect of zero. If we let the variable measured on the vertical axis be $s$ for slope, the hypotheses we will test for significance for each term are: (10)
 
 \begin{align*}
 H_0: s = 0\\
 H_A: s \neq 0
 \end{align*}
 
-For all terms except 10, at the $\alpha = 0.05$ level we reject the null hypothesis in favor of the alternative. Because we were using a two sided confidence interval, we have shown that for terms one through nine that $s < 0$. The $95\%$ confidence interval for term 10 intersects with the green line demarking the null hypothesis, so for term 10 we fail to reject $H_0$. We are running ten tests at the $\alpha = 0.05$ level, and so we would expect roughly one in twenty experiments to have a population mean outside of the confidence interval. For most of these CI's, the boundary is rather tight and so even in the case of such errors, the population mean is unlikely to usurp the validity of our results. Note that these changes in slope are relatively small. The average student that took five terms in OCC's math and chemistry department experienced a $-0.04$ decrease in cumulative GPA per term, for a total of $-0.24$ GPA points. The end effect is rather large, so it is worth adjusting for in the upcoming linear mixed-effects models.
+For all terms except 10, at the $\alpha = 0.05$ level we reject the null hypothesis in favor of the alternative. Because we were using a two sided confidence interval, we have shown that for terms one through nine that $s < 0$. The $95\%$ confidence interval for term 10 intersects with the green line demarking the null hypothesis, so for term 10 we fail to reject $H_0$. We are running ten tests at the $\alpha = 0.05$ level, and so we would expect roughly one in twenty experiments to have a population mean outside of the confidence interval. For most of these CI's, the boundary is rather tight and so even in the case of such errors, the population mean is unlikely to usurp the validity of our results. Note that these changes in slope are relatively small. The average student that took five terms in OCC's Math and Chemistry department experienced a $-0.04$ decrease in cumulative GPA per term, for a total of $-0.24$ GPA points. The end effect is rather large, so it is worth adjusting for in the upcoming linear mixed-effects models.
 
-Using these plots we have shown that students with the highest mean final cumulative GPA tend to take between three and seven terms in the math and chemistry departments, and that those students also have a downwards trend in their cumulative GPA from their entry into the departments to the last course they take.
+Using these plots we have shown that students with the highest mean final cumulative GPA tend to take between three and seven terms in the Math and Chemistry departments, and that those students also have a downwards trend in their cumulative GPA from their entry into the departments to the last course they take.
 
 \subsubsection{Deciding on a Model}
 
@@ -948,7 +949,7 @@ Each student is given their own affine predictor. By evaluating a student's mode
 
 The lmer() method from the R package lme4 provides a straightforward method of creating hierarchical models. First a user must specify how the variables are related, then define the data from which to obtain said variables. In lmer() syntax, a fixed effect is denoted by the name of the variable with no additional formatting. For example, the model "Cum.GPA ~ Graded.Term" would simply create a standard fixed-effects linear regression model with dependent variable cumulative GPA and independent variable graded term number.  To define a random intercept with no correlated variables, we use the (1 | X) notation: "Cum.GPA ~ Graded.Term + (1 | `Student Random ID`)" creates a model where all students have the same change in cumulative GPA per term, but may start with different GPAs. Allowing a correlated variable to act as both a random slope modifier and as a random intercept modifier requires the (1 + Y | X) clause. lmer() has the notable benefit of allowing grouping to be defined within the model to prevent unnecessary duplication of effort. Unfortunately, when I used this feature the models failed to converge. It is only a little more work to manually stratify the students by first course before running mixed effects models on each. After adjusting for first course, each of the 19 linear mixed-effects models have the same formula: "Cum.GPA ~ Graded.Term + (1 + Graded.Term | `Student Random ID`)". This allows each student's random deviation from the mean to affect both their starting point and their cumulative GPA slope. $\Delta C$s are calculated in accordance with equation ($\ref{DeltaC Definition}$) using the lmer() derived mean slopes per stratum.
 
-As we will see later, lme4 has some issues with my data when supplied - likely from user error. I did quite a lot of reading on linear mixed-effects models, and recreated the concept from scratch using dplyr functions. First I stratify by each combination of total terms in the math and chemistry department and first course taken that had at least eight students. Now that the confounding variables and outliers are accounted for, we calculate the mean change in cumulative GPA per term for each stratum. These are the slopes of the linear mixed-effects models. Finally, we run the slope from the first observation of cumulative GPA, then calculate $\Delta C$ in accordance with equation ($\ref{DeltaC Definition}$).
+As we will see later, lme4 has some issues with my data when supplied - likely from user error. I did quite a lot of reading on linear mixed-effects models, and recreated the concept from scratch using dplyr functions. First I stratify by each combination of total terms in the Math and Chemistry department and first course taken that had at least eight students. Now that the confounding variables and outliers are accounted for, we calculate the mean change in cumulative GPA per term for each stratum. These are the slopes of the linear mixed-effects models. Finally, we run the slope from the first observation of cumulative GPA, then calculate $\Delta C$ in accordance with equation ($\ref{DeltaC Definition}$).
 
 ```{r Make Manual DeltaC Models and DeltaCs, include = FALSE}
 
@@ -969,7 +970,7 @@ Filtered.Data3 <- Filtered.Data2  %>%
                             dplyr::select(`Student Random ID`, Last.Term.Cum.GPA) %>%
                               right_join(Filtered.Data2, by = "Student Random ID")
 
-##Initialize Course Slopes into Filtered.Data. This uses the maximum terms taken as the denominator, which approximates that student's Cum.GPA slope does not change during their stay in OCC's math and chemistry departments.
+##Initialize Course Slopes into Filtered.Data. This uses the maximum terms taken as the denominator, which approximates that student's Cum.GPA slope does not change during their stay in OCC's Math and Chemistry departments.
 Filtered.Data4 <- Filtered.Data3 %>%
                     group_by(`Student Random ID`) %>%
                       mutate(Cum.GPA.Slope = (Last.Term.Cum.GPA - First.Course.GPA)/max(Graded.Term))
@@ -1013,7 +1014,7 @@ Manual.Experiment.Two.Mean.DeltaCs <- Manual.DeltaC.Data %>%
                                                         mutate(Significant = if_else(observed.tval >= requisite.tval, TRUE, FALSE))  
 ```
 
-```{r, fig.cap = "Barcharts for mean slope of final cumulative GPA per term enrolled by first course code for each student that passed filtration. Mean course slopes calculated manually."}
+```{r Manual Cumulative GPA Slopes, fig.cap = "Barcharts for mean slope of final cumulative GPA per term enrolled by first course code for each student that passed filtration. Mean course slopes calculated manually."}
 
 Course.Mean.Cum.GPA.Slopes2 <-Course.Mean.Cum.GPA.Slopes %>%
                                 ungroup() %>%
@@ -1039,7 +1040,7 @@ courses <- Filtered.Data1 %>%
                 unique()
 
 
-## These linear mixed-effects models predict a student's Cumulative GPA in the math and chemistry departments during their stay at OCC depending on the course they took first.
+## These linear mixed-effects models predict a student's Cumulative GPA in the Math and Chemistry departments during their stay at OCC depending on the course they took first.
 make.course.model <- function(course){
   
   One.Course.Data <- Filtered.Data1 %>%
@@ -1164,7 +1165,7 @@ kable(Slope.Diffs, caption = "Absolute differences in mean course slopes between
 ```
 
 
-Figures $8$ and $9$ show the mean cumulative GPA slopes for each first course that had at least eight students, calculated manually and by lmer() respectively. Table $8$ shows the absolute value of the difference in the mean slopes between figures $6$ and $7$. CHE-2650, MAT-1140, and MAT-1525 were removed from both models because less than eight students began in those courses. (13) If the two models were calculated identically, each entry of the Slope.Diff column in table $8$ would be zero. One model will end up being better than the other, though we cannot determine which based only on the mean course slopes. Let's see how they do at evaluating the $\Delta C$ statistic, keeping in mind that the mean $\Delta C$ for each course code *should* be zero barring some minor deviations based on the discreteness of cumulative GPA and non-linearity of cumulative GPA. The better method will be the one whose individual course mean $\Delta C$'s deviate the least from zero.
+Figures $4$ and $5$ show the mean cumulative GPA slopes for each first course that had at least eight students, calculated manually and by lmer() respectively. Table $5$ shows the absolute value of the difference in the mean slopes between figures $4$ and $5$. CHE-2650, MAT-1140, and MAT-1525 were removed from both models because less than eight students began in those courses. (13) If the two models were calculated identically, each entry of the Slope.Diff column in table $5$ would be zero. One model will end up being better than the other, though we cannot determine which based only on the mean course slopes. Let's see how they do at evaluating the $\Delta C$ statistic, keeping in mind that the mean $\Delta C$ for each course code *should* be zero barring some minor deviations based on the discreteness of cumulative GPA and non-linearity of cumulative GPA. The better method will be the one whose individual course mean $\Delta C$'s deviate the least from zero.
 
 ```{r Create LME4 DeltaCs, include = FALSE}
 ## Create course - specific models of Cum.GPA progression through student's stay at OCC in Filtered.Data using Cum.GPA as a predictor. First, obtain a confidence interval for the effect of Graded.Term on the mean student for superposition onto those courses that had a measurable non-significant deviation from the mean effect on Graded.Term.
@@ -1292,7 +1293,7 @@ Manual.DeltaC.Data %>%
             labs(x = "Course Code", y = "Course Mean \u0394C", fill = "Course Code")
 ```
 
-Figures $10$ and $11$ show the mean $\Delta C$ for each course as predicted by the lmer() and manual linear mixed-effects models.   The distribution of the lmer() generated $\Delta C$'s clearly have wide variance for each course, signifying that the wrong statistic is being calculated. Specifically, the range of mean $\Delta C$'s over all courses is approximately $[-0.4, 0.3]$. It seems that simply supplying lmer with a random intercept called Student Random ID that has a slope and intercept interaction with the current term number is insufficient in the generation of an unbiased $\Delta C$. Removing the max.terms stratification results in the manual models creating similarly biased $\Delta C$'s, so perhaps lmer() is not properly recognizing how maximum terms affects slope and instead calculated the change in slope on a term-by-term basis. My bet is the maximum terms slope dependency was automatically captured as part of the student-to-student random deviation, but applied as a random intercept rather than a random slope. Ultimately, lmer did not work. In contrast, the mean $\Delta C$ for each course generated by the manual models compactly surround zero. The range of course mean $\Delta C$'s in the manual models was approximately $[-0.015, 0.01]$. The manual models were better by an order of magnitude, so we will use them exclusively going forwards. 
+Figures $6$ and $7$ show the mean $\Delta C$ for each course as predicted by the lmer() and manual linear mixed-effects models.   The distribution of the lmer() generated $\Delta C$'s clearly have wide variance for each course, signifying that the wrong statistic is being calculated. Specifically, the range of mean $\Delta C$'s over all courses is approximately $[-0.4, 0.3]$. It seems that simply supplying lmer with a random intercept called Student Random ID that has a slope and intercept interaction with the current term number is insufficient in the generation of an unbiased $\Delta C$. Removing the max.terms stratification results in the manual models creating similarly biased $\Delta C$'s, so perhaps lmer() is not properly recognizing how maximum terms affects slope and instead calculated the change in slope on a term-by-term basis. My bet is the maximum terms slope dependency was automatically captured as part of the student-to-student random deviation, but applied as a random intercept rather than a random slope. Ultimately, lmer did not work. In contrast, the mean $\Delta C$ for each course generated by the manual models compactly surround zero. The range of course mean $\Delta C$'s in the manual models was approximately $[-0.015, 0.01]$. The manual models were better by an order of magnitude, so we will use them exclusively going forwards. 
 
 ```{r Manual Experiment One Mean DeltaCs are Normal, fig.cap = "Normal probability plot of all manual professor mean DeltaC's from experiment one."}
 ##Normal probability plot for All mean DeltaC using Manual experiment one
@@ -1308,7 +1309,7 @@ Manual.Experiment.Two.Mean.DeltaCs %>%
    qqnorm(main = NULL)
 ```
 
-Figures $12$ and $13$ depict normal probability plots using every student's $\Delta C$ calculated in experiments one and two respectively. A perfectly normal distribution would be a straight diagonal line, indicating a one-to-one correspondence between the theoretical normal quantiles and the observed sample quantiles. There is a small amount of curvature on the tails of the experimental distribution, but this is expected from sampling error and the fact that $\Delta C$ is a discrete variable bounded on the set $[-4,4]$. Because the population distribution of $\Delta C$ is normal for both experiments we are sanctioned for usage of the one sample t-test. Moreover, because each stratum has at least eight students, we can also use the bootstrap principal for significance testing. These procedures are carried out in accordance with equations ($\ref{T Hypotheses}$) and ($\ref{Bootstrap Hypotheses}$). For visualization of how the bootstrap confidence interval is employed for significance testing, I have included figures $14$ and $15$.
+Figures $8$ and $9$ depict normal probability plots using every student's $\Delta C$ calculated in experiments one and two respectively. A perfectly normal distribution would be a straight diagonal line, indicating a one-to-one correspondence between the theoretical normal quantiles and the observed sample quantiles. There is a small amount of curvature on the tails of the experimental distribution, but this is expected from sampling error and the fact that $\Delta C$ is a discrete variable bounded on the set $[-4,4]$. Because the population distribution of $\Delta C$ is normal for both experiments we are sanctioned for usage of the one sample t-test. Moreover, because each stratum has at least eight students, we can also use the bootstrap principal for significance testing. These procedures are carried out in accordance with equations ($\ref{T Hypotheses}$) and ($\ref{Bootstrap Hypotheses}$). For visualization of how the bootstrap confidence interval is employed for significance testing, I have included figures $10$ and $11$.
 
 ```{r DeltaC Bootstrap Functions, include = FALSE}
 ##Bootstrap for each faculty member that taught students that passed filtration assumptions. This chunk creates the necessary functions.
@@ -1562,7 +1563,7 @@ sd.n2 <- Double.Courses %>%
               sd()
 ```
 
-The overall population mean for $\Delta C$ in the manual models is `r overall.mean.DeltaC` with a standard deviation `r `, which means that either: 1) there is at least one confounding variable that affects a student's cumulative GPA unaccounted for, or that 2) the term dependency of a student's cumulative GPA is not quite linear. I am personally more inclined to believe the latter because GPA is bounded on the interval $[0,4]$ and thus cannot perfectly follow any affine path over an arbitrary number of semesters (unless the slope were exactly zero). That said, for the mean student taking the mean number of terms the manual models are pretty good. Now that we know the overall mean value for $\Delta C$, we can use the one sample t-test and bootstrap confidence intervals with $\alpha = 0.05$ to determine whether a given faculty member had a mean positive or negative on their students final cumulative GPA's. As an aside, the $\Delta C$ statistic we have created is not immune to exceptionally harsh/lenient grading by the first professor, because it is measured assuming that the first observed GPA value was an accurate intercept for the linear mixed effects model. We assume that course grading is standardized in OCC's math and chemistry departments. 
+The overall population mean for $\Delta C$ in the manual models is `r overall.mean.DeltaC` with a standard deviation `r `, which means that either: 1) there is at least one confounding variable that affects a student's cumulative GPA unaccounted for, or that 2) the term dependency of a student's cumulative GPA is not quite linear. I am personally more inclined to believe the latter because GPA is bounded on the interval $[0,4]$ and thus cannot perfectly follow any affine path over an arbitrary number of semesters (unless the slope were exactly zero). That said, for the mean student taking the mean number of terms the manual models are pretty good. Now that we know the overall mean value for $\Delta C$, we can use the one sample t-test and bootstrap confidence intervals with $\alpha = 0.05$ to determine whether a given faculty member had a mean positive or negative on their students final cumulative GPA's. As an aside, the $\Delta C$ statistic we have created is not immune to exceptionally harsh/lenient grading by the first professor, because it is measured assuming that the first observed GPA value was an accurate intercept for the linear mixed effects model. We assume that course grading is standardized in OCC's Math and Chemistry departments. 
 
 \subsection{Delta C Results}
 
@@ -1597,7 +1598,7 @@ DeltaC.Sig.Diff1 <- Double.Profs %>%
 kable(DeltaC.Sig.Diff1, caption = "Discrepencies found in significance tests for experiment one. Out of 233 faculty, the one sample t-test and the bootstrap confidence interval agreed regarding whether a faculty's mean DeltaC was significantly different than the overall mean 224 times, and disagreed 9 times.", padding = 3)
 ```
 
- Table 9 shows that out of the $260$ faculty that survived filtration, $233$ had at least eight students start in one of their courses. In experiment one we can run significance tests on $233$ faculty. Table 10 summarizes the differences in experiment one between the overall one sample t-test and bootstrap significance measures for all faculty that had at least eight students begin in their courses and pass filtration. In the vast majority of cases, the bootstrap test agrees with the t-test. The significance implied by the t-test and the bootstrap agreed for `r total.agree1` out of `r total.cases1` faculty members, which is approximately  `r prop.agree1 *100`$\%$ of all professors.  $9$ discrepancies occurred where the t-test implied that the observation of mean $\Delta C$ for a faculty member was significantly different from the overall  mean, while the bootstrap implied that it was not. There were no observed cases where the t-test rejected significance while the bootstrap failed to reject. We would expect more bootstrap rejections than t-test rejections if the sample data were not sufficiently rich due to the sample sizes being too small. The requirement that a faculty have a minimum of eight students start in their courses helps with the richness issue, but the high variance in $\Delta C$ between students is something to be mindful of when considering the results.
+Table $6$ shows that out of the $260$ faculty that survived filtration, $233$ had at least eight students start in one of their courses. In experiment one we can run significance tests on $233$ faculty. Table $7$ summarizes the differences in experiment one between the overall one sample t-test and bootstrap significance measures for all faculty that had at least eight students begin in their courses and pass filtration. In the vast majority of cases, the bootstrap test agrees with the t-test. The significance implied by the t-test and the bootstrap agreed for `r total.agree1` out of `r total.cases1` faculty members, which is approximately  `r prop.agree1 *100`$\%$ of all professors.  $9$ discrepancies occurred where the t-test implied that the observation of mean $\Delta C$ for a faculty member was significantly different from the overall  mean, while the bootstrap implied that it was not. There were no observed cases where the t-test rejected significance while the bootstrap failed to reject. We would expect more bootstrap rejections than t-test rejections if the sample data were not sufficiently rich due to the sample sizes being too small. The requirement that a faculty have a minimum of eight students start in their courses helps with the richness issue, but the high variance in $\Delta C$ between students is something to be mindful of when considering the results.
 
 Here are some relevant statistics regarding experiment one. The average mean $\Delta C$ for those faculty who were doubly-significant and had positive effect was `r positive.mean1` with standard deviation `r positive.sd1`. As for the faculty doubly-significant negative mean $\Delta C$ values, the average mean $\Delta C$ was `r negative.mean1` with a standard deviation of `r negative.sd1`. The sample size (total number of students that passed filtration and started with a professor) had mean `r mean.n1` and standard deviation `r sd.n1`. The distribution of the sample size is therefore clearly not Gaussian. The experimental error rate for experiment one - where such an error is measured by the bootstrap and t-test disagreeing on the statistical significance of a faculty - was $\frac{9}{233}*100\% = 3.86\%$. This is a bit high in terms of data loss as we lose ratings on nine faculty members, though it's certainly better safe than sorry. The overall accuracy of the experiment is increased because we eliminated nine potentially invalid results. 
 
@@ -1640,7 +1641,7 @@ Double.Profs.Data %>%
 ```
 
 
-The overall distribution of mean $\Delta C$ is shown in figure $16$ to be approximately normal. After removing all the faculty that had effects indistinguishable from zero, we are left with the bimodal distribution in figure $17$. I want to be clear: even though the faculty removed did not have an effect on their students *significantly different from the mean effect*, that does not imply that they did not have zero effect. The final mean cumulative GPA slopes for the students of these removed professors are well-represented by figure $8$. A word of warning - just because the students placed first with a specific faculty happened to significantly underperform or overperform against the manual model does not necessitate a true effect. It is important to consider the result in context - did a faculty have a mean $\Delta C$ of $0.5$ among twelve students or among twelve hundred? Both cases are represented equivalently in figures $16$ and $17$, though one is much more certain and impactful than the other. Figure $18$ is intended to provide such context.
+The overall distribution of mean $\Delta C$ is shown in figure $12$ to be approximately normal. After removing all the faculty that had effects indistinguishable from zero, we are left with the bimodal distribution in figure $13$. I want to be clear: even though the faculty removed did not have an effect on their students *significantly different from the mean effect*, that does not imply that they did not have zero effect. The final mean cumulative GPA slopes for the students of these removed professors are well-represented by figure $4$. A word of warning - just because the students placed first with a specific faculty happened to significantly underperform or overperform against the manual model does not necessitate a true effect. It is important to consider the result in context - did a faculty have a mean $\Delta C$ of $0.5$ among twelve students or among twelve hundred? Both cases are represented equivalently in figures $12$ and $13$, though one is much more certain and impactful than the other. Figure $14$ is intended to provide such context.
 
 
 
@@ -1669,13 +1670,13 @@ DeltaC.Context.Plot1 <- Double.Profs %>%
 DeltaC.Context.Plot1
 ```
 
-As the number of students trends towards zero, figure $18$ indicates that mean $\Delta C$ becomes more volatile. This volatility seems to evaporate past the $0.5$ quantile of sample size, stabilizing to a rough local average of $\pm 0.25$ for each polarity.  Additionally, the mean $\Delta C$ tends towards zero as the number of students grows. I can think of two potential causes for this trend. In the order of likelihood:
+As the number of students trends towards zero, figure $14$ indicates that mean $\Delta C$ becomes more volatile. This volatility seems to evaporate past the $0.5$ quantile of sample size, stabilizing to a rough local average of $\pm 0.25$ for each polarity.  Additionally, the mean $\Delta C$ tends towards zero as the number of students grows. I can think of two potential causes for this trend. In the order of likelihood:
 
 1. The statistic called mean $\Delta C$ is highly susceptible random variance. The approximate CLT given by equation ($\ref{Small N CLT}$) indicates that as the number of samples grows, the standard error decreases as we close in on the true population mean. As the number of students per doubly significant faculty grows, the range of mean $\Delta C$'s decreases, indicating that the range was not so big to begin with. This uses the assumption that faculty that have taught many students have the same distribution of population mean $\Delta C$'s as faculty that have not taught as many students.
 
 2. There is a fundamental difference between faculty that have taught many students and those that have not. In particular, the wide variance at low sample size could be seen as "good" low-student-count faculty having radical effective ideas and "bad" low-student-count faculty not knowing how to teach. This option is far less likely when considering the high-student-count behavior of the distribution. Any professor that teaches several courses is bound to learn what is effective and how best to disperse knowledge in a community college setting. This would indicate a universal increase in mean $\Delta C$. While we observe an average increase in the mean $\Delta C$ for faculty with doubly-significant negative effects, we observe a *decrease* in the average mean $\Delta C$ for faculty with doubly-significant positive effects.
 
-Figure $18$ shows that while a faculty's mean $\Delta C$ may a good indicator of a real effect for higher sample sizes, it must be taken with a healthy dose of trepidation for low sample sizes as large $\Delta C$'s are likely illusory.
+Figure $14$ shows that while a faculty's mean $\Delta C$ may a good indicator of a real effect for higher sample sizes, it must be taken with a healthy dose of trepidation for low sample sizes as large $\Delta C$'s are likely illusory.
 
 \subsubsection{Delta C Experiment Two Results}
 ```{r DeltaC Experiment Two Sufficient Sample Size}
@@ -1704,9 +1705,9 @@ DeltaC.Sig.Diff2 <- Double.Courses %>%
 kable(DeltaC.Sig.Diff2, caption = "Discrepencies found in significance tests for experiment two. Out of 605 faculty-course combinations, the one sample t-test and the bootstrap confidence interval agreed regarding whether a faculty's mean DeltaC was significantly different than the course mean 560 times, and disagreed 45 times.", padding = 3)
 ```
 
-In experiment two, we increase precision to the point of individual courses. Whereas in experiment one $\Delta C$ was averaged across all the students that passed filtration and started with a specific teacher (as long as at least eight students did), in experiment two the average was restricted across students that started with a faculty $\textit{in a course}$ (as long as at least eight students did). The sample size minimum caused many more omissions in experiment two than in experiment one. Out of $989$ faculty-course combinations, only $607$ had at least eight students start in them. Two of these faculty-course combinations were from the omitted courses, so we are left with $605$ significance tests to run.
+In experiment two, we increase precision to the point of individual courses. Whereas in experiment one $\Delta C$ was averaged across all the students that passed filtration and started with a specific teacher (as long as at least eight students did), in experiment two the average was restricted across students that started with a faculty $\textit{in a course}$ (as long as at least eight students did). The sample size minimum caused many more omissions in experiment two than in experiment one. Table $8$ shows that out of $989$ faculty-course combinations, only $607$ had at least eight students start in them. Two of these faculty-course combinations were from the omitted courses, so we are left with $605$ significance tests to run.
 
-Table $12$ shows a larger significance correction than in experiment one. The experimental error rate for experiment two was $\frac{37+8}{37+8+560}*100\% = 7.44\%$. This higher rejection rate is predictable because the sample size must necessarily go down when we choose not to average over all a faculty's courses - as long as the faculty taught at least two courses in which students started their path through OCC's math and chemistry departments. The mean sample size in experiment two was only `r  mean.n2` with standard deviation `r sd.n2`. Because the ratio of mean to standard deviation decreased from experiments one to two, we predict the distribution of experiment two's sample sizes to be even more skewed than that of experiment one.
+Table $9$ shows a larger significance correction than in experiment one. The experimental error rate for experiment two was $\frac{37+8}{37+8+560}*100\% = 7.44\%$. This higher rejection rate is predictable because the sample size must necessarily go down when we choose not to average over all a faculty's courses - as long as the faculty taught at least two courses in which students started their path through OCC's Math and Chemistry departments. The mean sample size in experiment two was only `r  mean.n2` with standard deviation `r sd.n2`. Because the ratio of mean to standard deviation decreased from experiments one to two, we predict the distribution of experiment two's sample sizes to be even more skewed than that of experiment one.
 
 The average mean $\Delta C$ for those faculty-course combinations that were doubly-significant and had positive effect was `r positive.mean2` with standard deviation `r positive.sd2`. For the faculty-course combinations with doubly-significant negative mean $\Delta C$ values, the average mean $\Delta C$ was `r negative.mean2` with standard deviation `r negative.sd2`. The sample size had mean `r mean.n2` and standard deviation `r sd.n2`. The distribution of sample size is therefore even more skewed than in experiment one.
 
@@ -1733,7 +1734,7 @@ Double.Courses %>%
       theme(legend.position = "none")
 ```
 
-The distribution of all experiment two mean $\Delta C$'s in figure $19$ is not noticeably different than the distribution for experiment one observed in figure $16$.  Figures $20$ and $17$ are likewise similar. Experiment two includes information regarding the course to which an observation of mean $\Delta C$ belongs. We will generate the same type of context plot as we did for experiment one, but first let's separate the distribution of mean $\Delta C$ into each possible first course.
+The distribution of all experiment two mean $\Delta C$'s in figure $15$ is not noticeably different than the distribution for experiment one observed in figure $12$.  Figures $16$ and $13$ are likewise similar. Experiment two includes information regarding the course to which an observation of mean $\Delta C$ belongs. We will generate the same type of context plot as we did for experiment one, but first let's separate the distribution of mean $\Delta C$ into each possible first course.
 
 ```{r All Experiment Two Mean DeltaCs by course, fig.cap = "Scatterplot of all mean Delta C's for experiment two"}
 ##Scatterplot of all course specific mean DeltaC's
@@ -1760,7 +1761,7 @@ Double.Courses %>%
       labs(x = "Course's Doubly-Significant Mean \u0394C (GPA Points)", y = "Course", color = "Course Code", size = "Number of Students")
 ```
 
- Figures $21$ shows the distribution of mean $\Delta C$ for all faculty-course combinations, while figure $22$ only depicts doubly significant faculty-course combinations. There are few faculty that had at least eight people start in their high level chemistry courses, indicated by the few dots in the CHE-2610 stratum of figure $21$ and the altogether absence of CHE-2620 in either figure. Courses disappearing from the legends between figures $21$ and $22$ indicate that there were no faculty with doubly-significant mean $\Delta C$'s in that course. Specifically, while CHE-2610 and MAT-1070 had faculty-course combinations wherein at least eight students started none of these combinations were doubly significant. In experiment one the mean $\Delta C$ statistic was covariant with sample size. To get some context regarding the relationship between mean $\Delta C$ and sample size for experiment two, let's look at figure $23$.
+ Figures $17$ shows the distribution of mean $\Delta C$ for all faculty-course combinations, while figure $18$ only depicts doubly significant faculty-course combinations. There are few faculty that had at least eight people start in their high level chemistry courses, indicated by the few dots in the CHE-2610 stratum of figure $17$ and the altogether absence of CHE-2620 in either figure. Courses disappearing from the legends between figures $17$ and $18$ indicate that there were no faculty with doubly-significant mean $\Delta C$'s in that course. Specifically, while CHE-2610 and MAT-1070 had faculty-course combinations wherein at least eight students started none of these combinations were doubly significant. In experiment one the mean $\Delta C$ statistic was covariant with sample size. To get some context regarding the relationship between mean $\Delta C$ and sample size for experiment two, let's look at figure $19$.
 
 ```{r Experiment Two Context Plot, fig.cap = "Scatterplot of each doubly significant faculty-course combination's mean Delta C against the number of students that passed filtration and started in it. Colored by effect polarity from the mean. Boxplot provided for summary of sample size distribution."}
 ##Experimental Plot: Mean.DeltaC Vs. Number of Students. Do good/bad teachers teach more students?
@@ -1911,7 +1912,7 @@ Course.DeltaW.Data <- Course.DeltaW.Data %>%
                         filter(`Course Code` != "CHE-0950")
 ```
 
-```{r}
+```{r Make Withdraw Deviation Statistics}
 Overall.Withdraw.Sd <- Overall.DeltaW.Data %>%
                         pull(Observed.Withdraw.Prop) %>%
                           sd()
@@ -1921,7 +1922,7 @@ Course.Withdraw.Sd <- Course.DeltaW.Data %>%
                           sd()
 ```
 
- The definition of $\Delta W$ given by equation ($\ref{DeltaW Definition}$) involves the expected withdraw rate $W_E$ and the observed withdraw rate $W_O$. The expected withdraw rate in experiment one is the probability `r Overall.Withdraw.Rate`, calculated as the total number of withdraws in the data set divided by the total number of observations. That is, it is the mean withdraw rate among all students between $2010$ and $2017$ in OCC's math and chemistry departments. The observed withdraw rate is calculated as the total number of students that withdraw from *any* of a particular professor's courses divided by the total number of students taught over all courses. In experiment two $W_E$ is set to the mean withdraw rate for students in the germane course, while $W_O$ is the withdraw rate in a particular course code taught by a faculty member. To reiterate, a positive value of $\Delta W$ corresponds to a professor having a lower withdraw rate than the mean, and a negative value corresponds to a higher withdraw rate than the mean. This orientation is selected for ease of comparison with the mean $\Delta C$ statistic.
+ The definition of $\Delta W$ given by equation ($\ref{DeltaW Definition}$) involves the expected withdraw rate $W_E$ and the observed withdraw rate $W_O$. The expected withdraw rate in experiment one is the probability `r Overall.Withdraw.Rate`, calculated as the total number of withdraws in the data set divided by the total number of observations. That is, it is the mean withdraw rate among all students between $2010$ and $2017$ in OCC's Math and Chemistry departments. The observed withdraw rate is calculated as the total number of students that withdraw from *any* of a particular professor's courses divided by the total number of students taught over all courses. In experiment two $W_E$ is set to the mean withdraw rate for students in the germane course, while $W_O$ is the withdraw rate in a particular course code taught by a faculty member. To reiterate, a positive value of $\Delta W$ corresponds to a professor having a lower withdraw rate than the mean, and a negative value corresponds to a higher withdraw rate than the mean. This orientation is selected for ease of comparison with the mean $\Delta C$ statistic.
 
 ```{r DeltaW Experiment One Probability Plot, fig.cap = "Normal probability plot of Delta W over all faculty for experiment one"}
 ##Normal probability plot of DeltaW over all faculty for experiment one
@@ -1937,14 +1938,14 @@ Course.DeltaW.Data %>%
     qqnorm(main = NULL)
 ```
 
-Figure $24$ is a normal probability plot of $\Delta W$'s distribution in experiment one, and figure $25$ shows the distribution in experiment two.  Both graphs demonstrate a slight left-skew for data approximately to the left of the $-1$ theoretical quantile. Observations of $\Delta W$ greater than the $-1$ theoretical quantile fit a normal distribution quite well. Regardless, usage of the one sample t-test generated confidence interval is ill-advised due to the requirement that data come from a normal distribution. Data will only be tested for significance using the bootstrap confidence interval given by equation ($\ref{Bootstrap Confidence Interval}$). We stipulate that valid observations of $\Delta W$ possess at least eight withdraws so that data are sufficiently rich. This is likely overkill, but simply requiring eight students is not sufficient. Considering the overall withdraw rate of `r Overall.Withdraw.Rate`, the probability of not observing a single withdraw within eight students (which I denote $P(0\in8)$) is given by:
+Figure $20$ is a normal probability plot of $\Delta W$'s distribution in experiment one, and figure $21$ shows the distribution in experiment two.  Both graphs demonstrate a slight left-skew for data approximately to the left of the $-1$ theoretical quantile. Observations of $\Delta W$ greater than the $-1$ theoretical quantile fit a normal distribution quite well. Regardless, usage of the one sample t-test generated confidence interval is ill-advised due to the requirement that data come from a normal distribution. Data will only be tested for significance using the bootstrap confidence interval given by equation ($\ref{Bootstrap Confidence Interval}$). We stipulate that valid observations of $\Delta W$ possess at least eight withdraws so that data are sufficiently rich. This is likely overkill, but simply requiring eight students is not sufficient. Considering the overall withdraw rate of `r Overall.Withdraw.Rate`, the probability of not observing a single withdraw within eight students (which I denote $P(0\in8)$) is given by:
 
 $$P(0 \in 8) = P(0 \in 1)^8 = (1-0.238)^8 = 0.114$$
 
 
-In other words, the p-value of a faculty that obtains no withdraws within eight students is $0.114$. Because we set $\alpha = 0.05$, we would automatically fail to reject the $H_0$ from equation ($\ref{Bootstrap Hypotheses}$). This is clearly unacceptable. Requiring thirty to fourty students is standard guidance for usage of the central limit theorem, but as figures $24$ and $25$ show, $\Delta W$'s theoretical restriction on the domain $[-1,1]$ induces non-normality onto its distribution. (9, 10) We therefore cannot use the approximate z-test, nullifying the utility of equation ($\ref{Small N CLT}$). The bootstrap confidence interval generated using the $\text{quantile()}$ function is the fallback plan, and so we once again concern ourselves with a measure of sufficient richness of data. Michael R. Chernick recommends a larger number of unique data points for binomial data than for highly continuous data to ensure sufficient richness. (13) We've been using the number eight throughout this case study, so we will use a minimum eight withdraws as an aesthetically pleasing arbitrary benchmark for sufficient richness of data. The overall withdraw rate is `r Overall.Withdraw.Rate`, and so the expected class size that contains at least eight withdraws is given by $E[N] \geq \frac{8}{0.238} = 33.6$. The mean course with at least eight withdraws will have at least $33.6$ students. For each additional withdraw, the expected class size increases by very roughly five students.
+In other words, the p-value of a faculty that obtains no withdraws within eight students is $0.114$. Because we set $\alpha = 0.05$, we would automatically fail to reject the $H_0$ from equation ($\ref{Bootstrap Hypotheses}$). This is clearly unacceptable. Requiring thirty to fourty students is standard guidance for usage of the central limit theorem, but as figures $20$ and $21$ show, $\Delta W$'s theoretical restriction on the domain $[-1,1]$ induces non-normality onto its distribution. (9, 10) We therefore cannot use the approximate z-test, nullifying the utility of equation ($\ref{Small N CLT}$). The bootstrap confidence interval generated using the $\text{quantile()}$ function is the fallback plan, and so we once again concern ourselves with a measure of sufficient richness of data. Michael R. Chernick recommends a larger number of unique data points for binomial data than for highly continuous data to ensure sufficient richness. (13) We've been using the number eight throughout this case study, so we will use a minimum eight withdraws as an aesthetically pleasing arbitrary benchmark for sufficient richness of data. The overall withdraw rate is `r Overall.Withdraw.Rate`, and so the expected class size that contains at least eight withdraws is given by $E[N] \geq \frac{8}{0.238} = 33.6$. The mean course with at least eight withdraws will have at least $33.6$ students. For each additional withdraw, the expected class size increases by very roughly five students.
 
-Why is the $\Delta W$ distribution left-skewed? One reason may involve the numerical definition of withdraw rate. Withdraw rate is a probability, so the overall mean withdraw rate can theoretically take any value on the set $[0,1]$. The $\Delta W$ statistic must then have a measure of length one somewhere on the set $[-1,1]$ depending on the observed mean $W_O$. In experiment one $W_O$ is `r Overall.Withdraw.Rate`, which means the empirical $\Delta W$ distribution will have domain $[-0.762 , 0.238]$. There is much more room for negative effects than positive effects, and so given a large enough sample there will be disproportionately many negative $\Delta W$s. The quantity of outliers is a function of sample size, so we expect the empirical distribution of experiment two $\Delta W$s to be more skewed than that of experiment one. As we will show later in figure $36$, the bounding of $\Delta W$ does not explain all skew behavior. There is either a confounding variable acting on $\Delta W$, or withdraw rate might genuinely come from a non-normal continuous distribution.
+Why is the $\Delta W$ distribution left-skewed? One reason may involve the numerical definition of withdraw rate. Withdraw rate is a probability, so the overall mean withdraw rate can theoretically take any value on the set $[0,1]$. The $\Delta W$ statistic must then have a measure of length one somewhere on the set $[-1,1]$ depending on the observed mean $W_O$. In experiment one $W_O$ is `r Overall.Withdraw.Rate`, which means the empirical $\Delta W$ distribution will have domain $[-0.762 , 0.238]$. There is much more room for negative effects than positive effects, and so given a large enough sample there will be disproportionately many negative $\Delta W$s. The quantity of outliers is a function of sample size, so we expect the empirical distribution of experiment two $\Delta W$s to be more skewed than that of experiment one. As we will show later in figure $32$, the bounding of $\Delta W$ does not explain all skew behavior. There is either a confounding variable acting on $\Delta W$, or withdraw rate might genuinely come from a non-normal continuous distribution.
 
 \subsubsection{Delta W Experiment One Results}
 
@@ -1962,7 +1963,7 @@ Suff.Samp.DeltaW.1 <- Gen_Data10 %>%
 kable(Suff.Samp.DeltaW.1, padding = 3, caption = "Number of faculty in experiment one that had at least eight students withdraw from all their courses. We can use bootstrap confidence intervals on the 245 professors with at least eight withdraws.")
 ```
 
-```{r}
+```{r DeltaW Experiment 1 Bootstrap Results}
 DeltaW.Exp1.Sigs <- Overall.DeltaW.Data %>%
                       ungroup() %>%
                         group_by(Significant) %>%
@@ -1971,7 +1972,7 @@ DeltaW.Exp1.Sigs <- Overall.DeltaW.Data %>%
 kable(DeltaW.Exp1.Sigs, padding = 3, caption = "Results from bootstrap test. The DeltaWs of 118 faculty were not significantly different from the overall mean, while 136 were.")
 ```
 
-Table fifteen shows that in experiment one, of the $263$ faculty analysed, $245$ survived the requirement of eight students withdrawing from their courses. Note that there were four faculty in Dr. Eckstrom's dataset that did not have any withdraws and so cannot be theoretically evaluated for significance using our bootstrap confidence interval. Three of the four professors listed pass the $p = \frac{\alpha}{2} = 0.025$ benchmark for the rejection of $H_0$. While they will not be included in the following graphics among the faculty that had at least eight students withdraw, it is important to note that there is an error in assuming that none of the faculty that had fewer than eight students withdraw had a significant $\Delta W$. It is possible to prevent this small data loss by swapping to a type I bootstrapping as outlined in the statistical background section, but for sake of assumption uniformity we will persist with the eight withdraw requirement.  Table sixteen shows the results from the bootstrap significance tests onto the faculty that had at least eight students withdraw. In experiment one $127$ out of the $245$ faculty tested had $\Delta W$s that were significantly different from zero at the $\alpha = 0.05$ level. We will now create the same graphics for the $\Delta W$ statistic as were created for mean $\Delta C$.
+Table $10$ shows that in experiment one, of the $263$ faculty analysed, $245$ survived the requirement of eight students withdrawing from their courses. Note that there were four faculty in Dr. Eckstrom's dataset that did not have any withdraws and so cannot be theoretically evaluated for significance using our bootstrap confidence interval. Three of the four professors listed pass the $p = \frac{\alpha}{2} = 0.025$ benchmark for the rejection of $H_0$. While they will not be included in the following graphics among the faculty that had at least eight students withdraw, it is important to note that there is an error in assuming that none of the faculty that had fewer than eight students withdraw had a significant $\Delta W$. It is possible to prevent this small data loss by swapping to a type I bootstrapping as outlined in the statistical background section, but for sake of assumption uniformity we will persist with the eight withdraw requirement.  Table $11$ shows the results from the bootstrap significance tests onto the faculty that had at least eight students withdraw. In experiment one $127$ out of the $245$ faculty tested had $\Delta W$s that were significantly different from zero at the $\alpha = 0.05$ level. We will now create the same graphics for the $\Delta W$ statistic as were created for mean $\Delta C$.
 
 ```{r Faculty with no withdraws, include = FALSE}
 ##This is a p-value calculation for the four faculty that had no withdraws. I don't include it in the main report, but for the interested reader I include it here.
@@ -2039,7 +2040,7 @@ Overall.DeltaW.Data %>%
     labs(x = "\u0394W (Probability)", y = "Count")
 ```
 
-```{r , fig.cap= "Histogram of only those experiment one Delta W's that were significantly different from the mean, colored by effect polarity from the mean."}
+```{r DeltaW Experiment 1 Significant Histogram, fig.cap= "Histogram of only those experiment one Delta W's that were significantly different from the mean, colored by effect polarity from the mean."}
 ##Histogram of DeltaW over significant faculty for experiment one
 Overall.DeltaW.Data %>%
   filter(Significant == TRUE) %>%
@@ -2051,7 +2052,7 @@ Overall.DeltaW.Data %>%
 
 ```
 
-As was predicted by figure $24$, the distribution of $\Delta W$s in experiment one has a slight left-skew. Figure $26$ shows the overall distribution, and figure $27$ shows the distribution of only those $\Delta W$s that were significantly different from zero. The left-skew will be more pronounced in experiment two when there are more observations to work with. Now we indulge in some summary statistics regarding $\Delta W$ experiment one.
+As was predicted by figure $20$, the distribution of $\Delta W$s in experiment one has a slight left-skew. Figure $22$ shows the overall distribution, and figure $23$ shows the distribution of only those $\Delta W$s that were significantly different from zero. The left-skew will be more pronounced in experiment two when there are more observations to work with. Now we indulge in some summary statistics regarding $\Delta W$ experiment one.
 
 In experiment one the $\Delta W$ statistic had an overall mean of `r Overall.Mean.DeltaW`, with standard deviation `r Overall.Sd.DeltaW`. Similar to the mean $\Delta C$ we expect the overall mean $\Delta W$ to be zero with some wiggle room, where divergence from zero is created by random variable discreteness and the removal of some observations. Faculty with significantly positive $\Delta W$ values had mean $\Delta W$ `r Overall.Positive.Mean.DeltaW` with standard deviation `r Overall.Positive.Sd.DeltaW`. Those faculty with significantly negative $\Delta W$s had mean `r Overall.Negative.Mean.DeltaW` and standard deviation `r Overall.Negative.Sd.DeltaW`. The significantly negative mean is farther from zero than the significantly positive mean, and the standard deviation for negative $\Delta W$'s was larger than the standard deviation of the positive ones. These statistics taken together provide a clear description of a left-skew. 
 
@@ -2074,7 +2075,7 @@ DeltaW.Context.Plot1 <- Overall.DeltaW.Data %>%
 DeltaW.Context.Plot1
 ```
 
-Faculty taught a mean total of $521$ students with a standard deviation of $594$ students. As was the case in both experiments on mean $\Delta C$, the distribution of sample size is very right-skewed. The deviation of $\Delta W$ from zero shown in figure $28$ follows a similar pattern as shown in figures $18$ and $23$. The volatility of $\Delta W$ as the number of students approaches the minimum eight is most likely an illusory effect caused by the growth of standard error as $N \to 0$.
+Faculty taught a mean total of $521$ students with a standard deviation of $594$ students. As was the case in both experiments on mean $\Delta C$, the distribution of sample size is very right-skewed. The deviation of $\Delta W$ from zero shown in figure $24$ follows a similar pattern as shown in figures $14$ and $19$. The volatility of $\Delta W$ as the number of students approaches the minimum eight is most likely an illusory effect caused by the growth of standard error as $N \to 0$.
 
 \subsubsection{Delta W Experiment Two Results}
 
@@ -2135,7 +2136,7 @@ Course.Withdraw.Rates %>%
 ```
 
 
-In experiment one, a $\Delta W$ of zero corresponded to a withdraw rate of `r Overall.Withdraw.Rate`. In experiment two the expected withdraw rate ($\Delta W = 0$) for each faculty-course combination is the overall withdraw rate *of the course*. Figure $29$ shows the overall withdraw rate per course calculated as the total number of withdraws divided by the total number of course attempts. In experiment two, a $\Delta W$ of zero will indicate that a faculty-course combination had withdraw rate equal to the mean course withdraw rate given by figure $29$. Table sixteen shows that $736$ out of a total $1044$ analyzed faculty-course combinations had at least eight students withdraw. Of these $736$, only $287$ faculty-course combinations resulted in a $\Delta W$ that was significantly different than the mean at the $\alpha = 0.05$ level. As in the analysis of the mean $\Delta C$ statistic, the lower $H_0$ rejection rate in experiment two is due to the lower sample size per stratum. 
+In experiment one, a $\Delta W$ of zero corresponded to a withdraw rate of `r Overall.Withdraw.Rate`. In experiment two the expected withdraw rate ($\Delta W = 0$) for each faculty-course combination is the overall withdraw rate *of the course*. Figure $25$ shows the overall withdraw rate per course calculated as the total number of withdraws divided by the total number of course attempts. In experiment two, a $\Delta W$ of zero will indicate that a faculty-course combination had withdraw rate equal to the mean course withdraw rate given by figure $25$. Table $12$ shows that $736$ out of a total $1044$ analyzed faculty-course combinations had at least eight students withdraw. Of these $736$, only $287$ faculty-course combinations resulted in a $\Delta W$ that was significantly different than the mean at the $\alpha = 0.05$ level. As in the analysis of the mean $\Delta C$ statistic, the lower $H_0$ rejection rate in experiment two is due to the lower sample size per stratum. 
 
 In experiment two the $\Delta W$ statistic had an overall mean of `r Course.Mean.DeltaW`, with standard deviation `r Course.Sd.DeltaW`.  Faculty with significantly positive $\Delta W$ values had mean $\Delta W$ `r Course.Positive.Mean.DeltaW` with standard deviation `r Course.Positive.Sd.DeltaW`. Those faculty with significantly negative $\Delta W$s had mean `r Course.Negative.Mean.DeltaW` and standard deviation `r Course.Negative.Sd.DeltaW`. As in experiment one, these statistics confirm the presence of a left-skew.
 
@@ -2187,7 +2188,7 @@ Course.DeltaW.Data %>%
       labs(x = "Significant \u0394W (Probability)", y = "Count")
 ```
 
-As was the case in experiment one, the left-skew predicted by figure $25$ is manifest. The $\Delta W$ distributions displayed in figures $30$ and $31$ are nigh identical to those of figures $26$ and $27$ respectively. Both figures $30$ and $31$ are smoother than their counterparts, which is to be expected by the larger number of random variables. Because overall histograms don't show how individual courses differed, we now examine scatterplots akin to figures $21$ and $22$.
+As was the case in experiment one, the left-skew predicted by figure $21$ is manifest. The $\Delta W$ distributions displayed in figures $26$ and $31$ are nigh identical to those of figures $22$ and $23$ respectively. Both figures $26$ and $27$ are smoother than their counterparts, which is to be expected by the larger number of random variables. Because overall histograms don't show how individual courses differed, we now examine scatterplots akin to figures $17$ and $18$.
 
 
 
@@ -2214,9 +2215,9 @@ Course.DeltaW.Data %>%
     labs(x = "Significant \u0394W (Probability)", color = "Course Code", y = "Course Code", size = "Number of Students")
 ```
 
-In this paper, $\Delta$ statistics are fundamentally measured as difference from mean values. The mean $\Delta C$ statistic was less subject to the effect of other faculty than $\Delta W$ because variance in student's individual $\Delta C$s were averaged. In contrast, the experiment two $\Delta W$ a zero-sum game. As is most clearly demonstrated by CHE-1610 and CHE-1620, if a faculty-course combination has a negative $\Delta W$, there must be at least one faculty-course with a positive $\Delta W$. Figure $33$ obfuscates this fact for courses such as MAT-1600 and MAT-1630 because all the faculty with better than average $\Delta W$s were not significantly different from zero. Figure $33$ does provide a useful visualization of significant $\Delta W$ variance by course. That said, my preference is the holistic accounting shown in figure $32$. 
+In this paper, $\Delta$ statistics are fundamentally measured as difference from mean values. The mean $\Delta C$ statistic was less subject to the effect of other faculty than $\Delta W$ because variance in student's individual $\Delta C$s were averaged. In contrast, the experiment two $\Delta W$ a zero-sum game. As is most clearly demonstrated by CHE-1610 and CHE-1620, if a faculty-course combination has a negative $\Delta W$, there must be at least one faculty-course with a positive $\Delta W$. Figure $29$ obfuscates this fact for courses such as MAT-1600 and MAT-1630 because all the faculty with better than average $\Delta W$s were not significantly different from zero. Figure $29$ does provide a useful visualization of significant $\Delta W$ variance by course. That said, my preference is the holistic accounting shown in figure $28$. 
 
-```{r, fig.cap = "Scatterplot of each significant faculty-course comination's experiment two Delta W against the number of students taught. Colored by effect polarity from the mean. Boxplot provided for summary of sample size distribution."}
+```{r DeltaW Experiment Two Context Plot, fig.cap = "Scatterplot of each significant faculty-course comination's experiment two Delta W against the number of students taught. Colored by effect polarity from the mean. Boxplot provided for summary of sample size distribution."}
 ##Join total number of students taught to data frame containing only those faculty that had significant Mean DeltaC
 DeltaW.Context.Plot1 <- Course.DeltaW.Data %>%
                           filter(Significant == TRUE, Num.Students < 2000) %>% ##There is one extreme outlier that throws off the graph.
@@ -2233,12 +2234,12 @@ DeltaW.Context.Plot1 <- Course.DeltaW.Data %>%
 DeltaW.Context.Plot1
 ```
 
-The experiment two $\Delta W$ statistic is the most volatile of all. Unlike in figure $23$, the distribution no longer appears as a sideways-Gaussian. The left skew induced by centering $\Delta W$ about each course's overall withdraw rate should cause more negative $\Delta W$s to appear. These very negative statistics seem to vanish before the $250$ student mark. The positive $\Delta W$s are interestingly not very volatile because they are bounded at a low ceiling. The most remarkable observation was the negative outlier near the $750$ student mark, belonging to faculty number $894670$ teaching CHE-1000.
+The experiment two $\Delta W$ statistic is the most volatile of all. Unlike in figure $19$, the distribution no longer appears as a sideways-Gaussian. The left skew induced by centering $\Delta W$ about each course's overall withdraw rate should cause more negative $\Delta W$s to appear. These very negative statistics seem to vanish before the $250$ student mark. The positive $\Delta W$s are interestingly not very volatile because they are bounded at a low ceiling. The most remarkable observation was the negative outlier near the $750$ student mark, belonging to faculty number $894670$ teaching CHE-1000.
 
 
 \subsection{Does Delta C predict Delta W?}
 
-We created the $\Delta W$ statistic in order to create a measure of faculty performance that may not be covered by the cumulative GPA progression of their students. How are the two statistics related? Figures $34$ and $35$ are graphs of mean $\Delta C$ vs $\Delta W$. Because $\Delta W$ and mean $\Delta C$ each have unique filtration conditions, there is no guarantee that all faculty will have both statistics. Instuctors with only one statistic cannot tell us anything about the correlation of $\Delta W$ and mean $\Delta C$, so figures $34$ and $35$ only include professors with both a mean $\Delta C$ and a $\Delta W$. A missing value analysis is warranted, but there are so few data points that no general inference is easily reached. Along with the plots, R is instructed to output a summary of the linear model calculated using the data in each plot. 
+We created the $\Delta W$ statistic in order to create a measure of faculty performance that may not be covered by the cumulative GPA progression of their students. How are the two statistics related? Figures $30$ and $31$ are graphs of mean $\Delta C$ vs $\Delta W$. Because $\Delta W$ and mean $\Delta C$ each have unique filtration conditions, there is no guarantee that all faculty will have both statistics. Instuctors with only one statistic cannot tell us anything about the correlation of $\Delta W$ and mean $\Delta C$, so figures $30$ and $31$ only include professors with both a mean $\Delta C$ and a $\Delta W$. A missing value analysis is warranted, but there are so few data points that no general inference is easily reached. Along with the plots, R is instructed to output a summary of the linear model calculated using the data in each plot. 
 
 
 ```{r DeltaW and DeltaC Comparison Plot for Experiment 1, fig.cap = "Mean DeltaC Vs. DeltaW for all faculty in experiment one, colored by significance levels."}
@@ -2261,7 +2262,7 @@ Experiment.One.Stat.Comparison %>%
 ```
 
 ```{r Experiment One Correlation Model}
-summary(lm(Overall.DeltaW ~ Mean.DeltaC, data = Experiment.One.Stat.Comparison))
+summary(lm(Overall.DeltaW ~ Mean.DeltaC, data = Experiment.One.Stat.Comparison))[c(4,9)]
 ```
 
 
@@ -2287,7 +2288,7 @@ Experiment.Two.Stat.Comparison %>%
 ```
       
 ```{r Experiment Two Correlation Model}
-summary(lm(Course.DeltaW ~ Mean.DeltaC, data = Experiment.Two.Stat.Comparison))
+summary(lm(Course.DeltaW ~ Mean.DeltaC, data = Experiment.Two.Stat.Comparison))[c(4,9)]
 ```
 
 According to the adjusted R-squared value for experiment one, approximately $19\%$ of the variance in $\Delta W$ can be attributed to variance in mean $\Delta C$. The linear model predicts a $-0.130x$ decline in $\Delta W$ for an $x$-point increase in mean $\Delta C$. For experiment two the adjusted R-squared is markedly lower, suggesting that only $7.5%$ of variance in $\Delta W$ is attributable to variance in mean $\Delta C$. This lower adjusted R-squared can be explained by experiment two having higher volatility due to lower sample sizes. The experiment two model predicts a more moderate $-0.079x$ point decline in $\Delta W$ for an $x$-point increase in mean $\Delta C$. Both statistics are theoretically centered about zero, so it is no surprise that the intercept of both models is within $10^{-3}$ the origin. 
@@ -2327,7 +2328,7 @@ Possible.Cum.GPAs <- function(term){
                         return(unique(random.cum.gpas))
 }
 
-##This function determines the overall proportion of students that took n terms at OCC's math and chemistry departments
+##This function determines the overall proportion of students that took n terms at OCC's Math and Chemistry departments
 Term.Prop.Students <- function(term){
                         n.students <- Gen_Data8 %>%
                                         ungroup() %>%
@@ -2348,7 +2349,7 @@ for(i in 1:6){
   Cum.GPA.Data$Prop.Students[i] <- Term.Prop.Students(i)
 }
 
-kable(Cum.GPA.Data, caption = "Low estimates of the number of possible values for cumulative GPA for students that take one course per term. Estimates for terms one through six including proportion of students that were enrolled in OCC's math and chemistry departments for that number of terms.", padding = 3)
+kable(Cum.GPA.Data, caption = "Low estimates of the number of possible values for cumulative GPA for students that take one course per term. Estimates for terms one through six including proportion of students that were enrolled in OCC's Math and Chemistry departments for that number of terms.", padding = 3)
 ```
 
 The bootstrap and one sample t-test have error in different ways. The one sample t-test assumes that: (9, 10)
@@ -2363,13 +2364,13 @@ The bootstrap and one sample t-test have error in different ways. The one sample
 
 5. The random variable has a finite constant standard deviation.
 
-For both experiments one and two, our data does not satisfy condition one. Cumulative GPA is a fundamentally discrete beast. For a student with a cumulative GPA $c$, the permitted values for cumulative GPA after one more term depend on c, the allowed course credits, and the allowed GPA's obtainable in a course. For example, for a student that took a single course in their first term (which is the filtration assumption) there are only twelve possible values for cumulative GPA: `r Term.Grades`, and the `r NA` which corresponds to a withdraw. Table thirteen simulates a low estimate for the total possible number of distinct cumulative GPAs as a function of term enrolled in OCC's math and chemistry department. The simulation I used does not take into account course credits because most courses have the same 4-credit valuation. The second term already gives $33$ possible values for cumulative GPA. In my mind $33 values$ is not quite approximately continuous considering they are spread across the range $[0,4]$ with $0.12$ GPA points between each discrete possibility. The $86$ options that corresponds to three terms is much better, but only $49.7%$ of the students used in significance testing were enrolled for at least three terms. Additionally, there is no guarantee that students enrolled for three terms recieved grades for three terms, nor is there any guarantee that all possible cumulative GPAs are equally likely. In short, the discreteness of cumulative GPA is a major source of error for both experiments one and two.
+For both experiments one and two, our data does not satisfy condition one. Cumulative GPA is a fundamentally discrete beast. For a student with a cumulative GPA $c$, the permitted values for cumulative GPA after one more term depend on c, the allowed course credits, and the allowed GPA's obtainable in a course. For example, for a student that took a single course in their first term (which is the filtration assumption) there are only twelve possible values for cumulative GPA: `r Term.Grades`, and the `r NA` which corresponds to a withdraw. Table $13$ simulates a low estimate for the total possible number of distinct cumulative GPAs as a function of term enrolled in OCC's Math and Chemistry department. The simulation I used does not take into account course credits because most courses have the same 4-credit valuation. The second term already gives $33$ possible values for cumulative GPA. In my mind $33 values$ is not quite approximately continuous considering they are spread across the range $[0,4]$ with $0.12$ GPA points between each discrete possibility. The $86$ options that corresponds to three terms is much better, but only $49.7%$ of the students used in significance testing were enrolled for at least three terms. Additionally, there is no guarantee that students enrolled for three terms recieved grades for three terms, nor is there any guarantee that all possible cumulative GPAs are equally likely. In short, the discreteness of cumulative GPA is a major source of error for both experiments one and two.
 
 The bootstrap principle does not require that its data come from a continuous variable to create a confidence interval, nor must the data come from an approximately normal population. (10) It does however need sufficiently many distinct values in order to accurately depict the sampling distribution. (10, 13) For example, if all eight of a faculty's students obtained $\Delta C = 0$ by some divine providence, the bootstrap would be unable to simulate any possible mean $\Delta C$ other than zero, resulting in a mean $\Delta C$ of zero with a *standard error of zero*. While this never occurred experimentally in the analysis of mean $\Delta C$, I did find four cases of a faculty-course combination wherein no students withdrew. The bootstrap sampling distribution cannot theoretically include $\Delta W = 0$ in such cases because no resampling will generate a withdraw. (10) As said before, the eight student minimum helps mitigate such errors. (13)
 
-The probability that any student would have a negative $\Delta C$ is about $\frac{1}{2}$. The probability that all eight students of a faculty with the minimum acceptable sample size have negative $\Delta C$s is about $(\frac{1}{2})^8 = \frac{1}{256}$. Doubling this quantity gives the probability that all eight students have either positive or negative $\Delta C$s as $\frac{1}{128}$. In experiment two there are $605$ faculty-course combinations that get tested by the bootstrap confidence interval, so we would expect roughly $4.72$ instances of a faculty being randomly assigned eight students with matching $\Delta C$ polarity. The variance in random assignment of mean $\Delta C$ clearly must decrease with sample size. Considering figures $18$ and $23$ show convergence of mean $\Delta C$ towards zero as sample size increases, we have evidence that a faculty's mean $\Delta C$ may be discounted for low sample sizes. The art is determining what the minimum acceptable sample size is for a "real" mean $\Delta C$ effect.
+The probability that any student would have a negative $\Delta C$ is about $\frac{1}{2}$. The probability that all eight students of a faculty with the minimum acceptable sample size have negative $\Delta C$s is about $(\frac{1}{2})^8 = \frac{1}{256}$. Doubling this quantity gives the probability that all eight students have either positive or negative $\Delta C$s as $\frac{1}{128}$. In experiment two there are $605$ faculty-course combinations that get tested by the bootstrap confidence interval, so we would expect roughly $4.72$ instances of a faculty being randomly assigned eight students with matching $\Delta C$ polarity. The variance in random assignment of mean $\Delta C$ clearly must decrease with sample size. Considering figures $14$ and $19$ show convergence of mean $\Delta C$ towards zero as sample size increases, we have evidence that a faculty's mean $\Delta C$ may be discounted for low sample sizes. The art is determining what the minimum acceptable sample size is for a "real" mean $\Delta C$ effect.
 
-Usage of a linear mixed-effects model may not be appropriate for the $\Delta C$ statistic. No affine can properly predict a student's cumulative GPA progression through an arbitrary number of terms. If a student failed their first course and that course had a mean negative cumulative GPA slope after adjusting for the number of terms the student was enrolled in the math and chemistry departments, the student's $\Delta C$ would be positive even if they failed every single course they were enrolled in. Similarly, a student that received a perfect $4.0$ cumulative GPA would have a negative $\Delta C$ if the mean course slope were positive. These scenarios imply that stratification by first GPA received may be warranted. The first GPA received is highly covariant with first course and so there may be an issue of double counting. GPA received in the first course may be a suitable replacement for the first course stratification, but that would be a different project.
+Usage of a linear mixed-effects model may not be appropriate for the $\Delta C$ statistic. No affine can properly predict a student's cumulative GPA progression through an arbitrary number of terms. If a student failed their first course and that course had a mean negative cumulative GPA slope after adjusting for the number of terms the student was enrolled in the Math and Chemistry departments, the student's $\Delta C$ would be positive even if they failed every single course they were enrolled in. Similarly, a student that received a perfect $4.0$ cumulative GPA would have a negative $\Delta C$ if the mean course slope were positive. These scenarios imply that stratification by first GPA received may be warranted. The first GPA received is highly covariant with first course and so there may be an issue of double counting. GPA received in the first course may be a suitable replacement for the first course stratification, but that would be a different project.
 
 Faculty beyond the first encountered also have an effect on student outcomes. The $\Delta C$ statistic operates on the assumption that future faculty effects average out over sufficiently many possible future instructors. This assumption is flawed for faculty that had few students start in their course due to high variance. Higher-level courses have fewer instructors because fewer students take the courses. For example, the effect of future faculty may not be random for students whose first course in the dataset was CHE-2610, because there were only seven unique faculty that teach CHE-2620 between 2010 and 2017. Moreover the maximum number of faculty teaching CHE-2620 in a given term was three; there are not a continuous distribution of future professor effects for CHE-2620. If the three faculty assigned different mean GPAs in their courses, a bias would be created on the mean $\Delta C$ statistic for CHE-2610 instructors. 
 
@@ -2392,7 +2393,7 @@ Orgo2.Terms1 <- Gen_Data7 %>%
 Orgo2.Terms2 <- Orgo2.Terms1 %>%
                   mutate(rel.freq = Num.Students/sum(Orgo2.Terms1$Num.Students))
     
-kable(Orgo2.Terms2, padding = 3, caption = "Frequency and relative frequency table of number of terms enrolled in OCC's math and chemistry departments for students starting in CHE-2620.")  
+kable(Orgo2.Terms2, padding = 3, caption = "Frequency and relative frequency table of number of terms enrolled in OCC's Math and Chemistry departments for students starting in CHE-2620.")  
 
 Col.Alg.Terms1 <- Gen_Data7 %>%
                     ungroup() %>%
@@ -2412,14 +2413,14 @@ Col.Alg.Terms1 <- Gen_Data7 %>%
 Col.Alg.Terms2 <- Col.Alg.Terms1 %>%
                     mutate(rel.freq = Num.Students/sum(Col.Alg.Terms1$Num.Students))
 
-kable(Col.Alg.Terms2, padding = 3, caption = "Frequency and relative frequency table of number of terms enrolled in OCC's math and chemistry departments for students starting in MAT-1540.")
+kable(Col.Alg.Terms2, padding = 3, caption = "Frequency and relative frequency table of number of terms enrolled in OCC's Math and Chemistry departments for students starting in MAT-1540.")
 ```
 
-Faculty which predominately teach higher level courses are less likely to be assigned a mean $\Delta C$ because the mean $\Delta C$ statistic requires at least eight students to pass the imposed filtration conditions and start with the professor. Table fourteen gives the frequency and relative frequency of total terms enrolled in the math and chemistry departments for those students that started in CHE-2620. Table fifteen does the same with students that began in MAT-1540. CHE-2620 is the highest level chemistry course offered, whereas MAT-1540 is OCC's equivalent of high school algebra II. Not only does CHE-2620 contain many fewer cases overall, a larger proportion of students that started in CHE-2620 took only one term as compared to MAT-1540. It must be reiterated that because OCC is a community college, students are likely to transfer to a school offering a four year degree after completing necessary prerequisites. There is no way to calculate the effect CHE-2620 faculty had on students that transferred out of OCC not because they had no effect, but because the grades received are not recorded in Professor Eckstrom's data. The mean $\Delta C$ statistic is then given more credence within low level courses like MAT-1540 in which students are both: 1) likely to start in, and 2) likely to take more courses after. This error is amplified in experiment two, contributing to the higher rejection rate shown in table 11 than that of table 9.
+Faculty which predominately teach higher level courses are less likely to be assigned a mean $\Delta C$ because the mean $\Delta C$ statistic requires at least eight students to pass the imposed filtration conditions and start with the professor. Table $14$ gives the frequency and relative frequency of total terms enrolled in the Math and Chemistry departments for those students that started in CHE-2620. Table $15$ does the same with students that began in MAT-1540. CHE-2620 is the highest level chemistry course offered, whereas MAT-1540 is OCC's equivalent of high school algebra II. Not only does CHE-2620 contain many fewer cases overall, a larger proportion of students that started in CHE-2620 took only one term as compared to MAT-1540. It must be reiterated that because OCC is a community college, students are likely to transfer to a school offering a four year degree after completing necessary prerequisites. There is no way to calculate the effect CHE-2620 faculty had on students that transferred out of OCC not because they had no effect, but because the grades received are not recorded in Professor Eckstrom's data. The mean $\Delta C$ statistic is then given more credence within low level courses like MAT-1540 in which students are both: 1) likely to start in, and 2) likely to take more courses after. This error is amplified in experiment two, contributing to the higher rejection rate shown in table $11$ than that of table $9$.
 
-The primary source of error in the $\Delta W$ analysis originates from the discrete domain on which the statistic is measured. The $\Delta W$ distributions shown in figures $26$ and $30$ have a evident left-skew caused by uneven opportunity for outliers. That said, it can be shown that $\Delta W$ does not come from a normal distribution. Figure $37$ shows the histogram of a  normal distribution with the same mean and standard deviation as the experiment one $\Delta W$ distribution. Moreover, the normal distribution is restricted on the domain $[-0.762 , 0.238]$ just as the experiment one $\Delta W$ distribution is. Figure $36$ clearly demonstrates that while the upper tail behavior of the bounded normal mimics that of $\Delta W$, the lower tail behavior fails to capture the same trend. In particular, faculty withdraw rates tend to be more extremely negative than would be predicted by a normal distribution. The error induced by the limitation on the domain of $\Delta W$ can then only be said to affect faculty with lower-than-average withdraw rates.
+The primary source of error in the $\Delta W$ analysis originates from the discrete domain on which the statistic is measured. The $\Delta W$ distributions shown in figures $22$ and $26$ have a evident left-skew caused by uneven opportunity for outliers. That said, it can be shown that $\Delta W$ does not come from a normal distribution. Figure $33$ shows the histogram of a  normal distribution with the same mean and standard deviation as the experiment one $\Delta W$ distribution. Moreover, the normal distribution is restricted on the domain $[-0.762 , 0.238]$ just as the experiment one $\Delta W$ distribution is. Figure $32$ clearly demonstrates that while the upper tail behavior of the bounded normal mimics that of $\Delta W$, the lower tail behavior fails to capture the same trend. In particular, faculty withdraw rates tend to be more extremely negative than would be predicted by a normal distribution. The error induced by the limitation on the domain of $\Delta W$ can then only be said to affect faculty with lower-than-average withdraw rates.
 
-```{r}
+```{r Make Normal Simulation on DeltaW Domain}
 Delta.W.Sim.Data <- tibble(Test.DeltaW = rnorm(10000, mean = Overall.Mean.DeltaW, sd = Overall.Sd.DeltaW)) %>%
                       filter(Test.DeltaW < 0.238, Test.DeltaW > -0.762)
 ```
@@ -2485,7 +2486,7 @@ The cornerstone of any function-oriented programming project is the ability to s
 
 \subsubsection{Vectors}
 
-On that note, let's discuss one of the primary weapons of the R language - vectors. R can store any sequence of data from a single class as a vector and do operations on it. Such operations are performed element-wise unless else specified. The vector's class will be the same as that of its constituent data. There are several ways to create a vector including the concatenation operator c(), the sequence generator seq(), the replicate function rep(), the colon operaton :,  and extracting a column out of a dataframe (a rectangular matrix with column names) either by using pull() or by subsetting.  Individual elements can have names, for instance:
+On that note, let's discuss one of the primary weapons of the R language - vectors. R can store any sequence of data from a single class as a vector and do operations on it. Such operations are performed element-wise unless otherwise specified. The vector's class will be the same as that of its constituent data. There are several ways to create a vector including the concatenation operator c(), the sequence generator seq(), the replicate function rep(), the colon operaton :,  and extracting a column out of a dataframe (a rectangular matrix with column names) either by using pull() or by subsetting.  Individual elements can have names, for instance:
   
 ```{r Demo Named Vector, echo = TRUE}
 vector.names <- c("Jimmy", "Sammy", "Katrina")
@@ -2498,7 +2499,9 @@ my.vector
 Vectors can sometimes be changed from one class to another through a process called coercion. The family of functions as.class() performs this conversion. Below is some sample output demonstrating the coercion capabilities of different classes using three demo vectors: num for numeric, chr for character, and log for logical:
 
 ```{r demo vectors, echo = TRUE}
-##Define demo vectors. num is a numeric vector, chr is a character vector, and log is a logical vector.
+##Define demo vectors. num is a numeric vector, chr is a 
+
+##character vector, and log is a logical vector.
 num <- c(-1, 0, 1, 2)
 chr <- c("a", "b", "0", "FALSE")
 log <- c(TRUE, FALSE)
@@ -2537,6 +2540,7 @@ The double equals is a binary operator that outputs `r TRUE` i.f.f. both sides o
 
 ```{r Logical Practice 2, echo = TRUE, warning = FALSE}
 ##Define some vectors to compare with different lengths.
+
 ##Vector a contains the sequence 1, 2.
 a <- c(1, 2)
 ##Vector b contains the sequence 1, 2, 3, 4, 0.
@@ -2552,24 +2556,24 @@ which(b >= 3)
 
 R evaluates vector comparisons element-wise and outputs a vector with length equal to the longest input vector. If the compared vectors are not the same length, R repeatedly replicates the shorter vector end-to-end until the lengths are equal. In the above example, R changed the expression $\{1,2\} == \{1,2,3,4,0\}$ into $\{1,2,1,2,1\} == \{1,2,3,4,0\}$ before evaluating. The shorter length of $2$ does not evenly divide the longer length $5$ so R throws a warning, but continues with evaluation regardless. The output of any logical comparison is a logical vector; the previous comparisons were simply a special case where the input vector lengths were each one. $a == b$ returns a five element output vector, because the longer of the two input vectors had five elements.
   
-The final complexity to logical evaluation in R are conditional expressions. R is equipped with three basic binary conditions: the and statement "&", the or statement "|", and the xor function xor(). A more complicated binary operator I use for the data analysis is the in operator "%in%", which checks whether the left object is within a range of values specified by the right object. These conditions work just as they do in set theory. "|" has low priority in R's evaluation queue while "&" has high priority so that conditions evaluate in accordance to the generally desired order of operations. Just like in mathematics, parenthetical statements are evaluated before their exterior for additional control over the evaluation queue. The which() function is the odd-code-out in this example, because it does not return a logical vector. Instead it takes a logical vector as *input* and returns the indecies of the `r TRUE` elements. This is particularly useful in subsetting.  One final note, R allows for the user to define their own logical operators, a privilege I used only one time in conjunction with the Negate() function to create a negated version of the "%in%" operator called "%notin%".  
+The final complexity to logical evaluation in R are conditional expressions. R is equipped with three basic binary conditions: the and statement "&", the or statement "|", and the xor function xor(). A more complicated binary operator I use for the data analysis is the in operator "%in%", which checks whether the left object is within a range of values specified by the right object. These conditions work just as they do in set theory. "|" has low priority in R's evaluation queue while "&" has high priority so that conditions evaluate in accordance to the generally desired order of operations. Just like in mathematics, parenthetical statements are evaluated before their exterior for additional control over the evaluation queue. The which() function is the odd-code-out in this example, because it does not return a logical vector. Instead it takes a logical vector as *input* and returns the indices of the `r TRUE` elements. This is particularly useful in subsetting.  One final note, R allows for the user to define their own logical operators, a privilege I used only one time in conjunction with the Negate() function to create a negated version of the "%in%" operator called "%notin%".  
 
 \subsubsection{Subsetting}
 
 CRAN outlines three operators for subsetting sequences in R:
 
-1. The single bracket operator $X[i]$, where $X$ is some array and $i$ is a set of indecies.
+1. The single bracket operator $X[i]$, where $X$ is some array and $i$ is a set of indices.
 
-Single bracket subsetting is generally used with vectors to extract the $i^{th}$ elements of X. When used on a list, the single bracket will return the $i^{th}$ elements as a list. The user can supply indecies either as an integer vector or a logical vector. To see how this works, inspect the sample output below.
+Single bracket subsetting is generally used with vectors to extract the $i^{th}$ elements of X. When used on a list, the single bracket will return the $i^{th}$ elements as a list. The user can supply indices either as an integer vector or a logical vector. To see how this works, inspect the sample output below.
 
 ```{r Single Bracket Practice, echo = TRUE}
-##We will be using my.vector for subsetting practice. Here I will print it out once again as a reminder
+##We will be using my.vector for subsetting practice.
 my.vector
 
-##Define some integer indecies to subset
+##Define some integer indices to subset
 int.index <- c(2,3,4)
 
-##Define some logical indecies to subset
+##Define some logical indices to subset
 lgl.index1 <- c(TRUE, FALSE)
 
 ##More practical application of logical indexing
@@ -2578,26 +2582,34 @@ lgl.index2 <- names(my.vector) == "Jimmy" | names(my.vector) == "Katrina"
 ##Define some desired names for subsetting
 names.index <- c("Jimmy", "Sam")
 
-##Use the single bracket operator to subset using integer indecies
+##Use the single bracket operator to subset using
+
+##integer indices
 my.vector[int.index]
 
-##Use the single bracket operator to subset using logical indecies
+##Use the single bracket operator to subset using
+
+##logical indices
 my.vector[lgl.index1]
 
-##Practical example of subsetting with logic. This returns the same output as previous example, but has a more legible index.
+##Practical example of subsetting with logic. This
+
+##returns the same output as previous example, but
+
+##has a more legible index.
 my.vector[lgl.index2]
 
 ##Use the single bracket operator to subset by name
 my.vector[names.index]
 ```
 
-R uses $1$-based array indexing, so when fed integer indecies it will attempt to extract elements from the object based on the position considering the index $1$ to be first position.  When we told R to take $4^{th}$ element of my.vector it determined that there *should* be a $4^{th}$ element, but that there was insufficient data to determine its value. R returns `r NA` for the fourth index of my.vector. If R instead is given a logical vector to use as indecies, it decides it needs to do a logical comparison. R will first (if necessary) replicate the indecies until the length of the index vector has at least the same length as the object to be subset; my.vector has three elements but lgl.index only has two, so R will turn $c(T, F)$ into $c(T, F, T, F)$. The elements corresponding to `r TRUE` indecies are returned. The true power of this concept arises from the combination of R's robust logical framework and element-wise operations, as can be seen in the second logical example output.
+R uses $1$-based array indexing, so when fed integer indices it will attempt to extract elements from the object based on the position considering the index $1$ to be first position.  When we told R to take $4^{th}$ element of my.vector it determined that there *should* be a $4^{th}$ element, but that there was insufficient data to determine its value. R returns `r NA` for the fourth index of my.vector. If R instead is given a logical vector to use as indices, it decides it needs to do a logical comparison. R will first (if necessary) replicate the indices until the length of the index vector has at least the same length as the object to be subset; my.vector has three elements but lgl.index only has two, so R will turn $c(T, F)$ into $c(T, F, T, F)$. The elements corresponding to `r TRUE` indices are returned. The true power of this concept arises from the combination of R's robust logical framework and element-wise operations, as can be seen in the second logical example output.
   
 The single bracket operator can also be used to subset by name. When the single bracket is fed a character vector, R will look for an element whose name is a literal match. One of the later methods allows for partial matching, but not the single bracket. If there is no element with a name matching a supplied argument R will return an `r NA` of the appropriate class as stand-in. Note that R does not name the `r NA` value with the assumed name from the index.
   
 2. The double bracket operator $X[[i]]$.
 
-Just as the single bracket variant is generally used on vectors, the double bracket is most often used on lists. Before discussing the double bracket method, first we must first ask what is an R list? Lists are another common form of array that can be thought of as a hierarchical pyramid that can hold any type of object, including other lists. Just like vectors, list elements can have names. Lists are excellent organizational tools because they are not beholden to the stipulation that each element have the same class invariant; a two element list may for example contain one function and one dataframe. Because lists may contain a variety of information, a couple good ways to obtain a sense of the contents are the str() and  glimpse() commands. I am personally partial towards glimpse due to its good behavior with other dplyr verbs. 
+Just as the single bracket variant is generally used on vectors, the double bracket is most often used on lists. Before discussing the double bracket method, we must first ask what is an R list? Lists are another common form of array that can be thought of as a hierarchical pyramid that can hold any type of object, including other lists. Just like vectors, list elements can have names. Lists are excellent organizational tools because they are not beholden to the stipulation that each element have the same class invariant; a two element list may for example contain one function and one dataframe. Because lists may contain a variety of information, a couple good ways to obtain a sense of the contents are the str() and  glimpse() commands. I am personally partial towards glimpse due to its good behavior with other dplyr verbs. 
 
 The double bracket drops all formatting on elements - for a list this includes removal of the top level list specification as well as any names associated to the level. In the sample output below, my.list contains two branches. The first branch is another list of two elements, while the second is a numeric vector of length $1$. By applying [[1]] once, R extracts the branch title Element_One. The second application of [[1]] extracts the contents of the first object stored in Element_One, which happens to be a function that returns the mean of an input. By supplying a numeric vector to this subset R will output the mean of the numeric vector. In my project I use lists to store multiple stratified mixed-effects models, and subsetting those lists allows tidy storage of slopes and t-values.
   
@@ -2612,7 +2624,9 @@ names(my.list) <- c("Element_One", "Element_Two")
 names(my.list[[1]]) <- c("Mean", "Median")
 ##Print the list
 my.list
-##The subset my.list[[1]][[1]] returns a function that takes the mean of an input vector.
+##The subset my.list[[1]][[1]] returns a function that takes
+
+##the mean of an input vector.
 my.list[[1]][[1]](c(1,2,3))
 ```
 
@@ -2620,7 +2634,7 @@ my.list[[1]][[1]](c(1,2,3))
 
 "$" is most often used to extract variables (columns) from a dataframe by name. It can do the same for any non-atomic array, so we will do an example with the object my.list. 
 
-```{r}
+```{r Dollar Sign Operator Example}
 my.list$Element_One
 
 my.list$Element_One$Median(c(1,2,3))
@@ -2630,7 +2644,7 @@ Like the double bracket operator, the dollar sign drops formatting on the extrac
   
 \subsubsection{Control Structures}
 
-Complicated functions can be built by chaining and/or nesting conditional execution statements. In R, conditional execution arises from the a standard if-else statement. The most widely used control structures available in R are the if-else chain, the for while and repeat loops, and the reserved words break and next.  According to the R documentation for these constructs, "They function in much the same way as control statements in any Algol-like language." For loops run over a predetermined set of indecies supplied to the loop, and are therefore a fundamentally finite process. In my project for loops are most widely implemented for program stability. For loops are also easiest to troubleshoot, because R records the loop index in a dummy variable. While loops are more dangerous because a set condition is checked before each cycle and there is no guarantee that such a condition will ever flag. That is not to say these are not useful - the ability to iterate an arbitrary number of times is very powerful. The last type of loop is the repeat loop, which loops continuously until an internal break is called. As with the while loop, a user must be cautious to avoid an infinite loop. The advantage of a repeat loop is manual control over when the break condition gets evaluated. To highlight the differences between while and repeat, let's look at an example:
+Complicated functions can be built by chaining and/or nesting conditional execution statements. In R, conditional execution arises from the standard if-else statement. The most widely used control structures available in R are the if-else chain, the for while and repeat loops, and the reserved words break and next.  According to the R documentation for these constructs, "They function in much the same way as control statements in any Algol-like language." For loops run over a predetermined set of indices supplied to the loop, and are therefore a fundamentally finite process. In my project for loops are most widely implemented for program stability. For loops are also easiest to troubleshoot, because R records the loop index in a dummy variable. While loops are more dangerous because a set condition is checked before each cycle and there is no guarantee that such a condition will ever flag. That is not to say these are not useful - the ability to iterate an arbitrary number of times is very powerful. The last type of loop is the repeat loop, which loops continuously until an internal break is called. As with the while loop, a user must be cautious to avoid an infinite loop. The advantage of a repeat loop is manual control over when the break condition gets evaluated. To highlight the differences between while and repeat, let's look at an example:
 
 ```{r Demo While Loop, echo = TRUE}
 x1 <- 0
@@ -2666,20 +2680,26 @@ repeat{
 x3
 ```
 
-Even though the condition used in this loop is identical to the previous loops, the output is different. Placing the loop break at the end of a loop causes R to run one iteration before quitting. Often this difference can be overcome by a change of condition to a while loop, which is often preferable for legibility. Changing the condition $x < 0$ to $x < 1$ in the while loop makes it equivalent to the second repeat loop. One final note - the next statement ends the current iteration and advances to the next. One application lies in the handling of missing values. In the following example, the is.na() function returns `r TRUE` if the supplied argument is a missing value and `r FALSE` otherwise. The seq_along() method creates a set of integer indecies from $1$ to the length of the supplied vector. We now seek to build a loop that counts how many `r TRUE` statements exist in a row while ignoring missing values:
+Even though the condition used in this loop is identical to the previous loops, the output is different. Placing the loop break at the end of a loop causes R to run one iteration before quitting. Often this difference can be overcome by a change of condition to a while loop, which is often preferable for legibility. Changing the condition $x < 0$ to $x < 1$ in the while loop makes it equivalent to the second repeat loop. One final note - the next statement ends the current iteration and advances to the next. One application lies in the handling of missing values. In the following example, the is.na() function returns `r TRUE` if the supplied argument is a missing value and `r FALSE` otherwise. The seq_along() method creates a set of integer indices from $1$ to the length of the supplied vector. We now seek to build a loop that counts how many `r TRUE` statements exist in a row while ignoring missing values:
 
 ```{r Example loop, echo = TRUE}
 ##Create vector to iterate over
 x4 <- c(TRUE, TRUE, NA, FALSE, TRUE)
 cntr <- 0
 for(i in seq_along(x4)){ ## seq_along(x4) generates the vector 1:5
-  if(is.na(x4[i])){ ##If the ith element of x4 is missing, skip the iteration
+  if(is.na(x4[i])){ ##If the ith element
+    
+    ##of x4 is missing, skip the iteration
     next
   }
-  if(x4[i] == TRUE){ ##If the ith element of x4 is TRUE increment the counter by one
+  if(x4[i] == TRUE){ ##If the ith element of x4 is TRUE increment
+    
+    ##the counter by one
     cntr <- cntr + 1
   }
-  else{ ##By the process of elimination the current element must be FALSE, so we end the loop.
+  else{ ##By the process of elimination the current element
+    
+    ##must be FALSE, so we end the loop.
     break
   }
 }
@@ -2695,70 +2715,119 @@ In his 2008 book *Software for Data Analysis: Programming with R*, John Chambers
 
 It often happens that a programmer wishes to change a couple parameters before reusing some existing code. Functions accomplishes this task efficiently. Such objects can take inputs, no inputs, or have a pre-set but changeable parameter. These arguments are called the "formals" of the function. The "body" consists of the code executed upon a function call using the supplied formal arguments. Functions must exist either in the current working directory or a higher directory in order to be called under R's scoping rules.
 
-Let's say we had 500 logical vectors of length five and wished to find the mean number of first `r TRUE`'s before the first `r FALSE` over all such vectors. The code in the above example loop serves this purpose quite well, but copy/pasting the entire block would be neither tidy nor runtime efficient. We will store the chunk as a function, then apply it across all vectors to find the mean.
+Let's say we had 500 logical vectors of length five and wished to find the mean number of first `r TRUE`'s before the first `r FALSE` over all such vectors.  The code in the above example loop serves this purpose quite well, but copy/pasting the entire block would be neither tidy nor runtime efficient. We will store the chunk as a function, then apply it across all vectors to find the mean.
 
 ```{r Example Function, echo = TRUE}
-##We need to create 500 logical vectors of length 5. The rbinom() function is excellent for this task as it simulates binomial random variables. Documentation can be found at https://stat.ethz.ch/R-manual/R-patched/library/stats/html/Binomial.html . We will create these logical vectors one-by-one, and use a loop to iterate 500 times.
 
-results <- rep(0, 500) ##Create a vector to store the number of TRUE's before the first FALSE for each vector of length 5.
+results <- rep(0, 500) ##Create a vector to store the number
 
-##We define the function Trues.Before.False to count the number of TRUE's before FALSE in the supplied vector, while skipping any elements that are missing. In our randomly generated vectors no data will be missing, but real data might so it is a solid safety measure.
+##of TRUE's before the first FALSE for each vector of length 5.
+
 Trues.Before.False <- function(vector){
 cntr <- 0
-for(i in seq_along(vector)){ ## seq_along(vector) creates indecies to iterate over with length equal to the length of the vector
-  if(is.na(vector[i])){ ##If the ith element of the vector is missing, skip the iteration
+for(i in seq_along(vector)){ ## seq_along(vector) creates indices to iterate over
+  
+##with length equal to the length of the vector
+  
+  if(is.na(vector[i])){ 
+    ##If the ith element of the vector is missing,
+    
+    ##skip the iteration
     next
   }
-  if(vector[i] == TRUE){ ##If the ith element of the vector is TRUE increment the counter by one 
+  if(vector[i] == TRUE){ 
+    ##If the ith element of the vector is TRUE, 
+    
+    ##increment the counter by one 
     cntr <- cntr + 1
   }
-  else{ ##By the process of elimination the current element must be FALSE, so we end the loop.
+  else{ 
+    ##By the process of elimination the current
+    
+    ##element must be FALSE, so we end the loop.
     break
   }
 }
 return(cntr)
 }
 
-##Apply Trues.Before.False manually across 500 randomly generated vectors of length 5.
-for(j in seq_along(results)){ ## We need to be careful to use a new index j because Trues.Before.False uses the index i. This doesn't actually affect the functionality of the program, but is good practice for legibility.
-  current.vector <- as.logical(rbinom(n = 5, size = 1, prob = 0.8)) ##Create a logical vector of length 5 with TRUE probability 0.8.
-  results[j] <- Trues.Before.False(current.vector) ##Store the number of TRUE's before the first FALSE to the jth element of results.
+##Apply Trues.Before.False manually across 500
+
+##randomly generated vectors of length 5.
+for(j in seq_along(results)){
+  
+current.vector <- as.logical(rbinom(n = 5, size = 1, prob = 0.8))
+  ##Create a logical vector of length 5 with
+  
+  ##TRUE probability 0.8.
+results[j] <- Trues.Before.False(current.vector) 
+  ##Store the number of TRUE's before the first FALSE to the
+  
+  ##jth element of results.
 }
 
-mean(results) #Output the mean number of TRUE's before the first FALSE.
+mean(results) 
+#Output the mean number of TRUE's before the first FALSE.
 ```
 
 Instead of Trues.Before.False onto each vector individually, we have the option to use one of R's built in apply functions. These take an input object, an input function, and sometimes additional specifications to achieve the same result in a more efficient manner. Apply functions can make the code mode legible as well, which helps for reproducibility. The method lapply() takes a list and a function as input then returns a list wherein one item is the output of one function application. vapply specifically takes a list or a vector as input, and allows the user to specify what type of object should be returned using the argument FUN.ARGS. sapply() automatically determines what output is best, preferentially choosing vectors and matrices if possible. In my analysis I will use sapply() a couple times, but more often use manual application for conciseness. As an example, we will use sapply() to recreate the mean calculation. We will also put the entire command within another function environment for ease of duplication with a modifiable simulation number set to a default of five hundred.
 
 ```{r sapply Example, echo = TRUE}
-##We need to supply sapply with a list of logical vectors with length 5. We will use the same for() loop as before to accomplish this.
+##We need to supply sapply with a list of logical vectors with
+
+##length 5. We will use the same for() loop as before
+
+##to accomplish this.
 
 Make.Trues.Before.False.Mean <- function(n.sims = 500){
 
-five.numbers <- rep(as.numeric(NA), 5) ##Create a dummy variable to ensure list class is numeric. We initialize this vector using the coercion method as.numeric() on missing values as a safety measure to ensure the initialization does not affect the outcome.
-sapply.list <- rep(list(five.numbers), n.sims) ##Create a list with n branches to store individual simulations. The individual branches contain one numeric vector of length five. For this output we set n.sims = 500
-for(j in seq_along(sapply.list)){ ## We need to be careful to use a new index j because Trues.Before.False uses the index i. This doesn't actually affect the functionality of the program, but is good practice for legibility.
-  sapply.list[[j]] <- as.logical(rbinom(n = 5, size = 1, prob = 0.8)) ##Create a logical vector of length 5 with TRUE probability 0.8 and save it to the jth branch of sapply.list. 
+five.numbers <- rep(as.numeric(NA), 5) 
+##Create a dummy variable to ensure list class is numeric.
+
+##We initialize this vector using the coercion method 
+
+##as.numeric() on missing values as a safety measure to
+
+##ensure the initialization does not affect the outcome.
+sapply.list <- rep(list(five.numbers), n.sims) 
+##Create a list with n branches to store individual 
+
+##simulations. The individual branches contain one numeric
+
+##vector of length five. For this output we set n.sims=500
+for(j in seq_along(sapply.list)){ 
+sapply.list[[j]] <- as.logical(rbinom(n = 5, size = 1, prob = 0.8))
+  ##Create a logical vector of length 5 with TRUE 
+  
+  ##probability 0.8 and save it to the jth branch
+  
+  ##of sapply.list. 
 }
 
-return(mean(sapply(sapply.list, Trues.Before.False))) ##Use sapply to determine the number of TRUE's before the first FALSE for each simulation, then return the mean of all n.sims simulations.
+return(mean(sapply(sapply.list, Trues.Before.False))) 
+##Use sapply to determine the number of TRUE's before
+
+##the first FALSE for each simulation, then return 
+
+##the mean of all n.sims simulations.
 }
 
 Make.Trues.Before.False.Mean()
 ```
 
-Even though the procedure is identical, the output is different. This is because the five hundred vectors of length five get resimulated, and the number of `r TRUE`'s before the first `r FALSE` among those five numbers has some variance in accordance with the standard deviation of the sampling distribution. Recall that this is the standard error $se = \frac{\sigma_x}{\sqrt{N}}$. The deviation between instances of Make.Trues.Before.False.Mean() will then decrease monotonically as the number of simulations increases ($N \in \mathbb{N}$). Two histograms using Make.Trues.Before.False.Mean() with different number of simulations are presented below for visualization of this idea as figures $2$ and $3$.
+Even though the procedure is identical, the output is different. This is because the five hundred vectors of length five get resimulated, and the number of `r TRUE`'s before the first `r FALSE` among those five numbers has some variance in accordance with the standard deviation of the sampling distribution. Recall that this is the standard error $se = \frac{\sigma_x}{\sqrt{N}}$. The deviation between instances of Make.Trues.Before.False.Mean() will then decrease monotonically as the number of simulations increases ($N \in \mathbb{N}$). Two histograms using Make.Trues.Before.False.Mean() with different number of simulations are presented below for visualization of this idea as figures $33$ and $34$.
 
 ```{r Make Hist.Data1, include=FALSE}
 
-Hist.Data1 <- data.frame(Sample.Means = rep(as.numeric(NA), 10^4)) ##Initialize a data frame with variable Sample.Means. I chose 10^4 samples to get a good approximation of the sampling distribution for n.sims = 60. 
+Hist.Data1 <- data.frame(Sample.Means = rep(as.numeric(NA), 10^4))
+##Initialize a data frame with variable Sample.Means. I chose 10^4 samples to get a good approximation of the sampling distribution for n.sims = 60. 
 
 for(k in seq_along(Hist.Data1$Sample.Means)){
   Hist.Data1$Sample.Means[k] <- Make.Trues.Before.False.Mean(60)
 }  
 ```
 
-```{r, fig.cap = "Sampling Distribution of the function Make.Trues.Before.False.Mean for Sixty Vectors of Length Five, with 95% Confidence Interval."}
+```{r Make.Trues.Before.False.Mean histogram using sixty vectors, fig.cap = "Sampling distribution of the function Make.Trues.Before.False.Mean for sixty vectors of length five, with 95% confidence interval."}
 Hist.Data1 %>%
   ggplot(aes(x = Sample.Means)) +
   geom_histogram() +
@@ -2769,14 +2838,15 @@ Hist.Data1 %>%
 
 ```{r Make Hist.Data2, include=FALSE}
 
-Hist.Data2 <- data.frame(Sample.Means = rep(as.numeric(NA), 10^4)) ##Initialize a data frame with variable Sample.Means. I chose 10^4 samples to get a good approximation of the sampling distribution for n.sims = 1000. 
+Hist.Data2 <- data.frame(Sample.Means = rep(as.numeric(NA), 10^4))
+##Initialize a data frame with variable Sample.Means. I chose 10^4 samples to get a good approximation of the sampling distribution for n.sims = 1000. 
 
 for(k in seq_along(Hist.Data2$Sample.Means)){
   Hist.Data2$Sample.Means[k] <- Make.Trues.Before.False.Mean(1000)
 }  
 ```
 
-```{r, fig.cap = "Sampling Distribution of Make.Trues.Before.False.Mean for One Thousand Vectors of Length Five, with 95% Confidence Interval."}
+```{r Make.Trues.Before.False.Mean histogram using one thousand vectors, fig.cap = "Sampling distribution of Make.Trues.Before.False.Mean for one thousand vectors of length five, with 95% confidence interval."}
 Hist.Data2 %>%
   ggplot(aes(x = Sample.Means)) +
   geom_histogram() +
@@ -2788,16 +2858,24 @@ Hist.Data2 %>%
 
 \subsubsection{Scoping Rules}
 
-The function Trues.Before.False() is not defined locally within Make.Trues.Before.False.Mean(). R's scoping rules allow for a function call to access not only the local environment but also any higher environment such as a package all the way up to the global environment. That is, a user can assign a value to an object in a function call that will not influence the representation of a preexisting object with the same name. When R encounters a reference to an object, it begins by looking among those locally defined before proceeding upwards. As a consequence, the following R code returns $100$ instead of $10$:
+The function Trues.Before.False() is not defined locally within \newline Make.Trues.Before.False.Mean(). R's scoping rules allow for a function call to access not only the local environment but also any higher environment such as a package all the way up to the global environment. That is, a user can assign a value to an object in a function call that will not influence the representation of a preexisting object with the same name. When R encounters a reference to an object, it begins by looking among those locally defined before proceeding upwards. As a consequence, the following R code returns $100$ instead of $10$:
 
 ```{r Scoping Example, echo = TRUE}
 cntr <- 0 ## Create a counter
-for(i in 1:10){ ##Define the index i to run over the vector 1:10
-  for(i in 1:10){ ##Define ANOTHER index ALSO CALLED i that runs over another vector 1:10. R's scoping rules check the local value i's local value before incrementing at the beginning of the for() loop.  
+for(i in 1:10){ 
+  ##Define the index i to run over the vector 1:10
+  for(i in 1:10){ 
+    ##Define ANOTHER index ALSO CALLED i that runs over
+    
+    ##another vector 1:10. R's scoping rules check the
+    
+    ##local value i's local value before incrementing at
+    
+    ##the beginning of the for() loop.  
     cntr <- cntr + 1
   }
 }
-cntr ##Output
+cntr
 ```
 
 In RMarkdown objects that are created in code chunks are saved to the global environment. We can therefore call functions that are not locally defined, which is immensely useful in functional programming.
@@ -2812,15 +2890,15 @@ As the name suggests, R's sample() function allows its user to create random sam
 
 \subsection{Appendix B: The Tidyverse Arsenal}
 
-While the R Programming tools I learned from Coursera, probability, and mathematical statistics are sufficient for the creation of the necessary functions to do analyse Professor Eckstrom's dataset, many smart people (Hadley Wickham and Yihui Xie primary among them) have built specialized tools in R for the tidying, manipulation, and presentation of data. The tidyverse is a collection of R packages including ggplot2, dplyr, readr, tibble, and forcats among others. Dr. Nordmoe's data science course MAT-295 is an introduction to the tidyverse approach of data analysis in R, so I will only give a brief summary of the methods I call. I highly recommend reading the following sections in conjunction with the linked tidyverse cheatsheet, as these guides contain information about the syntax and usage of methods found in one package.
+While the R Programming tools I learned from Coursera, probability, and mathematical statistics are sufficient for the creation of the necessary functions to analyse Professor Eckstrom's dataset, many smart people (Hadley Wickham and Yihui Xie primary among them) have built specialized tools in R for the tidying, manipulation, and presentation of data. The tidyverse is a collection of R packages including ggplot2, dplyr, readr, tibble, and forcats among others. Dr. Nordmoe's data science course MAT-295 is an introduction to the tidyverse approach of data analysis in R, so I will only give a brief summary of the methods I call. I highly recommend reading the following sections in conjunction with the linked tidyverse cheatsheet, as these guides contain information about the syntax and usage of methods found in one package.
 
 \subsubsection{Piping}
 
-Having said that, there is unfortunately no cheatsheet for the tidyverse package magritrr. In liue I will try my best to clearly indicate the pipe operators syntax and usage. Complicated functions become very illegible very quickly. For example, the proper base R syntax for the composition of a function A $f_A(x,A_1,\ldots)$ with a function B $f_B(x,B_1,\ldots)$ called on an object x is $f_A(f_B(B(x,B_1,\ldots)), A_1,\ldots)$. When composing even as few as four or five functions it quickly becomes difficult to discern which formals are being supplied to which functions. When the tidyverse is loaded using the library() function, the pipe operator `%>%` is exported from the R package magritrr. Using the pipe changes the function composition into a function ordering; $x \quad \%>\%  \quad f_A(A_1, \ldots) \quad \%>\% \quad f_B(B_1,\ldots)$ clearly indicates that the object $x$ is first operated on by the function $f_A$ with formal arguments $\{A_1, \ldots\}$ before being sent into $f_B$ with formals $\{B_1,\ldots\}$.  Many tidyverse methods are built for usage with the pipe operator, allowing for legible data manipulations and transforming R from a functional language into a  an object-oriented language.
+Having said that, there is unfortunately no cheatsheet for the tidyverse package magritrr. In lieu I will try to clearly indicate the pipe operators syntax and usage. Complicated functions become quite illegible very quickly. For example, the proper base R syntax for the composition of a function A $f_A(x,A_1,\ldots)$ with a function B $f_B(x,B_1,\ldots)$ called on an object x is $f_A(f_B(B(x,B_1,\ldots)), A_1,\ldots)$. When composing even as few as four or five functions it quickly becomes difficult to discern which formals are being supplied to which functions. When the tidyverse is loaded using the library() function, the pipe operator `%>%` is exported from the R package magritrr. Using the pipe changes the function composition into a function ordering; $x \quad \%>\%  \quad f_A(A_1, \ldots) \quad \%>\% \quad f_B(B_1,\ldots)$ clearly indicates that the object $x$ is first operated on by the function $f_A$ with formal arguments $\{A_1, \ldots\}$ before being sent into $f_B$ with formals $\{B_1,\ldots\}$.  Many tidyverse methods are built for usage with the pipe operator, allowing for legible data manipulations and transforming R from a functional language into a  an object-oriented language.
 
 \subsubsection{dplyr}
 
-The tidyverse package dplyr provides many streamlined, composable functions for the manipulation of data sets. The filter() function removes all rows of a data set that do not obey a supplied logical condition. Similarly the slice() method can be used to choose rows by index. mutate() and transmute() create new columns or alter existing ones, and rename() is a streamlined wrapper for mutate() that changes only changes the variable name. Conversely, the select() method can either remove variables entirely or just reorder columns. A user can use the arrange() function to reorder the rows of a data set from highest to lowest or vice versa based on a supplied set of variables. Summarise creates a new data frame with columns generated procedurally from its formal arguments. Each of these methods is referred to as a dplyr verb, and works in conjunction with the group_by() function.
+The tidyverse package dplyr provides many streamlined, composable functions for the manipulation of data sets. The filter() function removes all rows of a data set that do not obey a supplied logical condition. Similarly the slice() method can be used to choose rows by index. mutate() and transmute() create new columns or alter existing ones, and rename() is a streamlined wrapper for mutate() that only changes the variable name. Conversely, the select() method can either remove variables entirely or just reorder columns. A user can use the arrange() function to reorder the rows of a data set from highest to lowest or vice versa based on a supplied set of variables. The verb summarise() creates a new data frame with columns generated procedurally from its formal arguments. Each of these methods is referred to as a dplyr verb, and works in conjunction with the group_by() function.
 
 In my data analysis I used group_by() and its reciprocal ungroup() cumulatively more than any other single dplyr verb. The group_by() method converts a dataframe into a grouped dataframe. By itself this does nothing, but when combined with the other dplyr verbs a user gains enormous analytical power. Using Professor Eckstrom's dataset which I have named Gen_Data as an example;
 ```{r group_by example, echo = FALSE}
@@ -2837,23 +2915,13 @@ Grouped.Example <- Gen_Data %>%
 kable(Grouped.Example, caption = "First six rows returned by slice(1) acting on Gen_Data grouped by Student Random ID", padding = 3)
 ```
 
-If possible, dplyr verbs are applied over each group. Table 3 and Table 4 show how grouping allows for greater control of data wrangling. When slice(1) is called on Gen_Data without any grouping, only the first row of the dataset is returned. When slice(1) is called on Gen_Data after the data have been grouped by Student Random ID, the first observation for each student is returned. The row(s) returned therefore depends on the current ordering of Gen_Data, which is controlled in dplyr through the arrange() method. group_by() is also commonly used with the summarise() verb to create custom variables that vary based on group. X %>% group_by() %>% count() is a convenient wrapper for summarise that is generally equivalent to X %>% group_by() %>% summarise(n = n()).
+If possible, dplyr verbs are applied over each group. Tables $16$ and and $17$ show how grouping allows for greater control of data wrangling. When slice(1) is called on Gen_Data without any grouping, only the first row of the dataset is returned. When slice(1) is called on Gen_Data after the data have been grouped by Student Random ID, the first observation for each student is returned. The row(s) returned therefore depends on the current ordering of Gen_Data, which is controlled in dplyr through the arrange() method. group_by() is also commonly used with the summarise() verb to create custom variables that vary based on group. X %>% group_by() %>% count() is a convenient wrapper for summarise that is generally equivalent to X %>% group_by() %>% summarise(n = n()).
 
 There are two general types of join commands available in dplyr. The mutating joins allow for two datasets with at least one common variable called a key to be combined combinatorically into one new dataset. The filtering joins remove rows from a dataset based on the presence or absence of rows in a second by key. These join commands are crucial to the execution of complex functions onto datasets where mutate is insufficient or inefficient.
 
 \subsubsection{ggplot2}
 
 With the notable exception of normal probability plots, every graphic I create in this report is created by the tidyverse package ggplot2. As in dplyr, the methods of ggplot2 are built to work together. Each graphic made in ggplot requires a dataframe (or tibble) and a geom. Geoms are the various graphic methods available; geom_histogram() creates a histogram and geom_point() creates a scatterplot. The nomenclature for most geoms are self-identifying. Ggplot2 uses "aesthetics" to define which variables of the supplied data get mapped to which quantities graphically. Some examples of aesthetics are color, shape, point size, and the x and y coordinates. The + operator is a general symbol which tells R to look for more commands before finishing evaluating. ggplot graphics are constructed using multiple commands connected by the + operator. 
-
-```{r Example Scatterplot, fig.cap= "An example ggplot2 scatterplot: V1 against V2 with smoothing curve.", echo = TRUE}
-Example.Scatterplot.Data <- data.frame(V1 = 1:10, V2 = seq(from = 10, to = 100, by = 10))
-
-Example.Scatterplot.Data %>%
-  ggplot(aes(x = V1, y = V2)) +
-  geom_point(aes(size = 3)) +
-  geom_smooth() +
-  labs(size = "Point Size")
-```
 
 \subsubsection{Other packages}
 
